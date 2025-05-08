@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -33,16 +32,13 @@ const HospitalDashboard = () => {
   const query = new URLSearchParams(location.search);
   const activeTab = query.get("tab") || "overview";
 
-  // In a real app, this would be fetched from an API after authentication
+  // In a real app, this would be fetched from an API
   const [hospitalData, setHospitalData] = useState({
     hospitalName: "City General Hospital",
     hospitalId: "CGH12345",
     email: "admin@citygeneralhospital.com",
   });
 
-  // Check authentication status (simplified for demo)
-  const isAuthenticated = localStorage.getItem("hospitalAuthToken");
-  
   useEffect(() => {
     // Display welcome toast when dashboard loads for the first time
     if (!localStorage.getItem("dashboardWelcomeShown")) {
@@ -54,12 +50,6 @@ const HospitalDashboard = () => {
       localStorage.setItem("dashboardWelcomeShown", "true");
     }
   }, [toast]);
-  
-  if (!isAuthenticated) {
-    // Redirect to login if not authenticated
-    navigate("/login");
-    return null;
-  }
 
   // Handle tab change
   const handleTabChange = (value: string) => {

@@ -31,7 +31,7 @@ const CrmDashboard = () => {
   const query = new URLSearchParams(location.search);
   const activeTab = query.get("tab") || "overview";
 
-  // In a real app, this would be fetched from an API after authentication
+  // In a real app, this would be fetched from an API
   const [crmUserData, setCrmUserData] = useState({
     name: "Priya Sharma",
     id: "CRM-456",
@@ -42,9 +42,6 @@ const CrmDashboard = () => {
     openOpportunities: 18,
   });
 
-  // Check authentication status (simplified for demo)
-  const isAuthenticated = localStorage.getItem("crmAuthToken");
-  
   useEffect(() => {
     // Display welcome toast when dashboard loads for the first time
     if (!localStorage.getItem("crmDashboardWelcomeShown")) {
@@ -56,12 +53,6 @@ const CrmDashboard = () => {
       localStorage.setItem("crmDashboardWelcomeShown", "true");
     }
   }, [toast]);
-  
-  if (!isAuthenticated) {
-    // Redirect to login if not authenticated
-    navigate("/login");
-    return null;
-  }
 
   // Handle tab change
   const handleTabChange = (value: string) => {
@@ -204,7 +195,7 @@ const CrmDashboard = () => {
               {activeTab === "opportunities" && (
                 <Button 
                   size="sm"
-                  onClick={() => {
+                  onClick={() =>           {
                     toast({
                       title: "Add New Opportunity",
                       description: "Creating a new business opportunity",

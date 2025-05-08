@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -17,12 +16,10 @@ import {
 import { useToast } from '@/components/ui/use-toast';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useAuth } from '@/hooks/useAuth';
 
 const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { authState, signIn } = useAuth();
   const [loaded, setLoaded] = useState(true);
   const [loginType, setLoginType] = useState<'hospital' | 'patient' | 'admin' | 'sales' | 'crm'>('patient');
   const [formData, setFormData] = useState({
@@ -31,10 +28,20 @@ const Login = () => {
   });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Demo credentials
+  const demoCredentials = {
+    patient: { email: 'patient@demo.com', password: 'demo123' },
+    hospital: { email: 'hospital@demo.com', password: 'demo123' },
+    admin: { email: 'admin@demo.com', password: 'demo123' },
+    sales: { email: 'sales@demo.com', password: 'demo123' },
+    crm: { email: 'crm@demo.com', password: 'demo123' },
+  };
 
   // Redirect if already authenticated
-  if (authState.initialized && authState.user) {
-    const redirectPath = `/${authState.user.role}-dashboard`;
+  if (isAuthenticated) {
+    const redirectPath = `/${loginType}-dashboard`;
     return <Navigate to={redirectPath} replace />;
   }
 
@@ -77,25 +84,32 @@ const Login = () => {
     setError(null);
     
     try {
-      const { data, error } = await signIn(formData.email, formData.password);
-      
-      if (error) {
-        setError(error.message);
-      } else if (data?.user) {
-        // Auth provider will handle the redirect
+      const credentials = demoCredentials[loginType];
+      if (formData.email === credentials.email && formData.password === credentials.password) {
+        setIsAuthenticated(true);
         toast({
           title: "Login Successful",
           description: `Welcome back!`,
         });
+      } else {
+        setError('Invalid email or password');
       }
     } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred');
+      setError('An unexpected error occurred');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Since we're now using real authentication, demo login is removed
+  const handleDemoLogin = (type: 'hospital' | 'patient' | 'admin' | 'sales' | 'crm') => {
+    setLoginType(type);
+    setFormData(demoCredentials[type]);
+    setIsAuthenticated(true);
+    toast({
+      title: "Demo Login Successful",
+      description: `Logged in as ${type} demo user`,
+    });
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -201,6 +215,16 @@ const Login = () => {
                       {!isSubmitting && <ArrowRight className="ml-2 h-4 w-4" />}
                     </Button>
                   </form>
+                  
+                  <div className="mt-4">
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => handleDemoLogin(loginType)}
+                    >
+                      Demo Login as {loginType}
+                    </Button>
+                  </div>
                   
                   <div className="mt-4 text-center">
                     <p className="text-sm text-gray-600">

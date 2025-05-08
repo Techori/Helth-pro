@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,7 +22,7 @@ const PatientDashboard = () => {
   const query = new URLSearchParams(location.search);
   const activeTab = query.get("tab") || "overview";
 
-  // In a real app, this would be fetched from an API after authentication
+  // In a real app, this would be fetched from an API
   const [patientData, setPatientData] = useState({
     patientName: "John Doe",
     patientId: "P12345",
@@ -31,9 +30,6 @@ const PatientDashboard = () => {
     healthCardId: "HC-78901-23456",
   });
 
-  // Check authentication status
-  const isAuthenticated = localStorage.getItem("patientAuthToken");
-  
   useEffect(() => {
     // Display welcome toast when dashboard loads for the first time
     if (!localStorage.getItem("patientDashboardWelcomeShown")) {
@@ -45,12 +41,6 @@ const PatientDashboard = () => {
       localStorage.setItem("patientDashboardWelcomeShown", "true");
     }
   }, [toast]);
-  
-  if (!isAuthenticated) {
-    // Redirect to login if not authenticated
-    navigate("/login");
-    return null;
-  }
 
   // Handle tab change
   const handleTabChange = (value: string) => {
@@ -58,7 +48,6 @@ const PatientDashboard = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("patientAuthToken");
     localStorage.removeItem("patientDashboardWelcomeShown");
     toast({
       title: "Logged Out",

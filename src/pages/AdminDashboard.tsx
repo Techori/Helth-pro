@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import AdminDashboardHeader from "@/components/admin/AdminDashboardHeader";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import AdminDashboardOverview from "@/components/admin/AdminDashboardOverview";
@@ -54,8 +54,6 @@ const AdminDashboard = () => {
     role: "System Administrator",
   });
 
-  const isAuthenticated = localStorage.getItem("adminAuthToken");
-  
   useEffect(() => {
     if (!localStorage.getItem("adminDashboardWelcomeShown")) {
       toast({
@@ -65,11 +63,7 @@ const AdminDashboard = () => {
       });
       localStorage.setItem("adminDashboardWelcomeShown", "true");
     }
-
-    if (!isAuthenticated) {
-      navigate("/login");
-    }
-  }, [toast, isAuthenticated, navigate]);
+  }, [toast]);
 
   const handleQuickAction = (actionType: string) => {
     setQuickActionType(actionType);
@@ -92,7 +86,6 @@ const AdminDashboard = () => {
       title: "Export Started",
       description: `Exporting ${activeTab} data to Excel...`,
     });
-    // Simulate export delay
     setTimeout(() => {
       toast({
         title: "Export Complete",
@@ -127,10 +120,6 @@ const AdminDashboard = () => {
     
     setIsQuickActionOpen(false);
   };
-
-  if (!isAuthenticated) {
-    return null;
-  }
 
   return (
     <SidebarWrapper>

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -30,7 +29,7 @@ const SalesTeamDashboard = () => {
   const query = new URLSearchParams(location.search);
   const activeTab = query.get("tab") || "overview";
 
-  // In a real app, this would be fetched from an API after authentication
+  // In a real app, this would be fetched from an API
   const [salesUserData, setSalesUserData] = useState({
     name: "Rahul Mehta",
     id: "SALES-123",
@@ -40,9 +39,6 @@ const SalesTeamDashboard = () => {
     targetAchieved: 78,
     pendingLeads: 24,
   });
-
-  // Check authentication status (simplified for demo)
-  const isAuthenticated = localStorage.getItem("salesAuthToken");
   
   useEffect(() => {
     // Display welcome toast when dashboard loads for the first time
@@ -55,15 +51,9 @@ const SalesTeamDashboard = () => {
       localStorage.setItem("salesDashboardWelcomeShown", "true");
     }
   }, [toast]);
-  
-  if (!isAuthenticated) {
-    // Redirect to login if not authenticated
-    navigate("/login");
-    return null;
-  }
 
   // Handle tab change
-  const handleTabChange = (value: string) => {
+  const handleTabChange = (value) => {
     navigate(value === "overview" ? "/sales-dashboard" : `/sales-dashboard?tab=${value}`);
   };
 
@@ -85,7 +75,7 @@ const SalesTeamDashboard = () => {
   };
 
   // Handle export to Excel/PDF
-  const handleExport = (format: "excel" | "pdf") => {
+  const handleExport = (format) => {
     toast({
       title: `Exporting to ${format.toUpperCase()}`,
       description: `Your ${activeTab} data is being exported to ${format.toUpperCase()}.`,

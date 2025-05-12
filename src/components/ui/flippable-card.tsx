@@ -19,7 +19,7 @@ const FlippableCard: React.FC<FlippableCardProps> = ({
   className,
   cardClassName,
   autoRotate = false,
-  rotationInterval = 6000,
+  rotationInterval = 3000,
   hoverEffect = true,
   onClick
 }) => {

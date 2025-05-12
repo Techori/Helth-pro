@@ -237,6 +237,14 @@ const Login = () => {
                       <Link to="/forgot-password" className="hover:underline">
                         Forgot your password?
                       </Link>
+                        <div className="mt-4 pt-4 border-t">
+                        <p className="text-xs text-gray-500 mb-2">Demo Credentials:</p>
+                        {Object.entries(demoCredentials).map(([type, cred]) => (
+                          <div key={type} className="text-xs text-gray-500">
+                          <strong className="capitalize">{type}</strong>: {cred.email} / {cred.password}
+                          </div>
+                        ))}
+                        </div>
                     </p>
                   </div>
                 </CardContent>

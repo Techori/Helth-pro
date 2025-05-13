@@ -15,6 +15,8 @@ import {
   Settings,
   Shield
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -34,14 +36,14 @@ interface SidebarProps {
 
 const HospitalSidebar = ({ isOpen, setIsOpen }: SidebarProps) => {
   const location = useLocation();
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
   const query = new URLSearchParams(location.search);
   const activeTab = query.get('tab') || '';
   
   const handleLogout = () => {
-    // Clear authentication data
-    localStorage.removeItem("hospitalAuthToken");
-    // Redirect to login page
-    window.location.href = "/login";
+    signOut();
+    navigate('/login');
   };
 
   return (

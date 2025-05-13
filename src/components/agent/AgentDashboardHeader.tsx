@@ -1,5 +1,4 @@
-
-import { Bell, ChevronDown, Menu, MessageSquare } from "lucide-react";
+import { Bell, ChevronDown, Menu, MessageSquare, LogOut } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +10,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 interface AgentDashboardHeaderProps {
   agentName: string;
@@ -27,9 +28,12 @@ const AgentDashboardHeader = ({
   conversionRate,
   toggleSidebar
 }: AgentDashboardHeaderProps) => {
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
+
   const handleLogout = () => {
-    localStorage.removeItem("agentAuthToken");
-    window.location.href = "/login";
+    signOut();
+    navigate('/login');
   };
 
   return (
@@ -101,7 +105,9 @@ const AgentDashboardHeader = ({
             <DropdownMenuItem>Commission History</DropdownMenuItem>
             <DropdownMenuItem>Settings</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" /> Log Out
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

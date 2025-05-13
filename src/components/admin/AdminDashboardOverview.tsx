@@ -153,12 +153,16 @@ const AdminDashboardOverview = () => {
                     <XAxis dataKey="month" />
                     <YAxis />
                     <Bar dataKey="users" name="users" fill="var(--color-users)" radius={[4, 4, 0, 0]} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <ChartTooltip>
+                      <ChartTooltipContent />
+                    </ChartTooltip>
                   </BarChart>
                 </ResponsiveContainer>
               </ChartContainer>
               <ChartContainer config={chartConfig}>
-                <ChartLegend content={<ChartLegendContent />} />
+                <ChartLegend>
+                  <ChartLegendContent />
+                </ChartLegend>
               </ChartContainer>
             </div>
           </CardContent>
@@ -180,13 +184,15 @@ const AdminDashboardOverview = () => {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
                     <YAxis />
-                    <Tooltip content={<ChartTooltipContent />} />
+                    <Tooltip />
                     <Line type="monotone" dataKey="loans" name="loans" stroke="var(--color-loans)" activeDot={{ r: 8 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </ChartContainer>
               <ChartContainer config={chartConfig}>
-                <ChartLegend content={<ChartLegendContent />} />
+                <ChartLegend>
+                  <ChartLegendContent />
+                </ChartLegend>
               </ChartContainer>
             </div>
           </CardContent>

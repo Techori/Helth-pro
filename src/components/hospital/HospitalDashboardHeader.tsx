@@ -1,5 +1,4 @@
-
-import { Bell, Menu, User } from "lucide-react";
+import { Bell, Menu, User, LogOut } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,6 +9,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 interface HospitalDashboardHeaderProps {
   hospitalName: string;
@@ -20,6 +21,14 @@ const HospitalDashboardHeader = ({
   hospitalName,
   toggleSidebar,
 }: HospitalDashboardHeaderProps) => {
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    signOut();
+    navigate('/login');
+  };
+
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
       <div className="px-4 sm:px-6 h-16 flex items-center justify-between">
@@ -99,11 +108,8 @@ const HospitalDashboardHeader = ({
               <DropdownMenuItem>Profile</DropdownMenuItem>
               <DropdownMenuItem>Settings</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => {
-                localStorage.removeItem("hospitalAuthToken");
-                window.location.href = "/login";
-              }}>
-                Log out
+              <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" /> Log Out
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

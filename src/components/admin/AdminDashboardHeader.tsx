@@ -1,4 +1,3 @@
-
 import { Bell, Menu, User, Settings, HelpCircle, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -20,6 +19,7 @@ import {
   DialogClose
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/hooks/useAuth";
 
 const AdminDashboardHeader = ({ 
   adminName, 
@@ -28,6 +28,7 @@ const AdminDashboardHeader = ({
   adminName: string; 
   toggleSidebar: () => void;
 }) => {
+  const { signOut } = useAuth();
   const [notificationCount, setNotificationCount] = useState(5);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showHelpDialog, setShowHelpDialog] = useState(false);
@@ -98,8 +99,7 @@ const AdminDashboardHeader = ({
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("adminAuthToken");
-    window.location.href = "/login";
+    signOut();
   };
 
   const handleHelpClick = () => {

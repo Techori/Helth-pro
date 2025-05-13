@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,12 +10,14 @@ import LoanManagement from "@/components/patient/LoanManagement";
 import HospitalVisits from "@/components/patient/HospitalVisits";
 import ProfileSettings from "@/components/patient/ProfileSettings";
 import { Toaster } from "@/components/ui/toaster";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import SidebarWrapper from "@/components/SidebarWrapper";
 
 const PatientDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { authState, signOut } = useAuth();
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   
@@ -22,17 +25,28 @@ const PatientDashboard = () => {
   const query = new URLSearchParams(location.search);
   const activeTab = query.get("tab") || "overview";
 
-  // In a real app, this would be fetched from an API
-  const [patientData, setPatientData] = useState({
-    patientName: "John Doe",
-    patientId: "P12345",
-    email: "john.doe@example.com",
+  // Check authentication
+  useEffect(() => {
+    if (authState.initialized && !authState.user) {
+      navigate("/login", { replace: true });
+    } else if (authState.user && authState.user.role !== "patient") {
+      navigate(`/${authState.user.role}-dashboard`, { replace: true });
+    }
+  }, [authState.initialized, authState.user, navigate]);
+
+  // Patient data from auth state or default values
+  const patientData = {
+    patientName: authState.user?.firstName 
+      ? `${authState.user.firstName} ${authState.user.lastName}` 
+      : "John Doe",
+    patientId: authState.user?.id || "P12345",
+    email: authState.user?.email || "john.doe@example.com",
     healthCardId: "HC-78901-23456",
-  });
+  };
 
   useEffect(() => {
     // Display welcome toast when dashboard loads for the first time
-    if (!localStorage.getItem("patientDashboardWelcomeShown")) {
+    if (!localStorage.getItem("patientDashboardWelcomeShown") && authState.user) {
       toast({
         title: "Welcome to Patient Dashboard",
         description: "Manage your health card, loans, and hospital visits.",
@@ -40,7 +54,7 @@ const PatientDashboard = () => {
       });
       localStorage.setItem("patientDashboardWelcomeShown", "true");
     }
-  }, [toast]);
+  }, [toast, authState.user]);
 
   // Handle tab change
   const handleTabChange = (value: string) => {
@@ -48,13 +62,13 @@ const PatientDashboard = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("patientDashboardWelcomeShown");
-    toast({
-      title: "Logged Out",
-      description: "You have been successfully logged out.",
-    });
+    signOut();
     navigate("/login");
   };
+
+  if (authState.loading) {
+    return <div className="flex h-screen items-center justify-center">Loading...</div>;
+  }
 
   return (
     <SidebarWrapper>

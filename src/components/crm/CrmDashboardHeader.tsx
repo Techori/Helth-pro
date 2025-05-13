@@ -1,7 +1,6 @@
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Bell, Menu, Search, MessageSquare, ChevronDown } from "lucide-react";
+import { Bell, Menu, Search, MessageSquare, ChevronDown, LogOut } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -12,6 +11,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 type CrmDashboardHeaderProps = {
   userName: string;
@@ -19,9 +20,12 @@ type CrmDashboardHeaderProps = {
 };
 
 const CrmDashboardHeader = ({ userName, toggleSidebar }: CrmDashboardHeaderProps) => {
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
+
   const handleLogout = () => {
-    localStorage.removeItem("crmAuthToken");
-    window.location.href = "/login";
+    signOut();
+    navigate("/login");
   };
 
   return (
@@ -95,7 +99,9 @@ const CrmDashboardHeader = ({ userName, toggleSidebar }: CrmDashboardHeaderProps
               <DropdownMenuItem>Performance Metrics</DropdownMenuItem>
               <DropdownMenuItem>Settings</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" /> Log Out
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

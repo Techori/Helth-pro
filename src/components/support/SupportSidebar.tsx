@@ -1,5 +1,4 @@
 
-import { Link } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -19,8 +18,6 @@ import {
   FileCheck,
   HelpCircle,
   LogOut,
-  CreditCard,
-  BadgePercent,
   Settings,
   CircleDollarSign,
 } from "lucide-react";
@@ -38,6 +35,7 @@ const SupportSidebar = ({ isOpen, setIsOpen, activeTab, setActiveTab }: SupportS
     window.location.href = "/login";
   };
 
+  // Updated to use setActiveTab directly without Link components
   return (
     <Sidebar side="left" variant="sidebar" collapsible={isOpen ? "none" : "offcanvas"}>
       <SidebarHeader>

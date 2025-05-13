@@ -31,6 +31,8 @@ import {
   AlertTitle,
 } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { processHealthCardPayment, processLoanRequest } from "@/services/transactionService";
 
 interface PatientInfo {
   id: string;
@@ -48,12 +50,16 @@ interface PatientInfo {
 
 const PaymentProcessor = () => {
   const { toast } = useToast();
+  const { authState } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [searching, setSearching] = useState(false);
   const [patientInfo, setPatientInfo] = useState<PatientInfo | null>(null);
   const [paymentTab, setPaymentTab] = useState("healthcard");
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentDescription, setPaymentDescription] = useState("");
+  const [paymentType, setPaymentType] = useState("consultation");
+  const [loanPurpose, setLoanPurpose] = useState("treatment");
+  const [loanTenure, setLoanTenure] = useState("3");
   const [processingPayment, setProcessingPayment] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
 
@@ -115,7 +121,7 @@ const PaymentProcessor = () => {
     }, 800);
   };
 
-  const handleProcessPayment = () => {
+  const handleProcessPayment = async () => {
     if (!patientInfo || !paymentAmount || parseFloat(paymentAmount) <= 0) {
       toast({
         variant: "destructive",
@@ -139,12 +145,32 @@ const PaymentProcessor = () => {
 
     setProcessingPayment(true);
 
-    // Simulate payment processing
-    setTimeout(() => {
-      setProcessingPayment(false);
-      setPaymentSuccess(true);
-      
-      // Update patient card balance in the UI (in a real app, this would be updated via API)
+    try {
+      // We should have the actual hospital name from auth state
+      const hospitalName = authState.user?.firstName ? 
+        `${authState.user.firstName} ${authState.user.lastName} Hospital` : 
+        "City General Hospital";
+
+      if (paymentTab === "healthcard") {
+        // Process health card payment
+        await processHealthCardPayment(
+          patientInfo.id,
+          amount,
+          `Payment for ${paymentType}: ${paymentDescription}`,
+          hospitalName
+        );
+      } else {
+        // Process loan request
+        await processLoanRequest(
+          patientInfo.id,
+          amount,
+          loanPurpose,
+          parseInt(loanTenure),
+          hospitalName
+        );
+      }
+
+      // Update patient card balance in the UI
       if (patientInfo) {
         setPatientInfo({
           ...patientInfo,
@@ -154,16 +180,23 @@ const PaymentProcessor = () => {
         });
       }
       
-      // Show success toast
+      setPaymentSuccess(true);
       toast({
-        title: "Payment successful",
+        title: paymentTab === "healthcard" ? "Payment successful" : "Loan request submitted",
         description: `₹${amount.toLocaleString()} has been processed successfully.`,
       });
-      
-      // Reset payment fields
+    } catch (error: any) {
+      console.error("Payment processing error:", error);
+      toast({
+        variant: "destructive",
+        title: "Payment failed",
+        description: error.message || "An error occurred while processing the payment.",
+      });
+    } finally {
+      setProcessingPayment(false);
       setPaymentAmount("");
       setPaymentDescription("");
-    }, 2000);
+    }
   };
 
   const handleNewTransaction = () => {
@@ -297,7 +330,7 @@ const PaymentProcessor = () => {
                       </div>
                       <div className="space-y-1">
                         <Label htmlFor="payment-type">Payment For</Label>
-                        <Select defaultValue="consultation">
+                        <Select defaultValue="consultation" value={paymentType} onValueChange={setPaymentType}>
                           <SelectTrigger>
                             <SelectValue placeholder="Select payment type" />
                           </SelectTrigger>
@@ -356,7 +389,7 @@ const PaymentProcessor = () => {
                       </div>
                       <div className="space-y-1">
                         <Label htmlFor="loan-purpose">Loan Purpose</Label>
-                        <Select defaultValue="treatment">
+                        <Select defaultValue="treatment" value={loanPurpose} onValueChange={setLoanPurpose}>
                           <SelectTrigger>
                             <SelectValue placeholder="Select loan purpose" />
                           </SelectTrigger>
@@ -371,7 +404,7 @@ const PaymentProcessor = () => {
                       </div>
                       <div className="space-y-1">
                         <Label htmlFor="tenure">Loan Tenure</Label>
-                        <Select defaultValue="3">
+                        <Select defaultValue="3" value={loanTenure} onValueChange={setLoanTenure}>
                           <SelectTrigger>
                             <SelectValue placeholder="Select tenure" />
                           </SelectTrigger>
@@ -434,34 +467,11 @@ const PaymentProcessor = () => {
                 <h3 className="text-xl font-semibold text-gray-900">Payment Successful</h3>
                 <p className="text-gray-500">
                   {paymentTab === "healthcard" 
-                    ? `₹${parseFloat(paymentAmount).toLocaleString()} has been deducted from ${patientInfo?.name}'s Health Card.`
-                    : `Loan request for ₹${parseFloat(paymentAmount).toLocaleString()} has been successfully submitted.`
-                  }
+                    ? `₹${parseFloat(paymentAmount).toLocaleString()} has been charged to the patient's health card.`
+                    : `₹${parseFloat(paymentAmount).toLocaleString()} loan request has been submitted successfully.`}
                 </p>
-                <div className="pt-2">
-                  <p className="text-sm font-medium text-gray-500">Transaction Reference</p>
-                  <p className="font-mono text-brand-600 font-medium">
-                    {paymentTab === "healthcard" ? "TRX-" : "LN-"}{Math.floor(Math.random() * 1000000).toString().padStart(6, '0')}
-                  </p>
-                </div>
-                <div className="pt-2">
-                  <p className="text-sm font-medium text-gray-500">
-                    {paymentTab === "healthcard" ? "New Health Card Balance" : "Available Loan Limit"}
-                  </p>
-                  <p className="font-medium text-green-600">
-                    ₹{paymentTab === "healthcard" 
-                      ? patientInfo?.cardBalance.toLocaleString()
-                      : (patientInfo ? (patientInfo.loanLimit - patientInfo.loanBalance - parseFloat(paymentAmount)).toLocaleString() : "0")
-                    }
-                  </p>
-                </div>
               </div>
-              <Button 
-                className="mt-6"
-                onClick={handleNewTransaction}
-              >
-                Process New Transaction
-              </Button>
+              <Button onClick={handleNewTransaction}>Process New Transaction</Button>
             </div>
           )}
         </CardContent>

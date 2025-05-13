@@ -1,8 +1,9 @@
 
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
-import { supabase, cleanupAuthState } from '@/integrations/supabase/client';
-import { AuthState, AuthUser } from '@/types/app.types';
-import { useToast } from '@/hooks/use-toast';
+import { AuthState, AuthUser, UserRole } from '@/types/app.types';
+import { toast } from "@/components/ui/use-toast";
+import { apiRequest } from "@/services/api";
+import { loginUser, registerUser, getCurrentUser, logoutUser, checkAuthToken } from '@/services/authService';
 
 const initialState: AuthState = {
   user: null,
@@ -16,106 +17,63 @@ const AuthContext = createContext<{
     error: any | null;
     data: any | null;
   }>;
-  signUp: (email: string, password: string, firstName: string, lastName: string, role?: string) => Promise<{
+  signUp: (email: string, password: string, firstName: string, lastName: string, role?: UserRole) => Promise<{
     error: any | null;
     data: any | null;
   }>;
-  signOut: () => Promise<void>;
+  signOut: () => void;
   updateProfile: (userData: Partial<AuthUser>) => Promise<void>;
 }>({
   authState: initialState,
   signIn: async () => ({ error: null, data: null }),
   signUp: async () => ({ error: null, data: null }),
-  signOut: async () => {},
+  signOut: () => {},
   updateProfile: async () => {}
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [authState, setAuthState] = useState<AuthState>(initialState);
-  const { toast } = useToast();
 
   useEffect(() => {
-    // First, set up the auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          if (session) {
-            // Defer profile fetching to avoid potential deadlocks
-            setTimeout(async () => {
-              const { user } = session;
-              
-              try {
-                // Get user profile data
-                const { data: profile, error } = await supabase
-                  .from('profiles')
-                  .select('*')
-                  .eq('id', user.id)
-                  .single();
-                
-                if (error) throw error;
-                
-                setAuthState({
-                  user: {
-                    id: user.id,
-                    email: user.email,
-                    role: profile?.role,
-                    firstName: profile?.first_name,
-                    lastName: profile?.last_name
-                  },
-                  loading: false,
-                  initialized: true
-                });
-              } catch (error) {
-                console.error('Error fetching user profile:', error);
-                toast({
-                  title: "Error",
-                  description: "Failed to load user profile",
-                  variant: "destructive"
-                });
-              }
-            }, 0);
-          }
-        } else if (event === 'SIGNED_OUT') {
-          setAuthState({
-            user: null,
-            loading: false,
-            initialized: true
-          });
-        }
-      }
-    );
-
-    // Then check for existing session
+    console.log('Initializing auth');
+    
     const initializeAuth = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const hasToken = checkAuthToken();
+        console.log('Checking token:', hasToken ? 'Token exists' : 'No token');
         
-        if (error) throw error;
-        
-        if (session) {
-          const { user } = session;
-          
-          // Get user profile data
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
-          
-          if (profileError) throw profileError;
-          
-          setAuthState({
-            user: {
-              id: user.id,
-              email: user.email,
-              role: profile?.role,
-              firstName: profile?.first_name,
-              lastName: profile?.last_name
-            },
-            loading: false,
-            initialized: true
-          });
+        if (hasToken) {
+          try {
+            const userData = await getCurrentUser();
+            console.log('User data received:', userData);
+            
+            if (userData) {
+              setAuthState({
+                user: userData,
+                loading: false,
+                initialized: true
+              });
+            } else {
+              console.log('No user data received, clearing token');
+              localStorage.removeItem('token');
+              setAuthState({
+                user: null,
+                loading: false,
+                initialized: true
+              });
+            }
+          } catch (error) {
+            console.error('Error validating token:', error);
+            localStorage.removeItem('token');
+            
+            setAuthState({
+              user: null,
+              loading: false,
+              initialized: true
+            });
+          }
         } else {
+          console.log('No token found, setting unauthenticated state');
           setAuthState({
             user: null,
             loading: false,
@@ -133,177 +91,127 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
     
     initializeAuth();
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [toast]);
+  }, []);
 
   const signIn = async (email: string, password: string) => {
     try {
-      // Clean up existing auth state first
-      cleanupAuthState();
-      
-      // Attempt global sign out to ensure clean state
-      try {
-        await supabase.auth.signOut({ scope: 'global' });
-      } catch (err) {
-        // Continue even if this fails
-        console.error('Error during pre-login signout:', err);
-      }
-      
-      // Now sign in
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
+      console.log('Signing in with:', email);
+      const { user, error } = await loginUser(email, password);
       
       if (error) {
-        toast({
-          title: "Login Failed",
-          description: error.message,
-          variant: "destructive"
-        });
+        console.error('Login error:', error);
+        return { error, data: null };
       }
       
-      return { data, error };
+      if (user) {
+        console.log('Setting auth state with user:', user);
+        setAuthState({
+          user,
+          loading: false,
+          initialized: true
+        });
+        
+        return { data: { user }, error: null };
+      } else {
+        console.error('No user data returned from login');
+        return { error: new Error('Failed to retrieve user data'), data: null };
+      }
     } catch (error: any) {
-      toast({
-        title: "Login Error",
-        description: error.message || "An unexpected error occurred",
-        variant: "destructive"
-      });
-      return { data: null, error };
+      console.error('Unexpected login error:', error);
+      return { error, data: null };
     }
   };
 
-  const signUp = async (email: string, password: string, firstName: string, lastName: string, role = 'patient') => {
-    if (password.length < 8) {
-      toast({
-        title: "Password Too Short",
-        description: "Password must be at least 8 characters long",
-        variant: "destructive"
-      });
-      return { data: null, error: { message: "Password must be at least 8 characters long" } };
+  const signUp = async (email: string, password: string, firstName: string, lastName: string, role: UserRole = 'patient') => {
+    if (password.length < 6) {
+      return { data: null, error: { message: "Password must be at least 6 characters long" } };
     }
     
     try {
-      // Clean up existing auth state first
-      cleanupAuthState();
-      
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            first_name: firstName,
-            last_name: lastName,
-            role
-          }
-        }
-      });
+      console.log('Registering new user:', { email, firstName, lastName, role });
+      const { user, error } = await registerUser(email, password, firstName, lastName, role);
       
       if (error) {
-        toast({
-          title: "Registration Failed",
-          description: error.message,
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Registration Successful",
-          description: "Please check your email to confirm your account",
-        });
+        console.error('Registration error:', error);
+        return { error, data: null };
       }
       
-      return { data, error };
+      if (user) {
+        console.log('Setting auth state with user:', user);
+        setAuthState({
+          user,
+          loading: false,
+          initialized: true
+        });
+        
+        return { data: { user }, error: null };
+      } else {
+        console.error('No user data returned from registration');
+        return { error: new Error('Failed to retrieve user data after registration'), data: null };
+      }
     } catch (error: any) {
-      toast({
-        title: "Registration Error",
-        description: error.message || "An unexpected error occurred",
-        variant: "destructive"
-      });
+      console.error('Registration error:', error);
       return { data: null, error };
     }
   };
 
-  const signOut = async () => {
-    try {
-      // Clean up auth state first
-      cleanupAuthState();
-      
-      // Attempt global sign out
-      await supabase.auth.signOut({ scope: 'global' });
-      
-      // Reset auth state
-      setAuthState({
-        user: null,
-        loading: false,
-        initialized: true
-      });
-      
-      // Force page reload for a clean state
-      window.location.href = '/';
-    } catch (error: any) {
-      console.error('Error signing out:', error);
-      toast({
-        title: "Error Signing Out",
-        description: error.message || "An unexpected error occurred",
-        variant: "destructive"
-      });
-      
-      // Even if there's an error, clean up the local state
-      setAuthState({
-        user: null,
-        loading: false,
-        initialized: true
-      });
-      
-      // Force reload anyway
-      window.location.href = '/';
-    }
+  const signOut = () => {
+    console.log('Signing out');
+    logoutUser();
+    
+    // Clear any role-specific auth tokens
+    localStorage.removeItem("salesAuthToken");
+    localStorage.removeItem("hospitalAuthToken");
+    localStorage.removeItem("agentAuthToken");
+    localStorage.removeItem("patientDashboardWelcomeShown");
+    localStorage.removeItem("salesDashboardWelcomeShown");
+    
+    // Reset auth state
+    setAuthState({
+      user: null,
+      loading: false,
+      initialized: true
+    });
+    
+    // Show logout toast notification
+    toast({
+      title: "Logged out successfully",
+      description: "You have been logged out of your account",
+    });
   };
 
   const updateProfile = async (userData: Partial<AuthUser>) => {
     if (!authState.user) {
-      toast({
-        title: "Error",
-        description: "You must be logged in to update your profile",
-        variant: "destructive"
-      });
+      console.error('Cannot update profile: user not authenticated');
       return;
     }
 
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          first_name: userData.firstName,
-          last_name: userData.lastName
+      console.log('Updating profile:', userData);
+      // Update profile on server
+      const updatedUserData = await apiRequest('/users/me', {
+        method: 'PUT',
+        body: JSON.stringify({
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          email: userData.email
         })
-        .eq('id', authState.user.id);
-
-      if (error) throw error;
-
+      });
+      console.log('Profile update successful:', updatedUserData);
+      
+      // Update state
+      const updatedUser = {
+        ...authState.user,
+        ...userData
+      };
+      
+      console.log('Setting auth state with updated user:', updatedUser);
       setAuthState({
         ...authState,
-        user: {
-          ...authState.user,
-          ...userData
-        }
-      });
-      
-      toast({
-        title: "Profile Updated",
-        description: "Your profile has been successfully updated",
+        user: updatedUser
       });
     } catch (error: any) {
       console.error('Error updating profile:', error);
-      toast({
-        title: "Update Failed",
-        description: error.message || "Failed to update profile",
-        variant: "destructive"
-      });
     }
   };
 

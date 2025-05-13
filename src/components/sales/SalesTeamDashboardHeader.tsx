@@ -1,5 +1,4 @@
-
-import { Bell, ChevronDown, Menu, MessageSquare } from "lucide-react";
+import { Bell, ChevronDown, Menu, MessageSquare, LogOut } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 interface SalesTeamDashboardHeaderProps {
   userName: string;
@@ -28,9 +29,12 @@ const SalesTeamDashboardHeader = ({
   pendingLeads = 0,
   toggleSidebar 
 }: SalesTeamDashboardHeaderProps) => {
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
+
   const handleLogout = () => {
-    localStorage.removeItem("salesAuthToken");
-    window.location.href = "/login";
+    signOut();
+    navigate('/login');
   };
 
   return (
@@ -108,7 +112,9 @@ const SalesTeamDashboardHeader = ({
             <DropdownMenuItem>Sales Targets</DropdownMenuItem>
             <DropdownMenuItem>Settings</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" /> Log Out
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

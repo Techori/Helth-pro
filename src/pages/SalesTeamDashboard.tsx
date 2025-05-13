@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Toaster } from "@/components/ui/toaster";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import SidebarWrapper from "@/components/SidebarWrapper";
 import SalesTeamDashboardHeader from "@/components/sales/SalesTeamDashboardHeader";
 import SalesTeamSidebar from "@/components/sales/SalesTeamSidebar";
@@ -21,6 +22,7 @@ const SalesTeamDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const { authState } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(new Date());
@@ -29,20 +31,31 @@ const SalesTeamDashboard = () => {
   const query = new URLSearchParams(location.search);
   const activeTab = query.get("tab") || "overview";
 
-  // In a real app, this would be fetched from an API
+  // Check authentication
+  useEffect(() => {
+    if (authState.initialized && !authState.user) {
+      navigate("/login", { replace: true });
+    } else if (authState.user && authState.user.role !== "sales") {
+      navigate(`/${authState.user.role}-dashboard`, { replace: true });
+    }
+  }, [authState.initialized, authState.user, navigate]);
+
+  // Sales user data from auth state or default values
   const [salesUserData, setSalesUserData] = useState({
-    name: "Rahul Mehta",
-    id: "SALES-123",
+    name: authState.user?.firstName 
+      ? `${authState.user.firstName} ${authState.user.lastName}` 
+      : "Rahul Mehta",
+    id: authState.user?.id || "SALES-123",
     role: "Senior Sales Executive",
     region: "North India",
-    email: "rahul.mehta@rimed.com",
+    email: authState.user?.email || "rahul.mehta@rimed.com",
     targetAchieved: 78,
     pendingLeads: 24,
   });
   
   useEffect(() => {
     // Display welcome toast when dashboard loads for the first time
-    if (!localStorage.getItem("salesDashboardWelcomeShown")) {
+    if (!localStorage.getItem("salesDashboardWelcomeShown") && authState.user) {
       toast({
         title: "Welcome to Sales Dashboard",
         description: "Manage your sales activities, leads, and track your performance.",
@@ -50,10 +63,10 @@ const SalesTeamDashboard = () => {
       });
       localStorage.setItem("salesDashboardWelcomeShown", "true");
     }
-  }, [toast]);
+  }, [toast, authState.user]);
 
   // Handle tab change
-  const handleTabChange = (value) => {
+  const handleTabChange = (value: string) => {
     navigate(value === "overview" ? "/sales-dashboard" : `/sales-dashboard?tab=${value}`);
   };
 
@@ -75,7 +88,7 @@ const SalesTeamDashboard = () => {
   };
 
   // Handle export to Excel/PDF
-  const handleExport = (format) => {
+  const handleExport = (format: "excel" | "pdf") => {
     toast({
       title: `Exporting to ${format.toUpperCase()}`,
       description: `Your ${activeTab} data is being exported to ${format.toUpperCase()}.`,
@@ -92,6 +105,10 @@ const SalesTeamDashboard = () => {
     });
     window.print();
   };
+
+  if (authState.loading) {
+    return <div className="flex h-screen items-center justify-center">Loading...</div>;
+  }
 
   return (
     <SidebarWrapper>

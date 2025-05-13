@@ -1,19 +1,23 @@
 
-import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useState } from 'react';
+import { Link, useNavigate, Navigate } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { 
   ArrowRight, 
+  Hospital, 
+  Users,
   Mail, 
   Lock,
+  BadgePercent,
+  UserCheck,
   AlertCircle
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useAuth } from '@/hooks/useAuth';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -28,23 +32,11 @@ const Login = () => {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Demo credentials
-  const demoCredentials = {
-    patient: { email: 'patient@demo.com', password: 'demo123' },
-    hospital: { email: 'hospital@demo.com', password: 'demo123' },
-    admin: { email: 'admin@demo.com', password: 'demo123' },
-    sales: { email: 'sales@demo.com', password: 'demo123' },
-    crm: { email: 'crm@demo.com', password: 'demo123' },
-  };
-
   // Redirect if already authenticated
-  useEffect(() => {
-    if (authState.initialized && authState.user) {
-      const redirectPath = `/${authState.user.role}-dashboard`;
-      console.log('User already authenticated, redirecting to:', redirectPath);
-      navigate(redirectPath, { replace: true });
-    }
-  }, [authState, navigate]);
+  if (authState.initialized && authState.user) {
+    const redirectPath = `/${authState.user.role}-dashboard`;
+    return <Navigate to={redirectPath} replace />;
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -68,6 +60,11 @@ const Login = () => {
       return false;
     }
     
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return false;
+    }
+    
     return true;
   };
 
@@ -80,92 +77,25 @@ const Login = () => {
     setError(null);
     
     try {
-      console.log('Attempting sign in with:', formData.email);
-      const { error, data } = await signIn(formData.email, formData.password);
+      const { data, error } = await signIn(formData.email, formData.password);
       
       if (error) {
-        console.error('Login error:', error);
-        setError(error.message || 'Invalid email or password');
-        toast({
-          title: "Login Failed",
-          description: error.message || "Invalid credentials",
-          variant: "destructive"
-        });
-      } else {
-        console.log('Login successful:', data);
+        setError(error.message);
+      } else if (data?.user) {
+        // Auth provider will handle the redirect
         toast({
           title: "Login Successful",
           description: `Welcome back!`,
         });
-        
-        if (data?.user?.role) {
-          const redirectPath = `/${data.user.role}-dashboard`;
-          console.log('Redirecting to:', redirectPath);
-          navigate(redirectPath, { replace: true });
-        }
       }
     } catch (err: any) {
-      console.error('Unexpected login error:', err);
-      setError('An unexpected error occurred');
-      toast({
-        title: "Login Failed",
-        description: err.message || "An unexpected error occurred",
-        variant: "destructive"
-      });
+      setError(err.message || 'An unexpected error occurred');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleDemoLogin = async (type: 'hospital' | 'patient' | 'admin' | 'sales' | 'crm') => {
-    setLoginType(type);
-    setIsSubmitting(true);
-    setError(null);
-    
-    const credentials = demoCredentials[type];
-    setFormData(credentials);
-    
-    try {
-      console.log('Attempting demo login as:', type);
-      const { error, data } = await signIn(credentials.email, credentials.password);
-      
-      if (error) {
-        console.error('Demo login error:', error);
-        setError('Demo login failed. Please try again.');
-        toast({
-          title: "Demo Login Failed",
-          description: error.message || 'Please try again',
-          variant: "destructive"
-        });
-      } else {
-        toast({
-          title: "Demo Login Successful",
-          description: `Logged in as ${type} demo user`,
-        });
-        
-        if (data?.user?.role) {
-          const redirectPath = `/${data.user.role}-dashboard`;
-          console.log('Redirecting to:', redirectPath);
-          navigate(redirectPath, { replace: true });
-        }
-      }
-    } catch (err: any) {
-      console.error('Unexpected demo login error:', err);
-      setError('An unexpected error occurred');
-      toast({
-        title: "Demo Login Failed",
-        description: err.message || "An unexpected error occurred",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // If still initializing auth, show loading indicator
-  if (!authState.initialized) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
-  }
+  // Since we're now using real authentication, demo login is removed
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -272,21 +202,10 @@ const Login = () => {
                     </Button>
                   </form>
                   
-                  <div className="mt-4">
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => handleDemoLogin(loginType)}
-                      disabled={isSubmitting}
-                    >
-                      Demo Login as {loginType}
-                    </Button>
-                  </div>
-                  
                   <div className="mt-4 text-center">
                     <p className="text-sm text-gray-600">
                       Don't have an account?{" "}
-                      <Link to="/signup" className="text-brand-600 hover:underline">
+                      <Link to="/register" className="text-brand-600 hover:underline">
                         Sign up
                       </Link>
                     </p>

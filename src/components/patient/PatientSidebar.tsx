@@ -1,5 +1,4 @@
 
-import { Link } from "react-router-dom";
 import {
   Sidebar,
   SidebarContent,
@@ -21,6 +20,7 @@ type PatientSidebarProps = {
 };
 
 const PatientSidebar = ({ isOpen, setIsOpen, activeTab, onTabChange }: PatientSidebarProps) => {
+  // Updated to prevent default behavior and use tab change directly
   const handleItemClick = (tab: string) => (e: React.MouseEvent) => {
     e.preventDefault();
     onTabChange(tab);
@@ -46,38 +46,29 @@ const PatientSidebar = ({ isOpen, setIsOpen, activeTab, onTabChange }: PatientSi
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton 
-                asChild 
                 isActive={activeTab === "overview"}
-                onClick={handleItemClick("overview")}
+                onClick={() => onTabChange("overview")}
               >
-                <Link to="/patient-dashboard">
-                  <Activity />
-                  <span>Overview</span>
-                </Link>
+                <Activity />
+                <span>Overview</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton 
-                asChild 
                 isActive={activeTab === "health-card"}
-                onClick={handleItemClick("health-card")}
+                onClick={() => onTabChange("health-card")}
               >
-                <Link to="/patient-dashboard?tab=health-card">
-                  <CreditCard />
-                  <span>My Health Card</span>
-                </Link>
+                <CreditCard />
+                <span>My Health Card</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
               <SidebarMenuButton 
-                asChild 
                 isActive={activeTab === "loans"}
-                onClick={handleItemClick("loans")}
+                onClick={() => onTabChange("loans")}
               >
-                <Link to="/patient-dashboard?tab=loans">
-                  <FileText />
-                  <span>My Loans</span>
-                </Link>
+                <FileText />
+                <span>My Loans</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -88,22 +79,20 @@ const PatientSidebar = ({ isOpen, setIsOpen, activeTab, onTabChange }: PatientSi
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton 
-                asChild 
                 isActive={activeTab === "hospital-visits"}
-                onClick={handleItemClick("hospital-visits")}
+                onClick={() => onTabChange("hospital-visits")}
               >
-                <Link to="/patient-dashboard?tab=hospital-visits">
-                  <Calendar />
-                  <span>Hospital Visits</span>
-                </Link>
+                <Calendar />
+                <span>Hospital Visits</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link to="#">
-                  <FileText />
-                  <span>Medical Records</span>
-                </Link>
+              <SidebarMenuButton 
+                onClick={() => onTabChange("medical-records")}
+                isActive={activeTab === "medical-records"}
+              >
+                <FileText />
+                <span>Medical Records</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -113,31 +102,21 @@ const PatientSidebar = ({ isOpen, setIsOpen, activeTab, onTabChange }: PatientSi
           <SidebarGroupLabel>Account</SidebarGroupLabel>
           <SidebarMenu>
             <SidebarMenuItem>
-              <SidebarMenuButton 
-                asChild 
-                isActive={activeTab === "profile"}
-                onClick={handleItemClick("profile")}
+              <SidebarMenuButton
+                onClick={() => onTabChange("notifications")}
+                isActive={activeTab === "notifications"}
               >
-                <Link to="/patient-dashboard?tab=profile">
-                  <User />
-                  <span>Profile</span>
-                </Link>
+                <Bell />
+                <span>Notifications</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link to="#">
-                  <Bell />
-                  <span>Notifications</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                <Link to="#">
-                  <Settings />
-                  <span>Settings</span>
-                </Link>
+              <SidebarMenuButton
+                onClick={() => onTabChange("settings")}
+                isActive={activeTab === "settings"}
+              >
+                <Settings />
+                <span>Settings</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -145,19 +124,24 @@ const PatientSidebar = ({ isOpen, setIsOpen, activeTab, onTabChange }: PatientSi
       </SidebarContent>
 
       <SidebarFooter>
-        <div className="mx-4 mb-2 mt-6 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-gray-200">
-              <img
-                src="https://github.com/shadcn.png"
-                alt="User"
-                className="h-full w-full rounded-full object-cover"
-              />
+        <div className="mx-4 mb-2 mt-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-gray-200">
+                <img
+                  src="https://github.com/shadcn.png"
+                  alt="Patient Avatar"
+                  className="h-full w-full rounded-full object-cover"
+                />
+              </div>
+              <div>
+                <div className="text-sm font-medium">John Doe</div>
+                <div className="text-xs text-sidebar-foreground/70">Patient</div>
+              </div>
             </div>
-            <div>
-              <div className="text-sm font-medium">John Doe</div>
-              <div className="text-xs text-sidebar-foreground/70">Patient</div>
-            </div>
+            <button className="text-gray-500 hover:text-red-500">
+              <LogOut size={18} />
+            </button>
           </div>
         </div>
       </SidebarFooter>

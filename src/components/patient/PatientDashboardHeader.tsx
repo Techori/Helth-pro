@@ -1,4 +1,3 @@
-
 import { Bell, Menu, User, CreditCard, LogOut, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -11,6 +10,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -36,6 +37,8 @@ const PatientDashboardHeader = ({
   onLogout
 }: PatientDashboardHeaderProps) => {
   const { toast } = useToast();
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
   const [notificationCount, setNotificationCount] = useState(3);
   const [showNotifications, setShowNotifications] = useState(false);
   
@@ -85,6 +88,15 @@ const PatientDashboardHeader = ({
     toast({
       title: "Notifications Cleared",
       description: "All notifications have been marked as read.",
+    });
+  };
+
+  const handleLogout = () => {
+    signOut();
+    navigate('/login');
+    toast({
+      title: "Logged Out",
+      description: "You have been successfully logged out.",
     });
   };
 
@@ -165,7 +177,7 @@ const PatientDashboardHeader = ({
               <Settings className="mr-2 h-4 w-4" /> Profile Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer text-red-500" onClick={onLogout}>
+            <DropdownMenuItem className="cursor-pointer text-red-500" onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" /> Log Out
             </DropdownMenuItem>
           </DropdownMenuContent>

@@ -166,12 +166,16 @@ const DashboardOverview = () => {
                     <XAxis dataKey="month" />
                     <YAxis />
                     <Bar dataKey="transactions" name="transactions" fill="var(--color-transactions)" radius={[4, 4, 0, 0]} />
-                    <ChartTooltip content={<ChartTooltipContent />} />
+                    <ChartTooltip>
+                      <ChartTooltipContent />
+                    </ChartTooltip>
                   </BarChart>
                 </ResponsiveContainer>
               </ChartContainer>
               <ChartContainer config={chartConfig}>
-                <ChartLegend content={<ChartLegendContent />} />
+                <ChartLegend>
+                  <ChartLegendContent />
+                </ChartLegend>
               </ChartContainer>
             </div>
           </CardContent>
@@ -193,13 +197,15 @@ const DashboardOverview = () => {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
                     <YAxis />
-                    <Tooltip content={<ChartTooltipContent />} />
+                    <Tooltip />
                     <Line type="monotone" dataKey="amount" name="amount" stroke="var(--color-amount)" activeDot={{ r: 8 }} />
                   </LineChart>
                 </ResponsiveContainer>
               </ChartContainer>
               <ChartContainer config={chartConfig}>
-                <ChartLegend content={<ChartLegendContent />} />
+                <ChartLegend>
+                  <ChartLegendContent />
+                </ChartLegend>
               </ChartContainer>
             </div>
           </CardContent>

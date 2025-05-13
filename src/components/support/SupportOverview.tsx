@@ -1,279 +1,276 @@
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { TabsContent } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { 
-  Users, 
-  Building2, 
-  FileCheck, 
-  HelpCircle, 
-  Clock, 
-  CheckCircle, 
-  AlertCircle 
-} from "lucide-react";
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell
-} from "recharts";
-import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
+import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
+import { fetchSupportTickets } from '@/services/dashboardService';
 
-const ticketData = [
-  { name: 'Mon', Patient: 4, Hospital: 3, Onboarding: 2, Technical: 1, KYC: 2 },
-  { name: 'Tue', Patient: 3, Hospital: 4, Onboarding: 1, Technical: 2, KYC: 3 },
-  { name: 'Wed', Patient: 5, Hospital: 2, Onboarding: 3, Technical: 3, KYC: 1 },
-  { name: 'Thu', Patient: 6, Hospital: 4, Onboarding: 1, Technical: 1, KYC: 4 },
-  { name: 'Fri', Patient: 4, Hospital: 5, Onboarding: 2, Technical: 2, KYC: 3 },
-  { name: 'Sat', Patient: 2, Hospital: 1, Onboarding: 1, Technical: 0, KYC: 1 },
-  { name: 'Sun', Patient: 1, Hospital: 0, Onboarding: 0, Technical: 0, KYC: 0 },
-];
+type SupportOverviewProps = {
+  isLoading?: boolean;
+};
 
-const statusData = [
-  { name: 'New', value: 15, color: '#ff8a65' },
-  { name: 'In Progress', value: 20, color: '#4dabf7' },
-  { name: 'Pending', value: 8, color: '#ffd43b' },
-  { name: 'Resolved', value: 32, color: '#69db7c' },
-];
-
-const recentTickets = [
-  {
-    id: 'TKT-1289',
-    type: 'Patient',
-    issue: 'Unable to access patient dashboard',
-    status: 'New',
-    time: '10 minutes ago',
-    priority: 'High'
-  },
-  {
-    id: 'TKT-1288',
-    type: 'Hospital',
-    issue: 'EMI collection process clarification',
-    status: 'In Progress',
-    time: '1 hour ago',
-    priority: 'Medium'
-  },
-  {
-    id: 'TKT-1287',
-    type: 'KYC',
-    issue: 'Document verification failed',
-    status: 'Pending',
-    time: '3 hours ago',
-    priority: 'High'
-  },
-  {
-    id: 'TKT-1286',
-    type: 'Onboarding',
-    issue: 'Hospital registration issue',
-    status: 'Resolved',
-    time: '1 day ago',
-    priority: 'Medium'
-  },
-  {
-    id: 'TKT-1285',
-    type: 'Technical',
-    issue: 'Payment gateway integration error',
-    status: 'In Progress',
-    time: '1 day ago',
-    priority: 'Critical'
-  }
-];
-
-const SupportOverview = () => {
-  const [isLoaded, setIsLoaded] = useState(false);
+const SupportOverview = ({ isLoading = false }: SupportOverviewProps) => {
+  const [ticketsData, setTicketsData] = useState<any>({
+    tickets: [],
+    statistics: {
+      total: 0,
+      open: 0,
+      closed: 0,
+      avgResponseTime: '0h'
+    }
+  });
 
   useEffect(() => {
-    setIsLoaded(true);
-  }, []);
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'New':
-        return 'bg-orange-100 text-orange-800';
-      case 'In Progress':
-        return 'bg-blue-100 text-blue-800';
-      case 'Pending':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'Resolved':
-        return 'bg-green-100 text-green-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+    const loadTicketsData = async () => {
+      try {
+        // Fetch real data in production
+        const data = await fetchSupportTickets();
+        
+        // For demo, use this mock data if API is not available
+        if (!data.tickets || !data.tickets.length) {
+          setTicketsData({
+            statistics: {
+              total: 157,
+              open: 34,
+              closed: 123,
+              avgResponseTime: '1.4h'
+            },
+            tickets: [
+              { id: 'ST-001', subject: 'Unable to login to dashboard', status: 'open', priority: 'high', category: 'Technical', createdAt: '2023-05-10T09:30:00', customerName: 'John Doe' },
+              { id: 'ST-002', subject: 'Health card activation issue', status: 'open', priority: 'medium', category: 'Health Card', createdAt: '2023-05-10T10:15:00', customerName: 'Jane Smith' },
+              { id: 'ST-003', subject: 'Payment not reflecting in account', status: 'open', priority: 'high', category: 'Billing', createdAt: '2023-05-10T11:00:00', customerName: 'Robert Johnson' },
+              { id: 'ST-004', subject: 'Need help with insurance claim', status: 'open', priority: 'medium', category: 'Insurance', createdAt: '2023-05-10T13:45:00', customerName: 'Sarah Williams' },
+              { id: 'ST-005', subject: 'App crashing on Android device', status: 'open', priority: 'low', category: 'Technical', createdAt: '2023-05-11T09:20:00', customerName: 'Michael Brown' }
+            ]
+          });
+        } else {
+          setTicketsData(data);
+        }
+      } catch (error) {
+        console.error("Error loading tickets data:", error);
+      }
+    };
+    
+    if (!isLoading) {
+      loadTicketsData();
     }
-  };
+  }, [isLoading]);
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'Critical':
-        return 'bg-red-100 text-red-800';
-      case 'High':
-        return 'bg-orange-100 text-orange-800';
-      case 'Medium':
-        return 'bg-blue-100 text-blue-800';
-      case 'Low':
-        return 'bg-green-100 text-green-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
+  const ticketVolumeData = [
+    { name: 'Mon', tickets: 24 },
+    { name: 'Tue', tickets: 18 },
+    { name: 'Wed', tickets: 32 },
+    { name: 'Thu', tickets: 27 },
+    { name: 'Fri', tickets: 21 },
+    { name: 'Sat', tickets: 15 },
+    { name: 'Sun', tickets: 12 }
+  ];
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className={`transition-all duration-500 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Open Tickets</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Total Tickets</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">43</div>
-            <p className="text-xs text-muted-foreground">+5% from last week</p>
+            {isLoading ? (
+              <Skeleton className="h-10 w-20" />
+            ) : (
+              <div className="text-2xl font-bold">{ticketsData.statistics.total}</div>
+            )}
+            <p className="text-xs text-muted-foreground mt-1">Last 30 days</p>
           </CardContent>
         </Card>
-        <Card className={`transition-all duration-500 delay-100 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Avg. Response Time</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Open Tickets</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">2.5 hrs</div>
-            <p className="text-xs text-muted-foreground">-15% from last week</p>
+            {isLoading ? (
+              <Skeleton className="h-10 w-20" />
+            ) : (
+              <div className="text-2xl font-bold">{ticketsData.statistics.open}</div>
+            )}
+            <p className="text-xs text-muted-foreground mt-1">Requires attention</p>
           </CardContent>
         </Card>
-        <Card className={`transition-all duration-500 delay-200 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Resolved Today</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Closed Tickets</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
-            <p className="text-xs text-muted-foreground">+2 from yesterday</p>
+            {isLoading ? (
+              <Skeleton className="h-10 w-20" />
+            ) : (
+              <div className="text-2xl font-bold">{ticketsData.statistics.closed}</div>
+            )}
+            <p className="text-xs text-muted-foreground mt-1">Last 30 days</p>
           </CardContent>
         </Card>
-        <Card className={`transition-all duration-500 delay-300 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Critical Issues</CardTitle>
-            <AlertCircle className="h-4 w-4 text-muted-foreground" />
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Avg. Response Time</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">3</div>
-            <p className="text-xs text-muted-foreground">Requires immediate attention</p>
+            {isLoading ? (
+              <Skeleton className="h-10 w-20" />
+            ) : (
+              <div className="text-2xl font-bold">{ticketsData.statistics.avgResponseTime}</div>
+            )}
+            <p className="text-xs text-muted-foreground mt-1">Last 7 days</p>
           </CardContent>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className={`lg:col-span-2 transition-all duration-500 delay-400 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+        <Card className="col-span-1 lg:col-span-2">
           <CardHeader>
-            <CardTitle>Support Ticket Trends</CardTitle>
+            <CardTitle>Ticket Volume (Last 7 Days)</CardTitle>
+            <CardDescription>Daily number of new support tickets</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={ticketData}
-                  margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
-                >
+            {isLoading ? (
+              <Skeleton className="h-[300px] w-full" />
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={ticketVolumeData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="Patient" stackId="a" fill="#8884d8" />
-                  <Bar dataKey="Hospital" stackId="a" fill="#82ca9d" />
-                  <Bar dataKey="Onboarding" stackId="a" fill="#ffc658" />
-                  <Bar dataKey="Technical" stackId="a" fill="#ff8042" />
-                  <Bar dataKey="KYC" stackId="a" fill="#0088fe" />
-                </BarChart>
+                  <Line type="monotone" dataKey="tickets" stroke="#8884d8" activeDot={{ r: 8 }} />
+                </LineChart>
               </ResponsiveContainer>
-            </div>
+            )}
           </CardContent>
         </Card>
 
-        <Card className={`transition-all duration-500 delay-500 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+        <Card className="col-span-1">
           <CardHeader>
-            <CardTitle>Ticket Status</CardTitle>
+            <CardTitle>Recent Activity</CardTitle>
+            <CardDescription>Latest support team activities</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={statusData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {statusData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+          <CardContent className="space-y-3">
+            {isLoading ? (
+              <>
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+              </>
+            ) : (
+              <>
+                <div className="flex items-center space-x-4">
+                  <Avatar>
+                    <AvatarImage src="https://github.com/shadcn.png" />
+                    <AvatarFallback>CN</AvatarFallback>
+                  </Avatar>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">Ananya closed ticket ST-095</p>
+                    <p className="text-xs text-muted-foreground">12 minutes ago</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-4">
+                  <Avatar>
+                    <AvatarImage src="https://github.com/shadcn.png" />
+                    <AvatarFallback>TS</AvatarFallback>
+                  </Avatar>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">Rahul assigned ticket ST-102 to Priya</p>
+                    <p className="text-xs text-muted-foreground">43 minutes ago</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-4">
+                  <Avatar>
+                    <AvatarImage src="https://github.com/shadcn.png" />
+                    <AvatarFallback>AK</AvatarFallback>
+                  </Avatar>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">Priya replied to ticket ST-098</p>
+                    <p className="text-xs text-muted-foreground">1 hour ago</p>
+                  </div>
+                </div>
+              </>
+            )}
           </CardContent>
+          <CardFooter>
+            <Button variant="outline" className="w-full">View All Activity</Button>
+          </CardFooter>
         </Card>
       </div>
 
-      <Card className={`transition-all duration-500 delay-600 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+      <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Recent Support Tickets</CardTitle>
-            <Button variant="outline" size="sm">View All</Button>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>Recent Support Tickets</CardTitle>
+              <CardDescription>Showing the latest open support tickets</CardDescription>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-3 px-4 font-medium text-sm">Ticket ID</th>
-                  <th className="text-left py-3 px-4 font-medium text-sm">Type</th>
-                  <th className="text-left py-3 px-4 font-medium text-sm">Issue</th>
-                  <th className="text-left py-3 px-4 font-medium text-sm">Status</th>
-                  <th className="text-left py-3 px-4 font-medium text-sm">Priority</th>
-                  <th className="text-left py-3 px-4 font-medium text-sm">Time</th>
-                  <th className="text-right py-3 px-4 font-medium text-sm">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentTickets.map((ticket) => (
-                  <tr key={ticket.id} className="border-b hover:bg-gray-50 transition-colors">
-                    <td className="py-3 px-4 text-sm font-medium">{ticket.id}</td>
-                    <td className="py-3 px-4 text-sm">{ticket.type}</td>
-                    <td className="py-3 px-4 text-sm">{ticket.issue}</td>
-                    <td className="py-3 px-4 text-sm">
-                      <span className={cn("px-2 py-1 rounded-full text-xs font-medium", getStatusColor(ticket.status))}>
-                        {ticket.status}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-sm">
-                      <span className={cn("px-2 py-1 rounded-full text-xs font-medium", getPriorityColor(ticket.priority))}>
-                        {ticket.priority}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-sm text-gray-500">{ticket.time}</td>
-                    <td className="py-3 px-4 text-right">
-                      <Button variant="ghost" size="sm">View</Button>
-                    </td>
+          {isLoading ? (
+            <>
+              <Skeleton className="h-12 w-full mb-2" />
+              <Skeleton className="h-12 w-full mb-2" />
+              <Skeleton className="h-12 w-full mb-2" />
+            </>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="py-3 px-2 text-left text-sm font-medium">ID</th>
+                    <th className="py-3 px-2 text-left text-sm font-medium">Subject</th>
+                    <th className="py-3 px-2 text-left text-sm font-medium">Status</th>
+                    <th className="py-3 px-2 text-left text-sm font-medium">Priority</th>
+                    <th className="py-3 px-2 text-left text-sm font-medium">Category</th>
+                    <th className="py-3 px-2 text-left text-sm font-medium">Customer</th>
+                    <th className="py-3 px-2 text-left text-sm font-medium">Created</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {ticketsData.tickets.map((ticket: any, index: number) => (
+                    <tr key={index} className="border-b hover:bg-muted/50">
+                      <td className="py-3 px-2 text-sm">{ticket.id}</td>
+                      <td className="py-3 px-2 text-sm">{ticket.subject}</td>
+                      <td className="py-3 px-2">
+                        <Badge variant={ticket.status === 'open' ? 'default' : 'outline'}>
+                          {ticket.status}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-2">
+                        <Badge variant="outline" className={
+                          ticket.priority === 'high' ? 'bg-red-100 text-red-800 border-red-300' : 
+                          ticket.priority === 'medium' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' : 
+                          'bg-green-100 text-green-800 border-green-300'
+                        }>
+                          {ticket.priority}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-2 text-sm">{ticket.category}</td>
+                      <td className="py-3 px-2 text-sm">{ticket.customerName}</td>
+                      <td className="py-3 px-2 text-sm">{new Date(ticket.createdAt).toLocaleDateString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CardContent>
+        <CardFooter>
+          <Button variant="outline" className="ml-auto">View All Tickets</Button>
+        </CardFooter>
       </Card>
     </div>
   );

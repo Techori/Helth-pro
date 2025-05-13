@@ -1,20 +1,23 @@
-
 import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, ChevronDown, Globe } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Menu, X, ChevronDown, Globe, LogOut, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useAuth } from '@/hooks/useAuth';
 
 const Navbar = () => {
+  const { authState, signOut } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [language, setLanguage] = useState('en'); // 'en' for English, 'hi' for Hindi
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -39,6 +42,17 @@ const Navbar = () => {
     // In a real app, you would update the UI language here
   };
 
+  const handleLogout = () => {
+    signOut();
+    navigate('/');
+  };
+
+  const handleDashboardClick = () => {
+    if (authState.user) {
+      navigate(`/${authState.user.role}-dashboard`);
+    }
+  };
+
   // Translations
   const translations = {
     en: {
@@ -48,6 +62,8 @@ const Navbar = () => {
       aboutUs: "About Us",
       services: "Our Services",
       login: "Login",
+      dashboard: "Dashboard",
+      logout: "Logout",
       getStarted: "Get Started",
       pharma: "RI Medicare Pharma",
       ambulance: "Quick Ambulance Service",
@@ -62,6 +78,8 @@ const Navbar = () => {
       aboutUs: "हमारे बारे में",
       services: "हमारी सेवाएं",
       login: "लॉग इन",
+      dashboard: "डैशबोर्ड",
+      logout: "लॉग आउट",
       getStarted: "शुरू करें",
       pharma: "आरआई मेडिकेयर फार्मा",
       ambulance: "त्वरित एंबुलेंस सेवा",
@@ -87,6 +105,8 @@ const Navbar = () => {
     { name: t.stores, path: '/services/stores' },
     { name: t.pathology, path: '/services/pathology' },
   ];
+
+  const isAuthenticated = authState.initialized && authState.user !== null;
 
   return (
     <nav 
@@ -161,18 +181,40 @@ const Navbar = () => {
               <Globe className="h-4 w-4 mr-1" />
               {language === 'en' ? 'हिंदी' : 'English'}
             </Button>
-            {/* http://103.196.193.18/rimedicare_hospy/ */}
-            <Link to="/login" >
-              <Button className="font-medium bg-brand-600 hover:bg-brand-700">
-                {t.login}
-              </Button>
-            </Link>
-
-            <Link to="/hospital-registration">
-              <Button className="font-medium bg-brand-600 hover:bg-brand-700">
-                {t.getStarted}
-              </Button>
-            </Link>
+            
+            {isAuthenticated ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button className="font-medium bg-brand-600 hover:bg-brand-700">
+                    <User className="h-4 w-4 mr-1" />
+                    {authState.user?.firstName || t.dashboard}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleDashboardClick}>
+                    {t.dashboard}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="h-4 w-4 mr-1" />
+                    {t.logout}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <>
+                <Link to="/login">
+                  <Button className="font-medium bg-brand-600 hover:bg-brand-700">
+                    {t.login}
+                  </Button>
+                </Link>
+                <Link to="/signup">
+                  <Button className="font-medium bg-brand-600 hover:bg-brand-700">
+                    {t.getStarted}
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -245,17 +287,36 @@ const Navbar = () => {
           </div>
           
           <div className="pt-3 space-y-3">
-          {/* http://103.196.193.18/rimedicare_hospy/ */}
-            <a href="/login" target="_blank" rel="noopener noreferrer" className="block">
-              <Button variant="outline" className="w-full font-medium">
-                {t.login}
-              </Button>
-            </a>
-            <Link to="/hospital-registration" className="block">
-              <Button className="w-full font-medium bg-brand-600 hover:bg-brand-700">
-                {t.getStarted}
-              </Button>
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <Button 
+                  variant="outline" 
+                  className="w-full font-medium"
+                  onClick={handleDashboardClick}
+                >
+                  {t.dashboard}
+                </Button>
+                <Button 
+                  className="w-full font-medium bg-brand-600 hover:bg-brand-700"
+                  onClick={handleLogout}
+                >
+                  {t.logout}
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link to="/login" className="block">
+                  <Button variant="outline" className="w-full font-medium">
+                    {t.login}
+                  </Button>
+                </Link>
+                <Link to="/signup" className="block">
+                  <Button className="w-full font-medium bg-brand-600 hover:bg-brand-700">
+                    {t.getStarted}
+                  </Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>

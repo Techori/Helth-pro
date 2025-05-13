@@ -1,0 +1,35 @@
+
+[
+  {
+    "amount": 2500,
+    "type": "charge",
+    "description": "Consultation Fee",
+    "status": "completed",
+    "hospital": "City General Hospital",
+    "date": "2023-11-20T00:00:00.000Z"
+  },
+  {
+    "amount": 1800,
+    "type": "charge",
+    "description": "Prescription Meds",
+    "status": "completed",
+    "hospital": "Medicare Pharmacy",
+    "date": "2023-11-15T00:00:00.000Z"
+  },
+  {
+    "amount": 3500,
+    "type": "charge",
+    "description": "Lab Tests",
+    "status": "completed",
+    "hospital": "City General Hospital",
+    "date": "2023-11-10T00:00:00.000Z"
+  },
+  {
+    "amount": 1200,
+    "type": "charge",
+    "description": "Physiotherapy",
+    "status": "completed",
+    "hospital": "Wellness Clinic",
+    "date": "2023-11-05T00:00:00.000Z"
+  }
+]

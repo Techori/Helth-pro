@@ -1,0 +1,144 @@
+
+# Backend Integration Documentation for RI Medicare
+
+This document provides instructions on how to connect your React frontend to the Node.js/MongoDB backend.
+
+## Setup Instructions
+
+### 1. Install Backend Dependencies
+
+Navigate to the backend directory and install dependencies:
+
+```bash
+cd backend
+npm install
+```
+
+### 2. Configure MongoDB
+
+- Make sure MongoDB is installed on your system or use MongoDB Atlas
+- Update the connection string in `backend/config/default.json`
+
+### 3. Start the Backend Server
+
+```bash
+npm run server
+```
+
+The server will start on port 5000 (by default).
+
+## API Endpoints
+
+### Authentication
+
+- **Register User**: `POST /api/users`
+  - Required fields: email, password
+  - Optional fields: first_name, last_name, role
+
+- **Login**: `POST /api/auth`
+  - Required fields: email, password
+  - Returns JWT token
+
+### Users
+
+- **Get Current User**: `GET /api/users/me`
+  - Requires authentication token
+
+### Integration Points in Frontend
+
+#### 1. Update the Auth Hook
+
+Update the `useAuth.tsx` hook to connect to the backend:
+
+```typescript
+// src/hooks/useAuth.tsx
+// Replace the mock implementation with API calls
+
+const signIn = async (email: string, password: string) => {
+  try {
+    const response = await fetch('http://localhost:5000/api/auth', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      toast({
+        title: "Login Failed",
+        description: data.errors[0].msg || "Invalid credentials",
+        variant: "destructive"
+      });
+      return { error: data, data: null };
+    }
+
+    // Fetch user data
+    const userResponse = await fetch('http://localhost:5000/api/users/me', {
+      headers: {
+        'x-auth-token': data.token
+      }
+    });
+
+    const userData = await userResponse.json();
+
+    // Store token in localStorage
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('user', JSON.stringify({
+      id: userData._id,
+      email: userData.email,
+      role: userData.role,
+      firstName: userData.first_name,
+      lastName: userData.last_name
+    }));
+
+    // Update auth state
+    // ...rest of your existing code
+  } catch (error) {
+    // ...error handling
+  }
+};
+```
+
+#### 2. Create an API Service
+
+Create a service to handle API requests:
+
+```typescript
+// src/services/api.ts
+const API_URL = 'http://localhost:5000/api';
+
+export const getAuthToken = () => localStorage.getItem('token');
+
+export const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
+  const token = getAuthToken();
+  
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { 'x-auth-token': token } : {}),
+    ...(options.headers || {})
+  };
+
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.message || 'API request failed');
+  }
+
+  return response.json();
+};
+```
+
+## Security Considerations
+
+- Always validate user input on both client and server
+- Implement proper error handling
+- Use HTTPS in production
+- Set appropriate CORS policies
+- Don't expose sensitive information in client-side code

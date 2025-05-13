@@ -1,0 +1,21 @@
+
+[
+  {
+    "title": "Welcome",
+    "message": "Welcome to RI Medicare",
+    "read": false,
+    "created_at": "2023-12-01T00:00:00.000Z"
+  },
+  {
+    "title": "Health Card",
+    "message": "Your health card application is approved",
+    "read": true,
+    "created_at": "2023-11-30T00:00:00.000Z"
+  },
+  {
+    "title": "Loan Update",
+    "message": "Your loan application is under review",
+    "read": false,
+    "created_at": "2023-11-28T00:00:00.000Z"
+  }
+]

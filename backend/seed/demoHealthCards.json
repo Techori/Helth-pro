@@ -1,0 +1,19 @@
+
+[
+  {
+    "cardNumber": "HC-78901-23456",
+    "availableCredit": 25000,
+    "usedCredit": 15000,
+    "status": "active",
+    "issueDate": "2023-01-15T00:00:00.000Z",
+    "expiryDate": "2026-12-31T00:00:00.000Z"
+  },
+  {
+    "cardNumber": "HC-65432-78901",
+    "availableCredit": 50000,
+    "usedCredit": 10000,
+    "status": "active",
+    "issueDate": "2023-02-10T00:00:00.000Z",
+    "expiryDate": "2026-12-31T00:00:00.000Z"
+  }
+]

@@ -1,0 +1,38 @@
+
+[
+  {
+    "firstName": "Patient",
+    "lastName": "User",
+    "email": "patient@demo.com",
+    "password": "$2a$10$XtUoOkPwI2seXQeIeU4hme4vXSkF5LE0aMEAI5W/aJ6D6j7D9olcG",
+    "role": "patient"
+  },
+  {
+    "firstName": "Hospital",
+    "lastName": "Admin",
+    "email": "hospital@demo.com",
+    "password": "$2a$10$XtUoOkPwI2seXQeIeU4hme4vXSkF5LE0aMEAI5W/aJ6D6j7D9olcG",
+    "role": "hospital"
+  },
+  {
+    "firstName": "System",
+    "lastName": "Admin",
+    "email": "admin@demo.com",
+    "password": "$2a$10$XtUoOkPwI2seXQeIeU4hme4vXSkF5LE0aMEAI5W/aJ6D6j7D9olcG",
+    "role": "admin"
+  },
+  {
+    "firstName": "Sales",
+    "lastName": "Manager",
+    "email": "sales@demo.com",
+    "password": "$2a$10$XtUoOkPwI2seXQeIeU4hme4vXSkF5LE0aMEAI5W/aJ6D6j7D9olcG",
+    "role": "sales"
+  },
+  {
+    "firstName": "CRM",
+    "lastName": "Manager",
+    "email": "crm@demo.com",
+    "password": "$2a$10$XtUoOkPwI2seXQeIeU4hme4vXSkF5LE0aMEAI5W/aJ6D6j7D9olcG",
+    "role": "crm"
+  }
+]

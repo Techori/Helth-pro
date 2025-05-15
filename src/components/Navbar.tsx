@@ -91,13 +91,14 @@ const Navbar = () => {
 
   const t = translations[language as keyof typeof translations];
 
-  const navLinks = [
-    { name: t.home, path: '/' },
-    { name: t.applyLoan, path: '/apply-loan' },
-    { name: t.ourCards, path: '/our-cards' },
-    { name: t.aboutUs, path: '/about-us' },
+  const linkItems = [
+    { name: 'Home', to: '/' },
+    { name: 'Our Cards', to: '/our-cards' },
+    { name: 'Apply for Loan', to: '/apply-loan' },
+    { name: 'Hospital Registration', to: '/hospital-registration' },
+    { name: 'About Us', to: '/about' }
   ];
-  
+
   const serviceLinks = [
     { name: t.financing, path: '/services/financing' },
     { name: t.pharma, path: '/services/pharma' },
@@ -132,12 +133,12 @@ const Navbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            {navLinks.map((link) => (
+            {linkItems.map((link) => (
               <Link
                 key={link.name}
-                to={link.path}
+                to={link.to}
                 className={`font-medium transition-colors duration-200 ${
-                  location.pathname === link.path
+                  location.pathname === link.to
                     ? 'text-brand-600'
                     : 'text-gray-700 hover:text-brand-600'
                 }`}
@@ -252,12 +253,12 @@ const Navbar = () => {
         }`}
       >
         <div className="px-4 pt-2 pb-4 space-y-1 sm:px-6">
-          {navLinks.map((link) => (
+          {linkItems.map((link) => (
             <Link
               key={link.name}
-              to={link.path}
+              to={link.to}
               className={`block py-3 px-3 rounded-md font-medium ${
-                location.pathname === link.path
+                location.pathname === link.to
                   ? 'bg-brand-50 text-brand-600'
                   : 'text-gray-700 hover:bg-brand-50 hover:text-brand-600'
               }`}

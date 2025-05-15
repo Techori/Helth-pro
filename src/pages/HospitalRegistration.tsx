@@ -1,143 +1,102 @@
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import axios from 'axios';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import { ArrowRight, Building, CheckCircle2 } from 'lucide-react';
-
-// Schema for form validation
-const formSchema = z.object({
-  hospitalName: z.string().min(3, { message: "Hospital name must be at least 3 characters" }),
-  contactPerson: z.string().min(3, { message: "Contact person name is required" }),
-  email: z.string().email({ message: "Please enter a valid email address" }),
-  phone: z.string().min(10, { message: "Please enter a valid phone number" }),
-  address: z.string().min(5, { message: "Address is required" }),
-  city: z.string().min(2, { message: "City is required" }),
-  state: z.string().min(2, { message: "State is required" }),
-  zipCode: z.string().min(5, { message: "Zip code is required" }),
-  establishedYear: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 1900 && Number(val) <= new Date().getFullYear(), {
-    message: "Please enter a valid establishment year",
-  }),
-  numberOfBeds: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
-    message: "Please enter a valid number of beds",
-  }),
-});
 
 const HospitalRegistration = () => {
-  const { toast } = useToast();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const { authState, signIn } = useAuth();
+
+  const [formData, setFormData] = useState({
+    name: '',
+    address: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    contactPerson: '',
+    contactEmail: '',
+    contactPhone: '',
+    specialties: [],
+    hospitalType: 'private',
+    bedCount: 0,
+    registrationNumber: '',
+  });
+
+  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [credentials, setCredentials] = useState({
-    referenceNumber: '',
-    userId: '',
-    loginId: '',
-    password: '',
-  });
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      hospitalName: '',
-      contactPerson: '',
-      email: '',
-      phone: '',
-      address: '',
-      city: '',
-      state: '',
-      zipCode: '',
-      establishedYear: '',
-      numberOfBeds: '',
-    },
-  });
-
-  // Generate a random alphanumeric string
-  const generateRandomString = (length: number) => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let result = '';
-    for (let i = 0; i < length; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // Generate secure password
-  const generateSecurePassword = () => {
-    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
-    const numbers = '0123456789';
-    const symbols = '!@#$%^&*()_+';
-    
-    let password = '';
-    // Ensure at least one of each character type
-    password += uppercase.charAt(Math.floor(Math.random() * uppercase.length));
-    password += lowercase.charAt(Math.floor(Math.random() * lowercase.length));
-    password += numbers.charAt(Math.floor(Math.random() * numbers.length));
-    password += symbols.charAt(Math.floor(Math.random() * symbols.length));
-    
-    // Add more random characters
-    for (let i = 0; i < 8; i++) {
-      const allChars = uppercase + lowercase + numbers + symbols;
-      password += allChars.charAt(Math.floor(Math.random() * allChars.length));
-    }
-    
-    // Shuffle the password
-    return password.split('').sort(() => 0.5 - Math.random()).join('');
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const handleMultiSelectChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    const values = value.split(',').map(item => item.trim());
+    setFormData(prev => ({ ...prev, [name]: values }));
+  };
+
+  const nextStep = () => {
+    if (step === 1) {
+      if (!formData.name || !formData.address || !formData.city || !formData.state || !formData.zipCode) {
+        toast({
+          title: "Validation Error",
+          description: "Please fill out all required fields",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    setStep(step + 1);
+  };
+
+  const prevStep = () => {
+    setStep(step - 1);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setLoading(true);
-    
+
     try {
-      // Simulate API call with a delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Generate credentials
-      const referenceNumber = `RI-HOSP-${Date.now().toString().slice(-6)}`;
-      const userId = `H${Date.now().toString().slice(-6)}`;
-      const loginId = values.email;
-      const password = generateSecurePassword();
-      
-      setCredentials({
-        referenceNumber,
-        userId,
-        loginId,
-        password,
-      });
-      
-      // In a real app, you would save this data to a database
-      console.log("Hospital registration data:", {
-        ...values,
-        referenceNumber,
-        userId,
-        loginId,
-        password,
-      });
-      
+      const response = await axios.post(
+        'https://rimedicare-phase1.onrender.com/api/hospitals',
+        formData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': authState?.user ? `Bearer ${localStorage.getItem('token')}` : '',
+          },
+        }
+      );
+
       toast({
-        title: "Registration Successful!",
-        description: "Your hospital has been registered successfully.",
+        title: "Registration Successful",
+        description: "Your hospital has been registered successfully! You can now login to manage your hospital.",
       });
-      
-      setIsSubmitted(true);
+
+      // Redirect to login after successful registration
+      navigate('/login');
     } catch (error) {
+      console.error('Hospital registration error:', error);
       toast({
         title: "Registration Failed",
-        description: "An error occurred while registering your hospital. Please try again.",
+        description: "There was an error registering your hospital. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -145,306 +104,276 @@ const HospitalRegistration = () => {
     }
   };
 
-  const handleCopyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast({
-      title: "Copied!",
-      description: "Information copied to clipboard.",
-    });
-  };
-
-  // Display success screen if form was submitted
-  if (isSubmitted) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <main className="flex-grow py-16">
-          <div className="container mx-auto px-4 sm:px-6 max-w-3xl">
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 md:p-10">
-              <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4">
-                  <CheckCircle2 className="h-8 w-8 text-green-600" />
-                </div>
-                <h1 className="text-2xl md:text-3xl font-bold font-display text-gray-900 mb-2">
-                  Registration Successful!
-                </h1>
-                <p className="text-lg text-gray-600">
-                  Your hospital has been registered with RI Medicare. Please save your credentials.
-                </p>
-              </div>
-              
-              <div className="space-y-6 mb-8">
-                <div className="p-6 rounded-xl bg-gray-50 border border-gray-200">
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-medium text-gray-500">Reference Number</span>
-                        <button 
-                          onClick={() => handleCopyToClipboard(credentials.referenceNumber)}
-                          className="text-xs text-brand-600 hover:text-brand-700"
-                        >
-                          Copy
-                        </button>
-                      </div>
-                      <div className="text-lg font-semibold text-gray-900">{credentials.referenceNumber}</div>
-                    </div>
-                    
-                    <div>
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-medium text-gray-500">User ID</span>
-                        <button 
-                          onClick={() => handleCopyToClipboard(credentials.userId)}
-                          className="text-xs text-brand-600 hover:text-brand-700"
-                        >
-                          Copy
-                        </button>
-                      </div>
-                      <div className="text-lg font-semibold text-gray-900">{credentials.userId}</div>
-                    </div>
-                    
-                    <div>
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-medium text-gray-500">Login ID (Your Email)</span>
-                        <button 
-                          onClick={() => handleCopyToClipboard(credentials.loginId)}
-                          className="text-xs text-brand-600 hover:text-brand-700"
-                        >
-                          Copy
-                        </button>
-                      </div>
-                      <div className="text-lg font-semibold text-gray-900">{credentials.loginId}</div>
-                    </div>
-                    
-                    <div>
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-sm font-medium text-gray-500">Password</span>
-                        <button 
-                          onClick={() => handleCopyToClipboard(credentials.password)}
-                          className="text-xs text-brand-600 hover:text-brand-700"
-                        >
-                          Copy
-                        </button>
-                      </div>
-                      <div className="text-lg font-semibold text-gray-900 font-mono">{credentials.password}</div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-amber-50 border border-amber-100 p-4 rounded-lg">
-                  <p className="text-amber-800 text-sm">
-                    <strong>Important:</strong> Please save these credentials securely. This is the only time you'll see your password.
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button 
-                  variant="default" 
-                  className="bg-brand-600 hover:bg-brand-700 flex-1"
-                  onClick={() => navigate('/login')}
-                >
-                  Go to Login
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="flex-1"
-                  onClick={() => window.print()}
-                >
-                  Print Credentials
-                </Button>
-              </div>
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-      <main className="flex-grow py-16">
-        <div className="container mx-auto px-4 sm:px-6">
-          <div className="max-w-3xl mx-auto">
-            <div className="text-center mb-10">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-brand-100 mb-4">
-                <Building className="h-8 w-8 text-brand-600" />
+      <div className="flex-grow container mx-auto py-8 px-4">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-3xl font-bold text-center mb-8">Hospital Registration</h1>
+          <div className="mb-10">
+            <div className="flex justify-between items-center relative">
+              <div className={`w-1/3 text-center ${step >= 1 ? 'text-primary' : 'text-gray-400'}`}>
+                <div className={`rounded-full h-10 w-10 mx-auto flex items-center justify-center ${step >= 1 ? 'bg-primary text-white' : 'bg-gray-200'}`}>1</div>
+                <p className="mt-2">Basic Information</p>
               </div>
-              <h1 className="text-2xl md:text-3xl font-bold font-display text-gray-900 mb-2">
-                Hospital Registration
-              </h1>
-              <p className="text-lg text-gray-600 max-w-lg mx-auto">
-                Join the RI Medicare network to provide flexible payment options to your patients.
-              </p>
-            </div>
-            
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 md:p-10">
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="hospitalName"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Hospital Name*</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter hospital name" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="contactPerson"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Contact Person*</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter contact person's name" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email Address*</FormLabel>
-                          <FormControl>
-                            <Input type="email" placeholder="Enter email address" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="phone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Phone Number*</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter phone number" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="address"
-                      render={({ field }) => (
-                        <FormItem className="md:col-span-2">
-                          <FormLabel>Address*</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter hospital address" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="city"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>City*</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter city" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="state"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>State*</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter state" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="zipCode"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Zip Code*</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter zip code" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="establishedYear"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Year Established*</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter establishment year" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="numberOfBeds"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Number of Beds*</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter number of beds" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                    <p className="text-sm text-gray-600">
-                      By submitting this form, you agree to RI Medicare's <a href="#" className="text-brand-600 hover:underline">Terms of Service</a> and <a href="#" className="text-brand-600 hover:underline">Privacy Policy</a>.
-                    </p>
-                  </div>
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-brand-600 hover:bg-brand-700"
-                    disabled={loading}
-                  >
-                    {loading ? "Processing..." : "Register Hospital"}
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </form>
-              </Form>
+              <div className={`w-1/3 text-center ${step >= 2 ? 'text-primary' : 'text-gray-400'}`}>
+                <div className={`rounded-full h-10 w-10 mx-auto flex items-center justify-center ${step >= 2 ? 'bg-primary text-white' : 'bg-gray-200'}`}>2</div>
+                <p className="mt-2">Hospital Details</p>
+              </div>
+              <div className={`w-1/3 text-center ${step >= 3 ? 'text-primary' : 'text-gray-400'}`}>
+                <div className={`rounded-full h-10 w-10 mx-auto flex items-center justify-center ${step >= 3 ? 'bg-primary text-white' : 'bg-gray-200'}`}>3</div>
+                <p className="mt-2">Confirmation</p>
+              </div>
+              <div className="absolute top-5 left-0 w-full h-1 bg-gray-200 -z-10">
+                <div 
+                  className="h-full bg-primary" 
+                  style={{ width: `${(step - 1) * 50}%` }}
+                ></div>
+              </div>
             </div>
           </div>
+
+          <Card className="shadow-lg">
+            <CardHeader>
+              <CardTitle>
+                {step === 1 && 'Basic Information'}
+                {step === 2 && 'Hospital Details'}
+                {step === 3 && 'Review and Submit'}
+              </CardTitle>
+              <CardDescription>
+                {step === 1 && 'Please provide the basic information about your hospital.'}
+                {step === 2 && 'Please provide detailed information about your hospital.'}
+                {step === 3 && 'Review your information and submit your registration.'}
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent>
+              <form onSubmit={handleSubmit}>
+                {step === 1 && (
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="name">Hospital Name *</Label>
+                      <Input
+                        id="name"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="address">Address *</Label>
+                      <Textarea
+                        id="address"
+                        name="address"
+                        value={formData.address}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label htmlFor="city">City *</Label>
+                        <Input
+                          id="city"
+                          name="city"
+                          value={formData.city}
+                          onChange={handleInputChange}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="state">State *</Label>
+                        <Input
+                          id="state"
+                          name="state"
+                          value={formData.state}
+                          onChange={handleInputChange}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="zipCode">ZIP Code *</Label>
+                        <Input
+                          id="zipCode"
+                          name="zipCode"
+                          value={formData.zipCode}
+                          onChange={handleInputChange}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {step === 2 && (
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="contactPerson">Contact Person *</Label>
+                      <Input
+                        id="contactPerson"
+                        name="contactPerson"
+                        value={formData.contactPerson}
+                        onChange={handleInputChange}
+                        required
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="contactEmail">Contact Email *</Label>
+                        <Input
+                          id="contactEmail"
+                          name="contactEmail"
+                          type="email"
+                          value={formData.contactEmail}
+                          onChange={handleInputChange}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="contactPhone">Contact Phone *</Label>
+                        <Input
+                          id="contactPhone"
+                          name="contactPhone"
+                          value={formData.contactPhone}
+                          onChange={handleInputChange}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="specialties">Specialties (comma-separated)</Label>
+                      <Input
+                        id="specialties"
+                        name="specialties"
+                        value={formData.specialties.join(', ')}
+                        onChange={handleMultiSelectChange}
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="hospitalType">Hospital Type</Label>
+                        <Select
+                          value={formData.hospitalType}
+                          onValueChange={(value) => handleSelectChange('hospitalType', value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select hospital type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectGroup>
+                              <SelectItem value="private">Private</SelectItem>
+                              <SelectItem value="government">Government</SelectItem>
+                              <SelectItem value="nonprofit">Non-Profit</SelectItem>
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <Label htmlFor="bedCount">Bed Count</Label>
+                        <Input
+                          id="bedCount"
+                          name="bedCount"
+                          type="number"
+                          value={formData.bedCount.toString()}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="registrationNumber">Registration Number</Label>
+                      <Input
+                        id="registrationNumber"
+                        name="registrationNumber"
+                        value={formData.registrationNumber}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {step === 3 && (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">Review Your Information</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Hospital Name</p>
+                        <p>{formData.name}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Address</p>
+                        <p>{formData.address}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">City</p>
+                        <p>{formData.city}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">State</p>
+                        <p>{formData.state}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">ZIP Code</p>
+                        <p>{formData.zipCode}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Contact Person</p>
+                        <p>{formData.contactPerson}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Contact Email</p>
+                        <p>{formData.contactEmail}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Contact Phone</p>
+                        <p>{formData.contactPhone}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Specialties</p>
+                        <p>{formData.specialties.join(', ') || 'None specified'}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Hospital Type</p>
+                        <p className="capitalize">{formData.hospitalType}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Bed Count</p>
+                        <p>{formData.bedCount}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Registration Number</p>
+                        <p>{formData.registrationNumber || 'Not provided'}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </form>
+            </CardContent>
+
+            <CardFooter className="flex justify-between">
+              {step > 1 && (
+                <Button type="button" variant="outline" onClick={prevStep}>
+                  Previous
+                </Button>
+              )}
+              {step < 3 ? (
+                <Button type="button" onClick={nextStep} className="ml-auto">
+                  Next
+                </Button>
+              ) : (
+                <Button 
+                  type="submit" 
+                  onClick={handleSubmit} 
+                  disabled={loading} 
+                  className="ml-auto"
+                >
+                  {loading ? "Submitting..." : "Submit Registration"}
+                </Button>
+              )}
+            </CardFooter>
+          </Card>
         </div>
-      </main>
+      </div>
       <Footer />
     </div>
   );

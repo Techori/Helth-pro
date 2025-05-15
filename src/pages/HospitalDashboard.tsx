@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,16 +16,19 @@ import HospitalReports from "@/components/hospital/HospitalReports";
 import HealthCardManagement from "@/components/hospital/HealthCardManagement";
 import HospitalSettings from "@/components/hospital/HospitalSettings";
 import ComplianceVerification from "@/components/hospital/ComplianceVerification";
+import HospitalProfileInfo from "@/components/hospital/HospitalProfileInfo";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 import SidebarWrapper from "@/components/SidebarWrapper";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Download } from "lucide-react";
+import { useAuth } from '@/hooks/useAuth';
 
 const HospitalDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const { authState } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   
@@ -32,24 +36,17 @@ const HospitalDashboard = () => {
   const query = new URLSearchParams(location.search);
   const activeTab = query.get("tab") || "overview";
 
-  // In a real app, this would be fetched from an API
-  const [hospitalData, setHospitalData] = useState({
-    hospitalName: "City General Hospital",
-    hospitalId: "CGH12345",
-    email: "admin@citygeneralhospital.com",
-  });
-
   useEffect(() => {
     // Display welcome toast when dashboard loads for the first time
-    if (!localStorage.getItem("dashboardWelcomeShown")) {
+    if (!localStorage.getItem("hospitalDashboardWelcomeShown")) {
       toast({
         title: "Welcome to Hospital Dashboard",
-        description: "Manage your hospital operations, patients, and financial activities.",
+        description: `Hello ${authState.user?.firstName || 'there'}, manage your hospital operations, patients, and financial activities.`,
         duration: 5000,
       });
-      localStorage.setItem("dashboardWelcomeShown", "true");
+      localStorage.setItem("hospitalDashboardWelcomeShown", "true");
     }
-  }, [toast]);
+  }, [toast, authState.user]);
 
   // Handle tab change
   const handleTabChange = (value: string) => {
@@ -84,7 +81,7 @@ const HospitalDashboard = () => {
       
       <div className="flex-1 overflow-auto">
         <HospitalDashboardHeader 
-          hospitalName={hospitalData.hospitalName}
+          hospitalName={authState.user?.firstName ? `${authState.user.firstName}'s Hospital` : "Hospital Dashboard"}
           toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
         />
         
@@ -112,6 +109,10 @@ const HospitalDashboard = () => {
                 Export Data
               </Button>
             </div>
+          </div>
+          
+          <div className="mb-6">
+            <HospitalProfileInfo />
           </div>
           
           <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">

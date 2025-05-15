@@ -3,12 +3,14 @@ import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/app.types";
 
+
 interface ProtectedRouteProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   requiredRole?: UserRole;
+  allowedRoles: string[];
 }
 
-export const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
+export const ProtectedRoute = ({ children, requiredRole ,allowedRoles}: ProtectedRouteProps) => {
   const { authState } = useAuth();
   
   // If auth is still initializing, show loading

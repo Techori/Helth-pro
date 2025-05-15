@@ -21,11 +21,20 @@ export interface Hospital {
   address: string;
   city: string;
   state: string;
-  zip_code: string;
-  contact_person: string;
-  contact_email: string;
-  contact_phone: string;
+  zipCode: string;
+  contactPerson: string;
+  contactEmail: string;
+  contactPhone: string;
   status: 'active' | 'pending' | 'inactive';
+  specialties?: string[];
+  services?: string[];
+  hospitalType?: 'government' | 'private' | 'nonprofit';
+  bedCount?: number;
+  registrationNumber?: string;
+  accreditations?: string[];
+  logo?: string;
+  website?: string;
+  user?: string;
 }
 
 export interface HealthCard {

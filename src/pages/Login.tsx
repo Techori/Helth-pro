@@ -9,7 +9,8 @@ import {
   ArrowRight, 
   Mail, 
   Lock,
-  AlertCircle
+  AlertCircle,
+  Hospital
 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,6 +28,7 @@ const Login = () => {
   });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showHospitalList, setShowHospitalList] = useState(false);
 
   // Demo credentials
   const demoCredentials = {
@@ -36,6 +38,28 @@ const Login = () => {
     sales: { email: 'sales@demo.com', password: 'demo123' },
     crm: { email: 'crm@demo.com', password: 'demo123' },
   };
+
+  // Hospital specific demo credentials
+  const hospitalDemoCredentials = [
+    { 
+      name: 'City General Hospital',
+      email: 'rajesh@cityhospital.com',
+      password: 'demo123',
+      address: 'Mumbai, Maharashtra'
+    },
+    { 
+      name: 'Wellness Multispecialty Hospital',
+      email: 'priya@wellnesshospital.com',
+      password: 'demo123',
+      address: 'Delhi, Delhi'
+    },
+    { 
+      name: 'LifeCare Medical Center',
+      email: 'anand@lifecaremedical.com',
+      password: 'demo123',
+      address: 'Bangalore, Karnataka'
+    }
+  ];
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -117,6 +141,24 @@ const Login = () => {
     }
   };
 
+  const handleLoginTypeChange = (type: 'hospital' | 'patient' | 'admin' | 'sales' | 'crm') => {
+    setLoginType(type);
+    setShowHospitalList(type === 'hospital');
+    setFormData({ email: '', password: '' }); // Reset form data when changing login type
+  };
+
+  const handleHospitalSelect = (hospital: typeof hospitalDemoCredentials[0]) => {
+    setFormData({
+      email: hospital.email,
+      password: hospital.password
+    });
+    setShowHospitalList(false);
+    toast({
+      title: "Hospital Selected",
+      description: `Login credentials for ${hospital.name} loaded`,
+    });
+  };
+
   const handleDemoLogin = async (type: 'hospital' | 'patient' | 'admin' | 'sales' | 'crm') => {
     setLoginType(type);
     setIsSubmitting(true);
@@ -190,36 +232,66 @@ const Login = () => {
                     <div className="flex flex-wrap border rounded-md overflow-hidden">
                       <button
                         className={`flex-1 py-2 px-3 text-sm font-medium ${loginType === 'patient' ? 'bg-brand-50 text-brand-600' : 'hover:bg-gray-50'}`}
-                        onClick={() => setLoginType('patient')}
+                        onClick={() => handleLoginTypeChange('patient')}
                       >
                         Patient
                       </button>
                       <button
                         className={`flex-1 py-2 px-3 text-sm font-medium ${loginType === 'hospital' ? 'bg-brand-50 text-brand-600' : 'hover:bg-gray-50'}`}
-                        onClick={() => setLoginType('hospital')}
+                        onClick={() => handleLoginTypeChange('hospital')}
                       >
                         Hospital
                       </button>
                       <button
                         className={`flex-1 py-2 px-3 text-sm font-medium ${loginType === 'admin' ? 'bg-brand-50 text-brand-600' : 'hover:bg-gray-50'}`}
-                        onClick={() => setLoginType('admin')}
+                        onClick={() => handleLoginTypeChange('admin')}
                       >
                         Admin
                       </button>
                       <button
                         className={`flex-1 py-2 px-3 text-sm font-medium ${loginType === 'sales' ? 'bg-brand-50 text-brand-600' : 'hover:bg-gray-50'}`}
-                        onClick={() => setLoginType('sales')}
+                        onClick={() => handleLoginTypeChange('sales')}
                       >
                         Sales
                       </button>
                       <button
                         className={`flex-1 py-2 px-3 text-sm font-medium ${loginType === 'crm' ? 'bg-brand-50 text-brand-600' : 'hover:bg-gray-50'}`}
-                        onClick={() => setLoginType('crm')}
+                        onClick={() => handleLoginTypeChange('crm')}
                       >
                         CRM
                       </button>
                     </div>
                   </div>
+                  
+                  {loginType === 'hospital' && (
+                    <div className="mb-6">
+                      <Button
+                        variant="outline"
+                        type="button"
+                        className="w-full flex items-center justify-center"
+                        onClick={() => setShowHospitalList(!showHospitalList)}
+                      >
+                        <Hospital className="mr-2 h-4 w-4" />
+                        {showHospitalList ? 'Hide Hospital List' : 'Select a Specific Hospital'}
+                      </Button>
+                      
+                      {showHospitalList && (
+                        <div className="mt-4 border rounded-md overflow-hidden">
+                          {hospitalDemoCredentials.map((hospital, index) => (
+                            <div 
+                              key={index} 
+                              className="p-4 border-b last:border-b-0 hover:bg-gray-50 cursor-pointer"
+                              onClick={() => handleHospitalSelect(hospital)}
+                            >
+                              <div className="font-medium">{hospital.name}</div>
+                              <div className="text-sm text-gray-500">{hospital.address}</div>
+                              <div className="text-sm text-gray-500">{hospital.email}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   
                   {error && (
                     <Alert variant="destructive" className="mb-4">

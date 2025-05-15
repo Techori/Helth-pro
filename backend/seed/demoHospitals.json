@@ -9,28 +9,49 @@
     "contactPerson": "Dr. Rajesh Sharma",
     "contactEmail": "rajesh@cityhospital.com",
     "contactPhone": "9876543210",
-    "status": "active"
+    "specialties": ["Cardiology", "Neurology", "Oncology"],
+    "services": ["Emergency Care", "Outpatient Services", "Surgical Procedures"],
+    "hospitalType": "government",
+    "bedCount": 350,
+    "registrationNumber": "HOSP123456",
+    "accreditations": ["NABH", "JCI"],
+    "status": "active",
+    "website": "https://citygeneralhospital.com"
   },
   {
-    "name": "Wellness Clinic",
+    "name": "Wellness Multispecialty Hospital",
     "address": "45 Medical Lane",
     "city": "Delhi",
     "state": "Delhi",
     "zipCode": "110001",
     "contactPerson": "Dr. Priya Patel",
-    "contactEmail": "priya@wellnessclinic.com",
+    "contactEmail": "priya@wellnesshospital.com",
     "contactPhone": "9876543211",
-    "status": "active"
+    "specialties": ["Orthopedics", "Gynecology", "Pediatrics"],
+    "services": ["Diagnostic Services", "Rehabilitation", "Maternity Care"],
+    "hospitalType": "private",
+    "bedCount": 250,
+    "registrationNumber": "HOSP789012",
+    "accreditations": ["NABH"],
+    "status": "active",
+    "website": "https://wellnessmultispecialty.com"
   },
   {
-    "name": "Medicare Center",
+    "name": "LifeCare Medical Center",
     "address": "78 Care Road",
     "city": "Bangalore",
     "state": "Karnataka",
     "zipCode": "560001",
-    "contactPerson": "Dr. Anand Kumar",
-    "contactEmail": "anand@medicarecenter.com",
+    "contactPerson": "Dr. Anand Reddy",
+    "contactEmail": "anand@lifecaremedical.com",
     "contactPhone": "9876543212",
-    "status": "pending"
+    "specialties": ["Dermatology", "Pulmonology", "ENT"],
+    "services": ["Outpatient Services", "Specialized Consultations", "Preventive Health Checkups"],
+    "hospitalType": "nonprofit",
+    "bedCount": 150,
+    "registrationNumber": "HOSP345678",
+    "accreditations": ["NABL"],
+    "status": "pending",
+    "website": "https://lifecaremedical.com"
   }
 ]

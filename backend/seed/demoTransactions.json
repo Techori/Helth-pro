@@ -1,6 +1,15 @@
-
 [
   {
+    "userEmail": "patient1@demo.com",
+    "amount": 5000,
+    "type": "charge",
+    "description": "Hospital visit",
+    "status": "completed",
+    "hospital": "City General Hospital",
+    "date": "2023-11-25T00:00:00.000Z"
+  },
+  {
+    "userEmail": "patient2@demo.com",
     "amount": 2500,
     "type": "charge",
     "description": "Consultation Fee",
@@ -9,6 +18,7 @@
     "date": "2023-11-20T00:00:00.000Z"
   },
   {
+    "userEmail": "patient3@demo.com",
     "amount": 1800,
     "type": "charge",
     "description": "Prescription Meds",
@@ -17,6 +27,7 @@
     "date": "2023-11-15T00:00:00.000Z"
   },
   {
+    "userEmail": "patient4@demo.com",
     "amount": 3500,
     "type": "charge",
     "description": "Lab Tests",
@@ -25,6 +36,7 @@
     "date": "2023-11-10T00:00:00.000Z"
   },
   {
+    "userEmail": "patient5@demo.com",
     "amount": 1200,
     "type": "charge",
     "description": "Physiotherapy",

@@ -4,35 +4,56 @@
     "firstName": "Patient",
     "lastName": "User",
     "email": "patient@demo.com",
-    "password": "$2a$10$XtUoOkPwI2seXQeIeU4hme4vXSkF5LE0aMEAI5W/aJ6D6j7D9olcG",
+    "password": "$2a$10$xr.c8e3M9zQHKqX67.DIW.ZARkq.dUWOKMPgPVkj1eBZ1LC.2VSGS",
     "role": "patient"
   },
   {
     "firstName": "Hospital",
     "lastName": "Admin",
     "email": "hospital@demo.com",
-    "password": "$2a$10$XtUoOkPwI2seXQeIeU4hme4vXSkF5LE0aMEAI5W/aJ6D6j7D9olcG",
+    "password": "$2a$10$xr.c8e3M9zQHKqX67.DIW.ZARkq.dUWOKMPgPVkj1eBZ1LC.2VSGS",
     "role": "hospital"
   },
   {
     "firstName": "System",
     "lastName": "Admin",
     "email": "admin@demo.com",
-    "password": "$2a$10$XtUoOkPwI2seXQeIeU4hme4vXSkF5LE0aMEAI5W/aJ6D6j7D9olcG",
+    "password": "$2a$10$xr.c8e3M9zQHKqX67.DIW.ZARkq.dUWOKMPgPVkj1eBZ1LC.2VSGS",
     "role": "admin"
   },
   {
     "firstName": "Sales",
     "lastName": "Manager",
     "email": "sales@demo.com",
-    "password": "$2a$10$XtUoOkPwI2seXQeIeU4hme4vXSkF5LE0aMEAI5W/aJ6D6j7D9olcG",
+    "password": "$2a$10$xr.c8e3M9zQHKqX67.DIW.ZARkq.dUWOKMPgPVkj1eBZ1LC.2VSGS",
     "role": "sales"
   },
   {
     "firstName": "CRM",
     "lastName": "Manager",
     "email": "crm@demo.com",
-    "password": "$2a$10$XtUoOkPwI2seXQeIeU4hme4vXSkF5LE0aMEAI5W/aJ6D6j7D9olcG",
+    "password": "$2a$10$xr.c8e3M9zQHKqX67.DIW.ZARkq.dUWOKMPgPVkj1eBZ1LC.2VSGS",
     "role": "crm"
+  },
+  {
+    "firstName": "Rajesh",
+    "lastName": "Sharma",
+    "email": "rajesh@cityhospital.com",
+    "password": "$2a$10$xr.c8e3M9zQHKqX67.DIW.ZARkq.dUWOKMPgPVkj1eBZ1LC.2VSGS",
+    "role": "hospital"
+  },
+  {
+    "firstName": "Priya",
+    "lastName": "Patel",
+    "email": "priya@wellnesshospital.com",
+    "password": "$2a$10$xr.c8e3M9zQHKqX67.DIW.ZARkq.dUWOKMPgPVkj1eBZ1LC.2VSGS",
+    "role": "hospital"
+  },
+  {
+    "firstName": "Anand",
+    "lastName": "Reddy",
+    "email": "anand@lifecaremedical.com",
+    "password": "$2a$10$xr.c8e3M9zQHKqX67.DIW.ZARkq.dUWOKMPgPVkj1eBZ1LC.2VSGS",
+    "role": "hospital"
   }
 ]

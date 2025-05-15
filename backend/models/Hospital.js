@@ -34,10 +34,40 @@ const HospitalSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  specialties: {
+    type: [String],
+    default: []
+  },
+  services: {
+    type: [String],
+    default: []
+  },
+  hospitalType: {
+    type: String,
+    enum: ['government', 'private', 'nonprofit'],
+    default: 'private'
+  },
+  bedCount: {
+    type: Number,
+    default: 0
+  },
+  registrationNumber: {
+    type: String
+  },
+  accreditations: {
+    type: [String],
+    default: []
+  },
   status: {
     type: String,
     enum: ['active', 'pending', 'inactive'],
     default: 'pending'
+  },
+  logo: {
+    type: String
+  },
+  website: {
+    type: String
   },
   user: {
     type: mongoose.Schema.Types.ObjectId,

@@ -1,6 +1,6 @@
-
 [
   {
+    "userEmail": "patient1@demo.com",
     "amount": 50000,
     "termMonths": 24,
     "interestRate": 12,
@@ -11,10 +11,19 @@
     "remainingBalance": 35000
   },
   {
+    "userEmail": "patient2@demo.com",
     "amount": 100000,
     "termMonths": 36,
     "interestRate": 10,
     "status": "pending",
     "applicationDate": "2023-03-05T00:00:00.000Z"
+  },
+  {
+    "userEmail": "patient3@demo.com",
+    "amount": 50000,
+    "termMonths": 12,
+    "interestRate": 12,
+    "status": "pending",
+    "applicationDate": "2023-03-15T00:00:00.000Z"
   }
 ]

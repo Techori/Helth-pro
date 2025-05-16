@@ -41,7 +41,7 @@ export const registerUser = async (
   
   try {
     // Register request
-    const data = await apiRequest('/users', {
+    const data = await apiRequest('/users/signup', {
       method: 'POST',
       body: JSON.stringify({ 
         email, 

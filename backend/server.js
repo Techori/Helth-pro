@@ -110,7 +110,6 @@ const setupRoute = (path, router) => {
     // Add route-specific logging middleware
     router.use((req, res, next) => {
       console.log(`[${path}] Handling ${req.method} request`);
-      console.log(`[${path}] User ID: ${req.user ? req.user.id : 'unauthorized'}`);
       next();
     });
 

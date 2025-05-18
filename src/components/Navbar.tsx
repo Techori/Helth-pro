@@ -96,7 +96,7 @@ const Navbar = () => {
     { name: 'Our Cards', to: '/our-cards' },
     { name: 'Apply for Loan', to: '/apply-loan' },
     { name: 'Hospital Registration', to: '/hospital-registration' },
-    { name: 'About Us', to: '/about' }
+    { name: 'About Us', to: '/about-us' }
   ];
 
   const serviceLinks = [

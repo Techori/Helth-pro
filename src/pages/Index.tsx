@@ -558,7 +558,7 @@ const Index = () => {
                   </Button>
                 </Link>
                 <Link to="/our-cards">
-                  <Button size="lg" variant="outline" className="w-full sm:w-auto text-white hover:bg-white/10 border-white">
+                  <Button size="lg" variant="outline" className="w-full sm:w-auto text-brand-600 hover:bg-white/10 border-white">
                     Explore Cards
                     <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>

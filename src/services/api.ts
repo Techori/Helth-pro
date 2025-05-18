@@ -1,6 +1,6 @@
 
 // API service with improved error handling
-const API_URL = 'https://rimedicare-phase1.onrender.com/api';
+const API_URL = 'https://helth-pro.onrender.com/api';
 
 export const getAuthToken = () => localStorage.getItem('token');
 

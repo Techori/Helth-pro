@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import axios from 'axios';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+const backendURL = import.meta.env.VITE_BACKEND_BASE_URL;
 
 const HospitalRegistration = () => {
   const navigate = useNavigate();
@@ -75,7 +76,7 @@ const HospitalRegistration = () => {
 
     try {
       const response = await axios.post(
-        'https://rimedicare-phase1.onrender.com/api/hospitals',
+        `${import.meta.env.VITE_BACKEND_BASE_URL}/api/hospitals`,
         formData,
         {
           headers: {

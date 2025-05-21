@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '@/components/Navbar';
@@ -6,10 +5,13 @@ import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowRight, Check, Users, Heart, Briefcase, CreditCard, Building, Mail, Phone, MapPin, Pill, Ambulance, Store, TestTube } from 'lucide-react';
+import { useToast } from '@/components/ui/use-toast';
+import ContactForm from '@/components/ContactForm';
 
 const AboutUs = () => {
   const [loaded, setLoaded] = useState(false);
   const [activeTab, setActiveTab] = useState("financing");
+  const { toast } = useToast();
 
   useEffect(() => {
     setLoaded(true);
@@ -543,51 +545,8 @@ const AboutUs = () => {
                 </div>
                 
                 <div className="lg:w-1/2">
-                  <div className={`glassmorphism p-8 rounded-2xl transition-all duration-500 ${loaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`} style={{ transitionDelay: '300ms' }}>
-                    <h3 className="text-2xl font-semibold text-gray-900 mb-6">Get in Touch</h3>
-                    <form className="space-y-6">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <div>
-                          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                          <input
-                            type="text"
-                            id="name"
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-                            placeholder="Enter your name"
-                          />
-                        </div>
-                        <div>
-                          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                          <input
-                            type="email"
-                            id="email"
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-                            placeholder="Enter your email"
-                          />
-                        </div>
-                      </div>
-                      <div>
-                        <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
-                        <input
-                          type="text"
-                          id="subject"
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-                          placeholder="Enter subject"
-                        />
-                      </div>
-                      <div>
-                        <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">Message</label>
-                        <textarea
-                          id="message"
-                          rows={4}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-                          placeholder="Enter your message"
-                        ></textarea>
-                      </div>
-                      <Button type="submit" className="w-full bg-brand-600 hover:bg-brand-700">
-                        Send Message
-                      </Button>
-                    </form>
+                  <div className={`transition-all duration-500 ${loaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`} style={{ transitionDelay: '300ms' }}>
+                    <ContactForm />
                   </div>
                 </div>
               </div>

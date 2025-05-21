@@ -9,7 +9,6 @@ const mailSender = async ({ email, title, body }) => {
       },
     });
 
-    console.log("Data ", email, title, body);
 
     let info = await transporter.sendMail({
       from: "HELTH-PRO - Healthcare Services",
@@ -18,7 +17,6 @@ const mailSender = async ({ email, title, body }) => {
       html: body,
     });
 
-    console.log("Email sent successfully:", info);
     return info;
   } catch (err) {
     console.error("Error sending email:", err.message);

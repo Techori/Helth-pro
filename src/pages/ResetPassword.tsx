@@ -14,6 +14,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Lock, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { resetPassword } from "@/services/authService";
 
 const ResetPassword = () => {
   const [searchParams] = useSearchParams();
@@ -77,6 +78,16 @@ const ResetPassword = () => {
 
     try {
       const token = searchParams.get("token");
+      if (!token) {
+        throw new Error("Reset token is missing");
+      }
+
+      const { data, error } = await resetPassword(token, formData.password);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
       toast({
         title: "Password Reset Successful",
         description:
@@ -84,11 +95,15 @@ const ResetPassword = () => {
       });
       navigate("/login");
     } catch (error) {
-      setError("Failed to reset password. Please try again.");
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to reset password. Please try again.";
+      setError(errorMessage);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to reset password. Please try again.",
+        description: errorMessage,
       });
     } finally {
       setIsSubmitting(false);

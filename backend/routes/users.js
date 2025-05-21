@@ -7,6 +7,7 @@ const signup = require("../controllers/user/signup");
 const get = require("../controllers/user/get");
 const update = require("../controllers/user/update");
 const forgotPassword = require("../controllers/user/forgotPassword");
+const verifyResetPassword = require("../controllers/user/verifyResetPassword");
 
 router.post(
   "/signup",
@@ -27,5 +28,18 @@ router.put("/update", auth, update);
 
 // Forgot Password Route
 router.post("/forgot-password", forgotPassword);
+
+// Reset Password Route
+router.post(
+  "/verify-reset-password",
+  [
+    check("token", "Reset token is required").not().isEmpty(),
+    check(
+      "password",
+      "Please enter a password with 6 or more characters"
+    ).isLength({ min: 6 }),
+  ],
+  verifyResetPassword
+);
 
 module.exports = router;

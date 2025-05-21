@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { ArrowRight, Shield, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -333,7 +334,7 @@ const LoanApplicationForm = () => {
           type="button" 
           onClick={nextStep}
           disabled={!selectedOfferId}
-          className="bg-brand-600 hover:bg-brand-700"
+          style={{ backgroundColor: '#D5451B', color: '#FFFFFF' }}
         >
           Proceed to Sign Documents
           <ArrowRight className="ml-2 h-4 w-4" />
@@ -344,7 +345,7 @@ const LoanApplicationForm = () => {
         <Button 
           type="button" 
           onClick={handleSignDocuments}
-          className="bg-brand-600 hover:bg-brand-700"
+          style={{ backgroundColor: '#D5451B', color: '#FFFFFF' }}
         >
           Sign and Complete Application
           <ArrowRight className="ml-2 h-4 w-4" />
@@ -355,7 +356,7 @@ const LoanApplicationForm = () => {
         <Button 
           type="button" 
           onClick={nextStep}
-          className="bg-brand-600 hover:bg-brand-700"
+          style={{ backgroundColor: '#D5451B', color: '#FFFFFF' }}
           disabled={isProcessing}
         >
           {isProcessing ? 'Processing...' : 'Next'}
@@ -370,7 +371,7 @@ const LoanApplicationForm = () => {
       <div className="container mx-auto px-4 sm:px-6">
         <div className="max-w-4xl mx-auto">
           {!isSubmitted ? (
-            <div className={`bg-white rounded-xl shadow-sm border border-gray-100 p-6 md:p-10 animate-fade-in`}>
+            <div className={`bg-[#FFE0C2] rounded-xl shadow-sm border border-gray-100 p-6 md:p-10 animate-fade-in`}>
               <div className="mb-6">
                 <div className="flex items-center justify-center">
                   <div className="flex items-center space-x-1">
@@ -399,7 +400,7 @@ const LoanApplicationForm = () => {
                   </div>
                 </div>
                 <div className="mt-2 text-center">
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm" style={{ color: '#521C0D' }}>
                     {currentStep === 1 && 'Personal Details'}
                     {currentStep === 2 && 'Credit Bureau Check'}
                     {currentStep === 3 && 'KYC Verification'}
@@ -422,6 +423,7 @@ const LoanApplicationForm = () => {
                       variant="outline" 
                       onClick={prevStep}
                       disabled={isProcessing}
+                      style={{ backgroundColor: '#D5451B', color: '#FFFFFF' }}
                     >
                       Previous
                     </Button>
@@ -434,18 +436,18 @@ const LoanApplicationForm = () => {
               </form>
             </div>
           ) : (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 md:p-10 animate-fade-in text-center">
+            <div className="bg-[#FFE0C2] rounded-xl shadow-sm border border-gray-100 p-6 md:p-10 animate-fade-in text-center">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                 </svg>
               </div>
               
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Application Submitted Successfully!</h2>
-              <p className="text-gray-600 mb-6">Thank you for your application. Our team will review it shortly.</p>
+              <h2 className="text-2xl font-bold" style={{ color: '#521C0D' }}>Application Submitted Successfully!</h2>
+              <p className="mb-6" style={{ color: '#521C0D' }}>Thank you for your application. Our team will review it shortly.</p>
               
               <div className="bg-gray-50 p-6 rounded-lg mb-8">
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Your Application Reference Number:</h3>
+                <h3 className="text-lg font-medium" style={{ color: '#521C0D' }}>Your Application Reference Number:</h3>
                 <p className="text-2xl font-bold text-brand-600 font-mono">{referenceNumber}</p>
                 <p className="text-sm text-gray-500 mt-2">Please save this reference number for future communication.</p>
               </div>
@@ -454,16 +456,16 @@ const LoanApplicationForm = () => {
                 <div className="bg-blue-50 p-6 rounded-lg mb-8">
                   <div className="flex items-center justify-center mb-3">
                     <CreditCard className="h-8 w-8 text-blue-600 mr-2" />
-                    <h3 className="text-lg font-medium text-gray-900">Your Healthcare Wallet is Active!</h3>
+                    <h3 className="text-lg font-medium" style={{ color: '#521C0D' }}>Your Healthcare Wallet is Active!</h3>
                   </div>
-                  <p className="text-gray-600 mb-2">
+                  <p className="mb-2" style={{ color: '#521C0D' }}>
                     Your healthcare wallet has been activated. You can now use it for medical expenses at partner hospitals.
                   </p>
                   <div className="flex justify-center mt-4">
                     <Button 
                       variant="outline"
                       onClick={() => window.location.href = '/patient-dashboard'}
-                      className="bg-blue-600 text-white hover:bg-blue-700 border-0"
+                      style={{ backgroundColor: '#D5451B', color: '#FFFFFF' }}
                     >
                       Access Your Wallet
                     </Button>
@@ -476,13 +478,15 @@ const LoanApplicationForm = () => {
                   type="button"
                   variant="outline"
                   onClick={handleStartNewApplication}
+                  style={{ backgroundColor: '#D5451B', color: '#FFFFFF' }}
                   className="w-full sm:w-auto"
                 >
                   Start New Application
                 </Button>
                 <Button 
                   type="button"
-                  className="bg-brand-600 hover:bg-brand-700 w-full sm:w-auto"
+                  style={{ backgroundColor: '#D5451B', color: '#FFFFFF' }}
+                  className="w-full sm:w-auto"
                   onClick={() => window.location.href = '/'}
                 >
                   Return to Home
@@ -495,5 +499,6 @@ const LoanApplicationForm = () => {
     </section>
   );
 };
+
 
 export default LoanApplicationForm;

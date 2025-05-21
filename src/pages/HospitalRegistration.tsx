@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -104,35 +105,35 @@ const HospitalRegistration = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ color: '#521C0D' }}>
+    <div className="min-h-screen flex flex-col">
       <Navbar />
       <div className="flex-grow container mx-auto py-24 px-4">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-bold text-center mb-8">Hospital Registration</h1>
           <div className="mb-10">
             <div className="flex justify-between items-center relative">
-              <div className={`w-1/3 text-center ${step >= 1 ? 'text-#521C0D' : 'text-gray-400'}`}>
-                <div className={`rounded-full h-10 w-10 mx-auto flex items-center justify-center ${step >= 1 ? 'bg-brand-600 text-white' : 'bg-gray-200'}`}>1</div>
+              <div className={`w-1/3 text-center ${step >= 1 ? 'text-primary' : 'text-gray-400'}`}>
+                <div className={`rounded-full h-10 w-10 mx-auto flex items-center justify-center ${step >= 1 ? 'bg-primary text-white' : 'bg-gray-200'}`}>1</div>
                 <p className="mt-2">Basic Information</p>
               </div>
-              <div className={`w-1/3 text-center ${step >= 2 ? 'text-#521C0D' : 'text-gray-400'}`}>
-                <div className={`rounded-full h-10 w-10 mx-auto flex items-center justify-center ${step >= 2 ? 'bg-brand-600 text-white' : 'bg-gray-200'}`}>2</div>
-                <p className="mt-2" >Hospital Details</p>
+              <div className={`w-1/3 text-center ${step >= 2 ? 'text-primary' : 'text-gray-400'}`}>
+                <div className={`rounded-full h-10 w-10 mx-auto flex items-center justify-center ${step >= 2 ? 'bg-primary text-white' : 'bg-gray-200'}`}>2</div>
+                <p className="mt-2">Hospital Details</p>
               </div>
-              <div className={`w-1/3 text-center ${step >= 3 ? 'text-#521C0D' : 'text-gray-400'}`}>
-                <div className={`rounded-full h-10 w-10 mx-auto flex items-center justify-center ${step >= 3 ? 'bg-brand-600 text-white' : 'bg-gray-200'}`}>3</div>
+              <div className={`w-1/3 text-center ${step >= 3 ? 'text-primary' : 'text-gray-400'}`}>
+                <div className={`rounded-full h-10 w-10 mx-auto flex items-center justify-center ${step >= 3 ? 'bg-primary text-white' : 'bg-gray-200'}`}>3</div>
                 <p className="mt-2">Confirmation</p>
               </div>
-              <div className="absolute top-5 left-0 w-full h-1 bg-brand-600 -z-10">
-                <div
-                  className="h-full bg-brand-600"
+              <div className="absolute top-5 left-0 w-full h-1 bg-gray-200 -z-10">
+                <div 
+                  className="h-full bg-primary" 
                   style={{ width: `${(step - 1) * 50}%` }}
                 ></div>
               </div>
             </div>
           </div>
 
-          <Card style={{ backgroundColor: '#FFE0C2' }} className="shadow-lg">
+          <Card className="shadow-lg">
             <CardHeader>
               <CardTitle>
                 {step === 1 && 'Basic Information'}
@@ -151,7 +152,7 @@ const HospitalRegistration = () => {
                 {step === 1 && (
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="name" style={{ color: '#521C0D' }}>Hospital Name *</Label>
+                      <Label htmlFor="name">Hospital Name *</Label>
                       <Input
                         id="name"
                         name="name"
@@ -161,7 +162,7 @@ const HospitalRegistration = () => {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="address" style={{ color: '#521C0D' }}>Address *</Label>
+                      <Label htmlFor="address">Address *</Label>
                       <Textarea
                         id="address"
                         name="address"
@@ -172,7 +173,7 @@ const HospitalRegistration = () => {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <Label htmlFor="city" style={{ color: '#521C0D' }}>City *</Label>
+                        <Label htmlFor="city">City *</Label>
                         <Input
                           id="city"
                           name="city"
@@ -182,7 +183,7 @@ const HospitalRegistration = () => {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="state" style={{ color: '#521C0D' }}>State *</Label>
+                        <Label htmlFor="state">State *</Label>
                         <Input
                           id="state"
                           name="state"
@@ -192,7 +193,7 @@ const HospitalRegistration = () => {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="zipCode" style={{ color: '#521C0D' }}>ZIP Code *</Label>
+                        <Label htmlFor="zipCode">ZIP Code *</Label>
                         <Input
                           id="zipCode"
                           name="zipCode"
@@ -208,7 +209,7 @@ const HospitalRegistration = () => {
                 {step === 2 && (
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="contactPerson" style={{ color: '#521C0D' }}>Contact Person *</Label>
+                      <Label htmlFor="contactPerson">Contact Person *</Label>
                       <Input
                         id="contactPerson"
                         name="contactPerson"
@@ -219,7 +220,7 @@ const HospitalRegistration = () => {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="contactEmail" style={{ color: '#521C0D' }}>Contact Email *</Label>
+                        <Label htmlFor="contactEmail">Contact Email *</Label>
                         <Input
                           id="contactEmail"
                           name="contactEmail"
@@ -230,7 +231,7 @@ const HospitalRegistration = () => {
                         />
                       </div>
                       <div>
-                        <Label htmlFor="contactPhone" style={{ color: '#521C0D' }}>Contact Phone *</Label>
+                        <Label htmlFor="contactPhone">Contact Phone *</Label>
                         <Input
                           id="contactPhone"
                           name="contactPhone"
@@ -241,7 +242,7 @@ const HospitalRegistration = () => {
                       </div>
                     </div>
                     <div>
-                      <Label htmlFor="specialties" style={{ color: '#521C0D' }}>Specialties (comma-separated)</Label>
+                      <Label htmlFor="specialties">Specialties (comma-separated)</Label>
                       <Input
                         id="specialties"
                         name="specialties"
@@ -251,7 +252,7 @@ const HospitalRegistration = () => {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="hospitalType" style={{ color: '#521C0D' }}>Hospital Type</Label>
+                        <Label htmlFor="hospitalType">Hospital Type</Label>
                         <Select
                           value={formData.hospitalType}
                           onValueChange={(value) => handleSelectChange('hospitalType', value)}
@@ -269,7 +270,7 @@ const HospitalRegistration = () => {
                         </Select>
                       </div>
                       <div>
-                        <Label htmlFor="bedCount" style={{ color: '#521C0D' }}>Bed Count</Label>
+                        <Label htmlFor="bedCount">Bed Count</Label>
                         <Input
                           id="bedCount"
                           name="bedCount"
@@ -280,7 +281,7 @@ const HospitalRegistration = () => {
                       </div>
                     </div>
                     <div>
-                      <Label htmlFor="registrationNumber" style={{ color: '#521C0D' }}>Registration Number</Label>
+                      <Label htmlFor="registrationNumber">Registration Number</Label>
                       <Input
                         id="registrationNumber"
                         name="registrationNumber"
@@ -293,54 +294,54 @@ const HospitalRegistration = () => {
 
                 {step === 3 && (
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold" style={{ color: '#521C0D' }}>Review Your Information</h3>
+                    <h3 className="text-lg font-semibold">Review Your Information</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="p-4 border rounded-md bg-white shadow-sm">
-                        <p className="text-base font-medium" style={{ color: '#521C0D' }}>Hospital Name</p>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Hospital Name</p>
                         <p>{formData.name}</p>
                       </div>
-                      <div className="p-4 border rounded-md bg-white shadow-sm">
-                        <p className="text-base font-medium" style={{ color: '#521C0D' }}>Address</p>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Address</p>
                         <p>{formData.address}</p>
                       </div>
-                      <div className="p-4 border rounded-md bg-white shadow-sm">
-                        <p className="text-base font-medium" style={{ color: '#521C0D' }}>City</p>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">City</p>
                         <p>{formData.city}</p>
                       </div>
-                      <div className="p-4 border rounded-md bg-white shadow-sm">
-                        <p className="text-base font-medium" style={{ color: '#521C0D' }}>State</p>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">State</p>
                         <p>{formData.state}</p>
                       </div>
-                      <div className="p-4 border rounded-md bg-white shadow-sm">
-                        <p className="text-base font-medium" style={{ color: '#521C0D' }}>ZIP Code</p>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">ZIP Code</p>
                         <p>{formData.zipCode}</p>
                       </div>
-                      <div className="p-4 border rounded-md bg-white shadow-sm">
-                        <p className="text-base font-medium" style={{ color: '#521C0D' }}>Contact Person</p>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Contact Person</p>
                         <p>{formData.contactPerson}</p>
                       </div>
-                      <div className="p-4 border rounded-md bg-white shadow-sm">
-                        <p className="text-base font-medium" style={{ color: '#521C0D' }}>Contact Email</p>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Contact Email</p>
                         <p>{formData.contactEmail}</p>
                       </div>
-                      <div className="p-4 border rounded-md bg-white shadow-sm">
-                        <p className="text-base font-medium" style={{ color: '#521C0D' }}>Contact Phone</p>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Contact Phone</p>
                         <p>{formData.contactPhone}</p>
                       </div>
-                      <div className="p-4 border rounded-md bg-white shadow-sm">
-                        <p className="text-base font-medium" style={{ color: '#521C0D' }}>Specialties</p>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Specialties</p>
                         <p>{formData.specialties.join(', ') || 'None specified'}</p>
                       </div>
-                      <div className="p-4 border rounded-md bg-white shadow-sm">
-                        <p className="text-base font-medium" style={{ color: '#521C0D' }}>Hospital Type</p>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Hospital Type</p>
                         <p className="capitalize">{formData.hospitalType}</p>
                       </div>
-                      <div className="p-4 border rounded-md bg-white shadow-sm">
-                        <p className="text-base font-medium" style={{ color: '#521C0D' }}>Bed Count</p>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Bed Count</p>
                         <p>{formData.bedCount}</p>
                       </div>
-                      <div className="p-4 border rounded-md bg-white shadow-sm">
-                        <p className="text-base font-medium" style={{ color: '#521C0D' }}>Registration Number</p>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500">Registration Number</p>
                         <p>{formData.registrationNumber || 'Not provided'}</p>
                       </div>
                     </div>
@@ -351,21 +352,20 @@ const HospitalRegistration = () => {
 
             <CardFooter className="flex justify-between">
               {step > 1 && (
-                <Button type="button" variant="outline" onClick={prevStep} style={{ backgroundColor: '#D5451B', color: '#FFFFFF' }}>
+                <Button type="button" variant="outline" onClick={prevStep}>
                   Previous
                 </Button>
               )}
               {step < 3 ? (
-                <Button type="button" onClick={nextStep} className="ml-auto" style={{ backgroundColor: '#D5451B', color: '#FFFFFF' }}>
+                <Button type="button" onClick={nextStep} className="ml-auto">
                   Next
                 </Button>
               ) : (
-                <Button
-                  type="submit"
-                  onClick={handleSubmit}
-                  disabled={loading}
+                <Button 
+                  type="submit" 
+                  onClick={handleSubmit} 
+                  disabled={loading} 
                   className="ml-auto"
-                  style={{ backgroundColor: '#D5451B', color: '#FFFFFF' }}
                 >
                   {loading ? "Submitting..." : "Submit Registration"}
                 </Button>

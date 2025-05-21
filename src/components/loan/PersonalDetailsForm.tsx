@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface PersonalDetailsFormProps {
@@ -14,7 +13,7 @@ interface PersonalDetailsFormProps {
 
 const PersonalDetailsForm = ({ formData, handleInputChange }: PersonalDetailsFormProps) => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 bg-orange-500 rounded-xl p-6">
       <h3 className="text-xl font-semibold text-gray-900">Personal Details</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>

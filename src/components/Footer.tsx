@@ -1,4 +1,3 @@
-
 import { Link } from 'react-router-dom';
 import { Mail, Phone, MapPin, ArrowRight, Heart, ChevronDown, FileText } from 'lucide-react';
 import {
@@ -11,7 +10,7 @@ import { Button } from "@/components/ui/button";
 
 const Footer = () => {
   return (
-    <footer className="bg-gray-50 border-t border-gray-100">
+    <footer className="bg-orange-100 border-t border-orange-200">
       <div className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-4">
@@ -131,7 +130,7 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="mt-12 pt-8 border-t border-gray-200">
+        <div className="mt-12 pt-8 border-t border-orange-200">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-500 text-sm">
               © {new Date().getFullYear()} Rishishwar Industry Private Limited. All rights reserved.

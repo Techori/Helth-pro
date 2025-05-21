@@ -65,6 +65,7 @@ const Login = () => {
   useEffect(() => {
     if (authState.initialized && authState.user) {
       const redirectPath = `/${authState.user.role}-dashboard`;
+      console.log('User already authenticated, redirecting to:', redirectPath);
       navigate(redirectPath, { replace: true });
     }
   }, [authState, navigate]);
@@ -103,6 +104,7 @@ const Login = () => {
     setError(null);
     
     try {
+      console.log('Attempting sign in with:', formData.email);
       const { error, data } = await signIn(formData.email, formData.password);
       
       if (error) {
@@ -114,7 +116,7 @@ const Login = () => {
           variant: "destructive"
         });
       } else {
-
+        console.log('Login successful:', data);
         toast({
           title: "Login Successful",
           description: `Welcome back!`,
@@ -122,7 +124,7 @@ const Login = () => {
         
         if (data?.user?.role) {
           const redirectPath = `/${data.user.role}-dashboard`;
-          // console.log('Redirecting to:', redirectPath);
+          console.log('Redirecting to:', redirectPath);
           navigate(redirectPath, { replace: true });
         }
       }
@@ -166,7 +168,7 @@ const Login = () => {
     setFormData(credentials);
     
     try {
-      // console.log('Attempting demo login as:', type);
+      console.log('Attempting demo login as:', type);
       const { error, data } = await signIn(credentials.email, credentials.password);
       
       if (error) {
@@ -185,7 +187,7 @@ const Login = () => {
         
         if (data?.user?.role) {
           const redirectPath = `/${data.user.role}-dashboard`;
-          // console.log('Redirecting to:', redirectPath);
+          console.log('Redirecting to:', redirectPath);
           navigate(redirectPath, { replace: true });
         }
       }

@@ -12,21 +12,25 @@ module.exports = async (req, res) => {
   // Validate request body
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
+    console.log('Validation errors:', errors.array());
     return res.status(400).json({ msg: errors.array()[0].msg });
   }
 
   const { email, password, role } = req.body;
+  console.log('Login attempt for:', email, 'with role:', role || 'not specified');
 
   try {
     // Check if user exists
     let user = await User.findOne({ email });
     if (!user) {
+      console.log('User not found:', email);
       return res.status(400).json({ msg: "Invalid credentials" });
     }
 
     // Verify password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
+      console.log('Invalid password for user:', email);
       return res.status(400).json({ msg: "Invalid credentials" });
     }
 
@@ -34,20 +38,23 @@ module.exports = async (req, res) => {
     if (role) {
       const selectedRole = role.toLowerCase();
       if (user.role !== selectedRole) {
-        return res.status(400).json({
+        console.log(`Role mismatch for ${email}. Expected: ${user.role}, Got: ${selectedRole}`);
+        return res.status(400).json({ 
           msg: "Selected role does not match your account type",
-          expectedRole: user.role,
+          expectedRole: user.role 
         });
       }
     }
+
+    console.log('User authenticated successfully:', email, 'with role:', user.role);
 
     // Create JWT payload
     const payload = {
       user: {
         id: user.id,
         role: user.role,
-        email: user.email, // Adding email for better logging
-      },
+        email: user.email // Adding email for better logging
+      }
     };
 
     // Sign and return JWT token
@@ -57,23 +64,24 @@ module.exports = async (req, res) => {
       { expiresIn: 360000 }, // 100 hours
       (err, token) => {
         if (err) {
-          console.error("Token generation error:", err);
+          console.error('Token generation error:', err);
           throw err;
         }
-        res.json({
+        console.log('Token generated successfully for:', email);
+        res.json({ 
           token,
           user: {
             id: user.id,
             email: user.email,
             role: user.role,
             firstName: user.firstName,
-            lastName: user.lastName,
-          },
+            lastName: user.lastName
+          }
         });
       }
     );
   } catch (err) {
-    console.error("Login error:", err.message);
+    console.error('Login error:', err.message);
     res.status(500).json({ msg: "Server Error" });
   }
-};
+}; 

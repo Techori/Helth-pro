@@ -85,33 +85,3 @@ export const checkAuthToken = (): boolean => {
   const token = localStorage.getItem("token");
   return !!token;
 };
-
-export const forgotPassword = async (email: string) => {
-  try {
-    const response = await apiRequest("/users/forgot-password", {
-      method: "POST",
-      body: JSON.stringify({ email }),
-    });
-    return { data: response.data, error: null };
-  } catch (error) {
-    if (error instanceof Error) {
-      return { data: null, error: { message: error.message } };
-    }
-    return { data: null, error: { message: "An unexpected error occurred" } };
-  }
-};
-
-export const resetPassword = async (token: string, password: string) => {
-  try {
-    const response = await apiRequest("/users/verify-reset-password", {
-      method: "POST",
-      body: JSON.stringify({ token, password }),
-    });
-    return { data: response.data, error: null };
-  } catch (error) {
-    if (error instanceof Error) {
-      return { data: null, error: { message: error.message } };
-    }
-    return { data: null, error: { message: "An unexpected error occurred" } };
-  }
-};

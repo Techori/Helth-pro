@@ -23,6 +23,8 @@ import PrivacyPolicy from "./pages/legal/PrivacyPolicy";
 import TermsAndConditions from "./pages/legal/TermsAndConditions";
 import Sitemap from "./pages/Sitemap";
 import Signup from "./pages/Signup";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 // Service Pages
 import FinancingService from "./pages/services/FinancingService";
 import PharmaService from "./pages/services/PharmaService";
@@ -45,6 +47,10 @@ const App = () => (
               <Route path="/" element={<Index />} />
 
               <Route path="/login" element={<Login />} />
+
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+
+              <Route path="/reset-password" element={<ResetPassword />} />
 
               <Route path="/signup" element={<Signup />} />
 

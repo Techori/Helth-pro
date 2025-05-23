@@ -5,98 +5,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Check, ArrowRight, Ambulance, Clock, Shield, PhoneCall } from 'lucide-react';
-import * as THREE from 'three';
-
-// 3D Ambulance Model Component
-const AmbulanceModel = () => {
-  const ambulanceRef = useRef<THREE.Group>(null);
-  
-  return (
-    <Float
-      speed={1.5} 
-      rotationIntensity={0.5} 
-      floatIntensity={0.5}
-    >
-      <group ref={ambulanceRef} position={[0, 0, 0]}>
-        {/* Ambulance body */}
-        <mesh position={[0, 0, 0]}>
-          <boxGeometry args={[2.5, 1.4, 4]} />
-          <meshStandardMaterial color="#ffffff" />
-        </mesh>
-        
-        {/* Ambulance front (driver cabin) */}
-        <mesh position={[0, -0.2, -2.5]}>
-          <boxGeometry args={[2.5, 1, 1]} />
-          <meshStandardMaterial color="#ffffff" />
-        </mesh>
-        
-        {/* Front windshield */}
-        <mesh position={[0, 0.5, -1.8]} rotation={[-Math.PI / 6, 0, 0]}>
-          <planeGeometry args={[2.3, 0.8]} />
-          <meshStandardMaterial color="#a0d8ef" transparent opacity={0.7} side={THREE.DoubleSide} />
-        </mesh>
-        
-        {/* Red cross on sides */}
-        <mesh position={[1.26, 0.2, 0]} rotation={[0, -Math.PI / 2, 0]}>
-          <planeGeometry args={[3, 0.6]} />
-          <meshStandardMaterial color="#d10b0b" />
-        </mesh>
-        
-        {/* Red cross symbol - vertical */}
-        <mesh position={[1.27, 0.2, 0]}>
-          <boxGeometry args={[0.01, 0.6, 0.2]} />
-          <meshStandardMaterial color="#ffffff" />
-        </mesh>
-        
-        {/* Red cross symbol - horizontal */}
-        <mesh position={[1.27, 0.2, 0]}>
-          <boxGeometry args={[0.01, 0.2, 0.6]} />
-          <meshStandardMaterial color="#ffffff" />
-        </mesh>
-        
-        {/* Same for other side */}
-        <mesh position={[-1.26, 0.2, 0]} rotation={[0, Math.PI / 2, 0]}>
-          <planeGeometry args={[3, 0.6]} />
-          <meshStandardMaterial color="#d10b0b" />
-        </mesh>
-        
-        <mesh position={[-1.27, 0.2, 0]}>
-          <boxGeometry args={[0.01, 0.6, 0.2]} />
-          <meshStandardMaterial color="#ffffff" />
-        </mesh>
-        
-        <mesh position={[-1.27, 0.2, 0]}>
-          <boxGeometry args={[0.01, 0.2, 0.6]} />
-          <meshStandardMaterial color="#ffffff" />
-        </mesh>
-        
-        {/* Wheels - Fixed the rotation property by moving it to the mesh component */}
-        <mesh position={[-1, -0.7, -1.5]} rotation={[Math.PI / 2, 0, 0]}>
-          <cylinderGeometry args={[0.4, 0.4, 0.3, 16]} />
-          <meshStandardMaterial color="#333333" />
-        </mesh>
-        <mesh position={[1, -0.7, -1.5]} rotation={[Math.PI / 2, 0, 0]}>
-          <cylinderGeometry args={[0.4, 0.4, 0.3, 16]} />
-          <meshStandardMaterial color="#333333" />
-        </mesh>
-        <mesh position={[-1, -0.7, 1.5]} rotation={[Math.PI / 2, 0, 0]}>
-          <cylinderGeometry args={[0.4, 0.4, 0.3, 16]} />
-          <meshStandardMaterial color="#333333" />
-        </mesh>
-        <mesh position={[1, -0.7, 1.5]} rotation={[Math.PI / 2, 0, 0]}>
-          <cylinderGeometry args={[0.4, 0.4, 0.3, 16]} />
-          <meshStandardMaterial color="#333333" />
-        </mesh>
-        
-        {/* Emergency lights */}
-        <mesh position={[0, 1.4, 0]}>
-          <boxGeometry args={[1.5, 0.2, 0.8]} />
-          <meshStandardMaterial color="#2a52be" />
-        </mesh>
-      </group>
-    </Float>
-  );
-};
+import AmbulanceModel from '@/components/ThreeDAmbulance';
 
 // AmbulanceService component
 const AmbulanceService = () => {
@@ -162,16 +71,16 @@ const AmbulanceService = () => {
                   </div>
                 </div>
                 
-                <div className="md:w-1/2 h-80 md:h-96">
+                <div className="md:w-1/2 h-80 md:h-90">
                   <div className={`w-full h-full transition-all duration-700 ${loaded ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}>
-                    <Canvas camera={{ position: [0, 2, 5], fov: 45 }}>
+                    <Canvas camera={{ position: [0, 2, 5], fov: 50 }}>
                       <ambientLight intensity={0.7} />
                       <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} />
                       <pointLight position={[-10, -10, -10]} />
                       <PresentationControls
                         global
                         snap={{ mass: 1, tension: 170 }}
-                        zoom={1.2}
+                        zoom={1.0}
                         rotation={[0, 0, 0]}
                         polar={[-Math.PI / 3, Math.PI / 3]}
                         azimuth={[-Math.PI / 1.4, Math.PI / 2]}

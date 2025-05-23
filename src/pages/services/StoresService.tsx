@@ -1,170 +1,13 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, PresentationControls, Float } from '@react-three/drei';
+import { OrbitControls, PresentationControls } from '@react-three/drei';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Button } from '@/components/ui/button';
 import { Check, ArrowRight, Store, Pill, Users, MapPin } from 'lucide-react';
-import * as THREE from 'three';
+import StoreModel from '@/components/ThreeDRetailStore';
 
-// 3D Store Model Component
-const StoreModel = () => {
-  const storeRef = useRef<THREE.Group>(null);
-  
-  useFrame((state) => {
-    if (storeRef.current) {
-      storeRef.current.rotation.y = state.clock.getElapsedTime() * 0.2;
-    }
-  });
-
-  return (
-    <Float
-      speed={1} 
-      rotationIntensity={0.3} 
-      floatIntensity={0.3}
-    >
-      <group ref={storeRef} position={[0, -1, 0]}>
-        {/* Store Building */}
-        <mesh position={[0, 1, 0]}>
-          <boxGeometry args={[4, 2, 3]} />
-          <meshStandardMaterial color="#ffffff" />
-        </mesh>
-        
-        {/* Store Front Glass */}
-        <mesh position={[0, 1, 1.51]}>
-          <boxGeometry args={[3.5, 1.5, 0.1]} />
-          <meshStandardMaterial color="#a0d8ef" transparent opacity={0.7} />
-        </mesh>
-        
-        {/* Store Sign */}
-        <mesh position={[0, 2.3, 0]}>
-          <boxGeometry args={[4.2, 0.6, 3.2]} />
-          <meshStandardMaterial color="#9b87f5" />
-        </mesh>
-        
-        {/* RI Medicare Text */}
-        <mesh position={[0, 2.3, 1.7]}>
-          <planeGeometry args={[3, 0.4]} />
-          <meshStandardMaterial color="#ffffff" />
-        </mesh>
-        
-        {/* Door */}
-        <mesh position={[0, 0.5, 1.51]}>
-          <boxGeometry args={[1, 1, 0.1]} />
-          <meshStandardMaterial color="#a0d8ef" transparent opacity={0.8} />
-        </mesh>
-        
-        {/* Window Left */}
-        <mesh position={[-1.25, 1.3, 1.51]}>
-          <boxGeometry args={[1, 0.8, 0.05]} />
-          <meshStandardMaterial color="#a0d8ef" transparent opacity={0.9} />
-        </mesh>
-        
-        {/* Window Right */}
-        <mesh position={[1.25, 1.3, 1.51]}>
-          <boxGeometry args={[1, 0.8, 0.05]} />
-          <meshStandardMaterial color="#a0d8ef" transparent opacity={0.9} />
-        </mesh>
-        
-        {/* Medical Cross */}
-        <mesh position={[0, 2.3, 1.71]}>
-          <boxGeometry args={[0.8, 0.15, 0.05]} />
-          <meshStandardMaterial color="#d10b0b" />
-        </mesh>
-        
-        <mesh position={[0, 2.3, 1.71]}>
-          <boxGeometry args={[0.15, 0.8, 0.05]} />
-          <meshStandardMaterial color="#d10b0b" />
-        </mesh>
-        
-        {/* Store Base/Ground */}
-        <mesh position={[0, -0.1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[6, 5]} />
-          <meshStandardMaterial color="#cccccc" />
-        </mesh>
-      </group>
-    </Float>
-  );
-};
-
-// Medical Products Display
-const ProductsDisplay = () => {
-  const displayRef = useRef<THREE.Group>(null);
-  
-  useFrame((state) => {
-    if (displayRef.current) {
-      displayRef.current.rotation.y = state.clock.getElapsedTime() * 0.3;
-    }
-  });
-  
-  return (
-    <Float
-      speed={1.5} 
-      rotationIntensity={0.4} 
-      floatIntensity={0.4}
-    >
-      <group ref={displayRef} position={[3, 0, 0]}>
-        {/* Display Cabinet */}
-        <mesh position={[0, 0, 0]}>
-          <boxGeometry args={[1.5, 2, 0.5]} />
-          <meshStandardMaterial color="#f1f1f1" />
-        </mesh>
-        
-        {/* Shelves */}
-        {[-0.5, 0, 0.5].map((y, i) => (
-          <mesh key={i} position={[0, y, 0.1]}>
-            <boxGeometry args={[1.3, 0.05, 0.4]} />
-            <meshStandardMaterial color="#e5e5e5" />
-          </mesh>
-        ))}
-        
-        {/* Products - Pills Bottles */}
-        <mesh position={[-0.4, -0.5, 0.25]}>
-          <cylinderGeometry args={[0.1, 0.1, 0.3, 16]} />
-          <meshStandardMaterial color="#f97316" />
-        </mesh>
-        
-        <mesh position={[0, -0.5, 0.25]}>
-          <cylinderGeometry args={[0.1, 0.1, 0.3, 16]} />
-          <meshStandardMaterial color="#0ea5e9" />
-        </mesh>
-        
-        <mesh position={[0.4, -0.5, 0.25]}>
-          <cylinderGeometry args={[0.1, 0.1, 0.3, 16]} />
-          <meshStandardMaterial color="#9b87f5" />
-        </mesh>
-        
-        {/* Products - Boxes */}
-        <mesh position={[-0.4, 0, 0.25]}>
-          <boxGeometry args={[0.2, 0.2, 0.2]} />
-          <meshStandardMaterial color="#e5deff" />
-        </mesh>
-        
-        <mesh position={[0, 0, 0.25]}>
-          <boxGeometry args={[0.2, 0.2, 0.2]} />
-          <meshStandardMaterial color="#fde1d3" />
-        </mesh>
-        
-        <mesh position={[0.4, 0, 0.25]}>
-          <boxGeometry args={[0.2, 0.2, 0.2]} />
-          <meshStandardMaterial color="#d3e4fd" />
-        </mesh>
-        
-        {/* Products - Medical Supplies */}
-        <mesh position={[-0.4, 0.5, 0.25]}>
-          <boxGeometry args={[0.25, 0.1, 0.3]} />
-          <meshStandardMaterial color="#ffdee2" />
-        </mesh>
-        
-        <mesh position={[0.4, 0.5, 0.25]}>
-          <boxGeometry args={[0.25, 0.1, 0.3]} />
-          <meshStandardMaterial color="#f2fce2" />
-        </mesh>
-      </group>
-    </Float>
-  );
-};
 
 const StoresService = () => {
   const [loaded, setLoaded] = useState(false);
@@ -230,7 +73,6 @@ const StoresService = () => {
                         azimuth={[-Math.PI / 1.4, Math.PI / 2]}
                       >
                         <StoreModel />
-                        <ProductsDisplay />
                       </PresentationControls>
                       <OrbitControls 
                         enableZoom={false} 

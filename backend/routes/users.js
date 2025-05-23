@@ -19,6 +19,9 @@ router.post(
       "password",
       "Please enter a password with 6 or more characters"
     ).isLength({ min: 6 }),
+    check("stateCode", "State code is required").not().isEmpty(),
+    check("rtoCode", "RTO code is required").not().isEmpty(),
+    check("hospitalShort", "Hospital short is required").not().isEmpty(),
   ],
   signup
 );

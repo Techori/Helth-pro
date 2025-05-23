@@ -1,4 +1,3 @@
-
 import { FileText, Upload } from 'lucide-react';
 
 interface DocumentUploadFormProps {
@@ -116,8 +115,8 @@ const DocumentUploadForm = ({ formData, handleFileChange }: DocumentUploadFormPr
             />
           </div>
           <div className="ml-3 text-sm">
-            <label htmlFor="terms" className="text-gray-700">
-              I agree to the <a href="#" className="text-brand-600 hover:underline">Terms of Service</a> and <a href="#" className="text-brand-600 hover:underline">Privacy Policy</a>
+            <label htmlFor="terms" className="text-white">
+              I agree to the <a href="#" className="text-white underline hover:text-orange-100">Terms of Service</a> and <a href="#" className="text-white underline hover:text-orange-100">Privacy Policy</a>
             </label>
           </div>
         </div>

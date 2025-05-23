@@ -40,3 +40,12 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Add or update these styles */
+
+.section-orange-bg {
+  background-color: orange;
+  padding: 20px;
+  border-radius: 8px;
+  /* Optional: add more styling as needed */
+}

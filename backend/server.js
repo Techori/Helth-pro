@@ -3,6 +3,7 @@ const connectDB = require('./config/db');
 const cors = require('cors');
 const path = require('path');
 const mongoose = require('mongoose');
+const patientRoutes = require('./routes/patient');
 
 console.log('Starting server initialization...');
 
@@ -137,6 +138,7 @@ setupRoute('/api/health-cards', require('./routes/healthCards'));
 setupRoute('/api/loans', require('./routes/loans'));
 setupRoute('/api/transactions', require('./routes/transactions'));
 setupRoute('/api/notifications', require('./routes/notifications'));
+setupRoute('/api/patient', patientRoutes);
 
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {

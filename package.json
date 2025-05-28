@@ -8,7 +8,9 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "face-models": "node scripts/download-face-models.js",
+    "fix-models": "node scripts/fix-model-paths.js"
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
@@ -51,8 +53,10 @@
     "cmdk": "^1.0.0",
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.3.0",
+    "face-api.js": "^0.22.2",
     "input-otp": "^1.2.4",
     "lucide-react": "^0.462.0",
+    "mongodb": "^6.16.0",
     "next-themes": "^0.3.0",
     "nodemailer": "^7.0.3",
     "react": "^18.3.1",

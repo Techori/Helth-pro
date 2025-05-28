@@ -4,6 +4,7 @@ const cors = require('cors');
 const path = require('path');
 const mongoose = require('mongoose');
 
+
 console.log('Starting server initialization...');
 
 // Request logger middleware - MOVED UP
@@ -129,6 +130,8 @@ const setupRoute = (path, router) => {
   }
 };
 
+
+
 setupRoute('/api/auth', require('./routes/auth'));
 setupRoute('/api/users', require('./routes/users'));
 setupRoute('/api/hospitals', require('./routes/hospitals'));
@@ -136,6 +139,9 @@ setupRoute('/api/health-cards', require('./routes/healthCards'));
 setupRoute('/api/loans', require('./routes/loans'));
 setupRoute('/api/transactions', require('./routes/transactions'));
 setupRoute('/api/notifications', require('./routes/notifications'));
+
+
+
 
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {

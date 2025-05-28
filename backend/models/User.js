@@ -38,6 +38,11 @@ const UserSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  uhid: {
+    type: String,
+    unique: true,
+    sparse: true, // Allows null for non-patient roles
+  },
 });
 
 module.exports = mongoose.model("user", UserSchema);

@@ -4,7 +4,9 @@ const cors = require("cors");
 const path = require("path");
 const mongoose = require("mongoose");
 
-console.log("Starting server initialization...");
+
+
+console.log('Starting server initialization...');
 
 // Request logger middleware - MOVED UP
 const requestLogger = (req, res, next) => {
@@ -140,6 +142,10 @@ setupRoute("/api/loans", require("./routes/loans"));
 setupRoute("/api/transactions", require("./routes/transactions"));
 setupRoute("/api/notifications", require("./routes/notifications"));
 setupRoute("/api/face-auth", require("./routes/face-verification"));
+
+
+
+
 
 // Serve static assets in production
 if (process.env.NODE_ENV === "production") {

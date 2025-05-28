@@ -1,4 +1,3 @@
-
 // API service with improved error handling
 const API_URL = 'https://helth-pro.onrender.com/api';
 

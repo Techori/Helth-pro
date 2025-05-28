@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { StrictMode, Suspense } from "react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { Chatbot } from "@/components/Chatbot";
 import Index from "./pages/Index";
 import ApplyLoan from "./pages/ApplyLoan";
 import OurCards from "./pages/OurCards";
@@ -23,6 +24,8 @@ import PrivacyPolicy from "./pages/legal/PrivacyPolicy";
 import TermsAndConditions from "./pages/legal/TermsAndConditions";
 import Sitemap from "./pages/Sitemap";
 import Signup from "./pages/Signup";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 // Service Pages
 import FinancingService from "./pages/services/FinancingService";
 import PharmaService from "./pages/services/PharmaService";
@@ -45,6 +48,10 @@ const App = () => (
               <Route path="/" element={<Index />} />
 
               <Route path="/login" element={<Login />} />
+
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+
+              <Route path="/reset-password" element={<ResetPassword />} />
 
               <Route path="/signup" element={<Signup />} />
 
@@ -163,6 +170,7 @@ const App = () => (
           </Suspense>
           <Toaster />
           <Sonner />
+          <Chatbot />
         </TooltipProvider>
       </BrowserRouter>
     </QueryClientProvider>

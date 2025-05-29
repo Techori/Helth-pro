@@ -3,7 +3,6 @@ const router = express.Router();
 const { check } = require("express-validator");
 const auth = require("../middleware/auth");
 
-
 const register = require("../controllers/face-auth/register");
 const validate = require("../controllers/face-auth/validate");
 
@@ -14,7 +13,7 @@ router.post(
   "/register",
   auth,
   [
-    check("patientId", "Patient ID is required").not().isEmpty(),
+    check("emailId", "Valid email ID is required").isEmail(),
     check("faceImage", "Face image data is required").not().isEmpty(),
     check("descriptor", "Face descriptor is required").isArray(),
     check("isNominee", "Nominee status must be specified").isBoolean(),
@@ -28,8 +27,7 @@ router.post(
 router.post(
   "/validate",
   [
-    check("patientId", "Patient ID is required").not().isEmpty(),
-    check("faceImage", "Face image data is required").not().isEmpty(),
+    check("emailId", "Valid email ID is required").isEmail(),
     check("descriptor", "Face descriptor is required").isArray(),
   ],
   validate

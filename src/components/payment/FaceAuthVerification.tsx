@@ -6,12 +6,12 @@ import { toast } from "@/hooks/use-toast";
 import { verifyFace } from "@/services/faceAuthService";
 
 interface FaceAuthVerificationProps {
-  patientId: string;
+  emailId: string;
   onVerificationComplete: (success: boolean) => void;
 }
 
 const FaceAuthVerification = ({
-  patientId,
+  emailId,
   onVerificationComplete,
 }: FaceAuthVerificationProps) => {
   const [isModelLoaded, setIsModelLoaded] = useState(false);
@@ -347,7 +347,7 @@ const FaceAuthVerification = ({
 
       // Create verification data for MongoDB
       const verificationData = {
-        patientId,
+        emailId,
         faceImage: capturedImage,
         descriptor: Array.from(fullFaceDescription.descriptor),
       };

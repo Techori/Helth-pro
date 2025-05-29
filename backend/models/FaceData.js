@@ -1,10 +1,10 @@
 const mongoose = require("mongoose");
 
 const FaceDataSchema = new mongoose.Schema({
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "user",
+  emailId: {
+    type: String,
     required: true,
+    unique: true,
   },
   faceImage: {
     type: String,

@@ -117,6 +117,14 @@ const PaymentProcessor = () => {
         });
       }
     }, 800);
+
+    // if( searchTerm.startsWith("HC-")) {
+    //   // Search by Health Card Number
+    // }
+    // else {
+    //   // Search by patient ID
+    // }
+    
   };
 
   const initiatePayment = () => {
@@ -264,7 +272,7 @@ const PaymentProcessor = () => {
               </Button>
 
               <FaceAuthVerification
-                patientId={patientInfo.id}
+                emailId={patientInfo.email}
                 onVerificationComplete={handleFaceVerification}
               />
             </div>

@@ -9,11 +9,11 @@ const validate = async (req, res) => {
   }
 
   try {
-    const { patientId, descriptor } = req.body;
+    const { emailId, descriptor } = req.body;
 
     // Find patient's face data (both self and nominee)
     const faceRecords = await FaceData.find({
-      user: patientId,
+      emailId: emailId,
     });
 
     if (faceRecords.length === 0) {
@@ -25,7 +25,7 @@ const validate = async (req, res) => {
 
     // Compare with submitted face descriptor
     let bestMatch = null;
-    let bestScore = 999; 
+    let bestScore = 999;
 
     for (const record of faceRecords) {
       // Calculate Euclidean distance between face descriptors

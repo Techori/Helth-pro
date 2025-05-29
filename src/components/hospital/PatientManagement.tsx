@@ -58,7 +58,7 @@ const PatientManagement = () => {
   const [newPatientInfo, setNewPatientInfo] = useState({
     name: "",
     age: "",
-    gender: "Male",
+    gender: "male",
     phone: "",
     email: "",
     cardNumber: "",
@@ -175,7 +175,7 @@ const PatientManagement = () => {
     setNewPatientInfo({
       name: "",
       age: "",
-      gender: "Male",
+      gender: "male",
       phone: "",
       email: "",
       cardNumber: "",
@@ -262,9 +262,9 @@ const PatientManagement = () => {
                         <SelectValue placeholder="Gender" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Male">Male</SelectItem>
-                        <SelectItem value="Female">Female</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

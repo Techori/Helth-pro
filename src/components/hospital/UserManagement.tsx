@@ -127,16 +127,65 @@ const UserManagement = () => {
     );
   });
 
-  const handleAddUser = () => {
-    // Validate form
-    if (!newUserName || !newUserEmail) {
-      toast({
-        variant: "destructive",
-        title: "Invalid form",
-        description: "Please fill in all required fields.",
-      });
-      return;
+ const handleAddUser = async () => {
+  // Basic validation
+  if (!newUserName || !newUserEmail || !newUserPassword || !newUserRole || !newUserDepartment) {
+    toast({
+      variant: "destructive",
+      title: "Invalid form",
+      description: "Please fill in all required fields.",
+    });
+    return;
+  }
+
+  const newUserData = {
+    name: newUserName,
+    email: newUserEmail,
+    password: newUserPassword,
+    role: newUserRole,
+    department: newUserDepartment,
+    sendCredentials: sendCredentials,
+  };
+
+  try {
+    const response = await fetch("/api/hospitalusers", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(newUserData),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to add user");
     }
+
+    const result = await response.json();
+
+    toast({
+      title: "User Added",
+      description: `User ${result.data?.name || newUserName} has been created successfully.`,
+    });
+
+    // Reset form
+    setNewUserName("");
+    setNewUserEmail("");
+    setNewUserPassword("");
+    setNewUserRole("");
+    setNewUserDepartment("");
+    setSendCredentials(false);
+    setAddUserOpen(false);
+  } catch (err: any) {
+    console.error("Error adding user:", err);
+    toast({
+      variant: "destructive",
+      title: "Error",
+      description: err.message || "Something went wrong",
+    });
+  }
+
+
 
     // Generate a new user ID
     const newUserId = `U${Math.floor(10000 + Math.random() * 90000)}`;

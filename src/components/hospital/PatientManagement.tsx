@@ -58,7 +58,7 @@ const PatientManagement = () => {
   const [newPatientInfo, setNewPatientInfo] = useState({
     name: "",
     age: "",
-    gender: "Male",
+    gender: "male",
     phone: "",
     email: "",
     cardNumber: "",
@@ -148,6 +148,7 @@ const PatientManagement = () => {
   const patientData = {
     ...newPatientInfo,
     age, // Use the parsed integer age
+    gender: newPatientInfo.gender.toLowerCase(),
   };
 
   console.log("Adding patient with info:", patientData);
@@ -175,7 +176,7 @@ const PatientManagement = () => {
     setNewPatientInfo({
       name: "",
       age: "",
-      gender: "Male",
+      gender: "male",
       phone: "",
       email: "",
       cardNumber: "",

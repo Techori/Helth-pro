@@ -148,6 +148,7 @@ const PatientManagement = () => {
   const patientData = {
     ...newPatientInfo,
     age, // Use the parsed integer age
+    gender: newPatientInfo.gender.toLowerCase(),
   };
 
   console.log("Adding patient with info:", patientData);

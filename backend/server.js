@@ -139,6 +139,7 @@ setupRoute('/api/health-cards', require('./routes/healthCards'));
 setupRoute('/api/loans', require('./routes/loans'));
 setupRoute('/api/transactions', require('./routes/transactions'));
 setupRoute('/api/notifications', require('./routes/notifications'));
+setupRoute('/api/support/tickets', require('./routes/supportTickets'));
 
 
 

@@ -139,8 +139,10 @@ setupRoute('/api/health-cards', require('./routes/healthCards'));
 setupRoute('/api/loans', require('./routes/loans'));
 setupRoute('/api/transactions', require('./routes/transactions'));
 setupRoute('/api/notifications', require('./routes/notifications'));
+
 // Assuming you have a users.js file in the routes directory
 setupRoute('/api/hospitalusers', require('./routes/HospitalUser'));
+setupRoute('/api/support/tickets', require('./routes/supportTickets'));
 
 
 setupRoute('/api', require('./routes/upload')); // Upload route

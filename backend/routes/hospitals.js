@@ -6,10 +6,22 @@ const auth = require('../middleware/auth');
 
 const Hospital = require('../models/Hospital');
 const User = require('../models/User');
+const Patient = require('../models/Patient'); // ADD THIS
+const { addPatient } = require("../controllers/hospital/patientController");
 
-// @route   GET api/hospitals
-// @desc    Get all hospitals
-// @access  Private
+
+
+
+router.get('/patients', async (req, res) => {
+  try {
+    const patients = await Patient.find().sort({ createdAt: -1 });
+    res.json(patients);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 router.get('/', auth, async (req, res) => {
   try {
     const hospitals = await Hospital.find().sort({ date: -1 });
@@ -20,13 +32,15 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
+router.post("/patients", addPatient);
+
 // @route   POST api/hospitals
 // @desc    Add new hospital
 // @access  Private
 router.post(
   '/',
   [
-    auth,
+    //auth,
     [
       check('name', 'Name is required').not().isEmpty(),
       check('address', 'Address is required').not().isEmpty(),
@@ -43,7 +57,6 @@ router.post(
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
-
     const {
       name,
       address,
@@ -67,7 +80,7 @@ router.post(
         contactEmail,
         contactPhone,
         status: status || 'pending',
-        user: req.user.id
+        user: "660f5f8ae5b8c5f11a2c8d4b" // req.user.id
       });
 
       const hospital = await newHospital.save();

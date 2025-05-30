@@ -144,6 +144,15 @@ setupRoute("/api/notifications", require("./routes/notifications"));
 setupRoute("/api/face-auth", require("./routes/face-verification"));
 
 
+// Assuming you have a users.js file in the routes directory
+setupRoute('/api/hospitalusers', require('./routes/HospitalUser'));
+setupRoute('/api/support/tickets', require('./routes/supportTickets'));
+
+
+setupRoute('/api', require('./routes/upload')); // Upload route
+setupRoute('/api', require('./routes/files')); 
+
+setupRoute('/api', require('./routes/hospitals'));
 
 
 

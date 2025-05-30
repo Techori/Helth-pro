@@ -56,4 +56,4 @@ const forgetPasswordMailTemplate = (resetUrl) => `
 </html>
 `;
 
-export default forgetPasswordMailTemplate;
+module.exports = forgetPasswordMailTemplate;

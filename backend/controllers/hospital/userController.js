@@ -3,11 +3,11 @@ const User = require('../../models/HospitalUser');
 
 exports.addUser = async (req, res) => {
   try {
-    const { name, email } = req.body;
+    const { name, email, initialPassword, role, department } = req.body;
 
     // Validate input
-    if (!name || !email) {
-      return res.status(400).json({ message: "Name and email are required." });
+    if (!name || !email || !initialPassword || !role || !department) {
+      return res.status(400).json({ message: "All fields are required: name, email, initialPassword, role, department." });
     }
 
     // Check if the user already exists
@@ -17,7 +17,7 @@ exports.addUser = async (req, res) => {
     }
 
     // Create a new user
-    const newUser = new User({ name, email });
+    const newUser = new User({ name, email, initialPassword, role, department });
     await newUser.save();
 
     res.status(201).json({ message: "User added successfully", data: newUser });

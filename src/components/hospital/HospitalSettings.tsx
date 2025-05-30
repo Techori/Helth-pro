@@ -54,12 +54,38 @@ const HospitalSettings = () => {
     { name: "Biomedical Waste Authorization", status: "Pending", date: "15/02/2023" },
   ]);
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
+  try {
+    const token = localStorage.getItem('token'); // Assuming the token is stored in localStorage
+
+    const response = await fetch("/api/hospitals/profile", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`, // Include the token in the request
+      },
+      body: JSON.stringify(hospitalProfile),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to update profile");
+    }
+
+    const result = await response.json();
+
     toast({
       title: "Profile Updated",
       description: "Hospital profile has been successfully updated.",
     });
-  };
+  } catch (error) {
+    toast({
+      variant: "destructive",
+      title: "Error",
+      description: error.message || "Something went wrong",
+    });
+  }
+};
 
   const handleSaveBranchInfo = () => {
     toast({

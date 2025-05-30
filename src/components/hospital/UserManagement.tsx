@@ -127,7 +127,7 @@ const UserManagement = () => {
     );
   });
 
- const handleAddUser = async () => {
+const handleAddUser = async () => {
   // Basic validation
   if (!newUserName || !newUserEmail || !newUserPassword || !newUserRole || !newUserDepartment) {
     toast({
@@ -141,7 +141,7 @@ const UserManagement = () => {
   const newUserData = {
     name: newUserName,
     email: newUserEmail,
-    password: newUserPassword,
+    initialPassword: newUserPassword, // Send password with key 'initial-password'
     role: newUserRole,
     department: newUserDepartment,
     sendCredentials: sendCredentials,
@@ -172,8 +172,8 @@ const UserManagement = () => {
     setNewUserName("");
     setNewUserEmail("");
     setNewUserPassword("");
-    setNewUserRole("");
-    setNewUserDepartment("");
+    setNewUserRole("staff");
+    setNewUserDepartment("billing");
     setSendCredentials(false);
     setAddUserOpen(false);
   } catch (err: any) {
@@ -185,43 +185,41 @@ const UserManagement = () => {
     });
   }
 
+  // Generate a new user ID
+  const newUserId = `U${Math.floor(10000 + Math.random() * 90000)}`;
 
-
-    // Generate a new user ID
-    const newUserId = `U${Math.floor(10000 + Math.random() * 90000)}`;
-    
-    // Create new user object
-    const newUser: User = {
-      id: newUserId,
-      name: newUserName,
-      email: newUserEmail,
-      role: newUserRole,
-      department: newUserDepartment,
-      lastLogin: "Never",
-      status: "active",
-    };
-    
-    // Add user to the list
-    setUsers([...users, newUser]);
-    
-    // Close dialog
-    setAddUserOpen(false);
-    
-    // Reset form
-    setNewUserName("");
-    setNewUserEmail("");
-    setNewUserRole("staff");
-    setNewUserDepartment("billing");
-    setNewUserPassword("rimedical@123");
-    
-    // Show success toast
-    toast({
-      title: "User added successfully",
-      description: sendCredentials 
-        ? "Login credentials have been sent to the user's email." 
-        : "User has been added to the system.",
-    });
+  // Create new user object
+  const newUser: User = {
+    id: newUserId,
+    name: newUserName,
+    email: newUserEmail,
+    role: newUserRole,
+    department: newUserDepartment,
+    lastLogin: "Never",
+    status: "active",
   };
+
+  // Add user to the list
+  setUsers([...users, newUser]);
+
+  // Close dialog
+  setAddUserOpen(false);
+
+  // Reset form
+  setNewUserName("");
+  setNewUserEmail("");
+  setNewUserRole("staff");
+  setNewUserDepartment("billing");
+  setNewUserPassword("rimedical@123");
+
+  // Show success toast
+  toast({
+    title: "User added successfully",
+    description: sendCredentials
+      ? "Login credentials have been sent to the user's email."
+      : "User has been added to the system.",
+  });
+};
 
   const handleResetPassword = () => {
     if (!selectedUser) return;

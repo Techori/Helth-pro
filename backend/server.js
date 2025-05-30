@@ -143,6 +143,11 @@ setupRoute('/api/notifications', require('./routes/notifications'));
 setupRoute('/api/hospitalusers', require('./routes/HospitalUser'));
 
 
+setupRoute('/api', require('./routes/upload')); // Upload route
+setupRoute('/api', require('./routes/files')); 
+
+setupRoute('/api', require('./routes/hospitals'));
+
 
 
 // Serve static assets in production

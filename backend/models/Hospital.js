@@ -1,4 +1,3 @@
-
 const mongoose = require('mongoose');
 
 const HospitalSchema = new mongoose.Schema({
@@ -44,14 +43,17 @@ const HospitalSchema = new mongoose.Schema({
   },
   hospitalType: {
     type: String,
-    enum: ['government', 'private', 'nonprofit'],
-    default: 'private'
+    enum: ['Government', 'Private', 'Trust', 'Clinic', 'Multispeciality'], // updated based on form
+    default: 'Private'
   },
   bedCount: {
     type: Number,
     default: 0
   },
-  registrationNumber: {
+  registrationNumber: { // keep this but also allow `licenseNumber`
+    type: String
+  },
+  licenseNumber: { // added field for license input
     type: String
   },
   accreditations: {
@@ -68,6 +70,9 @@ const HospitalSchema = new mongoose.Schema({
   },
   website: {
     type: String
+  },
+  foundedYear: { // new field from form
+    type: Number
   },
   user: {
     type: mongoose.Schema.Types.ObjectId,

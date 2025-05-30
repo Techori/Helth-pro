@@ -8,6 +8,8 @@ const Hospital = require('../models/Hospital');
 const User = require('../models/User');
 const Patient = require('../models/Patient'); // ADD THIS
 const { addPatient } = require("../controllers/hospital/patientController");
+const { addHealthCard } = require("../controllers/hospital/patientController");
+
 
 
 
@@ -33,6 +35,7 @@ router.get('/', auth, async (req, res) => {
 });
 
 router.post("/patients", addPatient);
+router.post('/health-card', addHealthCard);
 
 // @route   POST api/hospitals
 // @desc    Add new hospital
@@ -164,5 +167,36 @@ router.put('/:id', auth, async (req, res) => {
     res.status(500).send('Server Error');
   }
 });
+
+
+// Update hospital profile
+// Update hospital profile
+router.put('/profile', auth, async (req, res) => {
+  try {
+    const { name, email, phone, address, website, licenseNumber, foundedYear, type, bedCount } = req.body;
+
+    // Validate input
+    if (!name || !email || !phone || !address || !licenseNumber) {
+      return res.status(400).json({ message: "Required fields are missing." });
+    }
+
+    // Find and update the hospital profile
+    const updatedHospital = await Hospital.findOneAndUpdate(
+      { email }, // Assuming email is unique and used to identify the hospital
+      { name, phone, address, website, licenseNumber, foundedYear, type, bedCount },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedHospital) {
+      return res.status(404).json({ message: "Hospital not found." });
+    }
+
+    res.status(200).json({ message: "Profile updated successfully", data: updatedHospital });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+});
+
+
 
 module.exports = router;

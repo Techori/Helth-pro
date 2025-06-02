@@ -1,4 +1,5 @@
 
+
 const express = require('express');
 const router = express.Router();
 const { check, validationResult } = require('express-validator');
@@ -241,6 +242,8 @@ router.put('/:id/status', auth, async (req, res) => {
         (loan.loanDetails.approvedAmount * monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / 
         (Math.pow(1 + monthlyRate, numPayments) - 1);
       loan.remainingBalance = loan.loanDetails.approvedAmount;
+      loan.nextEmiDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // Next month
+      loan.emiPayments = [];
     } else if (status === 'rejected') {
       loan.rejectionReason = rejectionReason;
     }
@@ -250,6 +253,150 @@ router.put('/:id/status', auth, async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
+  }
+});
+
+// @route   POST api/loans/:id/pay-emi
+// @desc    Process EMI payment
+// @access  Private
+router.post('/:id/pay-emi', auth, async (req, res) => {
+  try {
+    const { amount, paymentMethod = 'online' } = req.body;
+    
+    const loan = await Loan.findById(req.params.id);
+    if (!loan) {
+      return res.status(404).json({ msg: 'Loan not found' });
+    }
+
+    // Check if loan belongs to user (unless admin)
+    if (req.user.role !== 'admin' && loan.user.toString() !== req.user.id) {
+      return res.status(401).json({ msg: 'Not authorized' });
+    }
+
+    if (loan.status !== 'approved') {
+      return res.status(400).json({ msg: 'Loan must be approved to make payments' });
+    }
+
+    if (loan.remainingBalance <= 0) {
+      return res.status(400).json({ msg: 'Loan is already fully paid' });
+    }
+
+    // Simulate payment processing
+    const transactionId = `EMI${Date.now()}${Math.floor(Math.random() * 1000)}`;
+    
+    // Calculate payment allocation (principal vs interest)
+    const monthlyRate = loan.loanDetails.interestRate / 100 / 12;
+    const interestPayment = loan.remainingBalance * monthlyRate;
+    const principalPayment = Math.min(amount - interestPayment, loan.remainingBalance);
+    
+    // Create EMI payment record
+    const emiPayment = {
+      paymentDate: new Date(),
+      amount: amount,
+      principalAmount: principalPayment,
+      interestAmount: interestPayment,
+      transactionId: transactionId,
+      paymentMethod: paymentMethod,
+      status: 'completed'
+    };
+
+    // Update loan
+    loan.emiPayments = loan.emiPayments || [];
+    loan.emiPayments.push(emiPayment);
+    loan.remainingBalance = Math.max(0, loan.remainingBalance - principalPayment);
+    
+    // Calculate next EMI date
+    if (loan.remainingBalance > 0) {
+      loan.nextEmiDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // Next month
+    } else {
+      loan.nextEmiDate = null;
+      loan.status = 'completed';
+      loan.completionDate = new Date();
+    }
+
+    await loan.save();
+
+    res.json({
+      message: 'EMI payment processed successfully',
+      transactionId,
+      remainingBalance: loan.remainingBalance,
+      nextEmiDate: loan.nextEmiDate,
+      emiPayment
+    });
+  } catch (err) {
+    console.error('EMI payment error:', err.message);
+    res.status(500).json({ msg: 'Server Error' });
+  }
+});
+
+// @route   GET api/loans/:id/emi-schedule
+// @desc    Get EMI payment schedule
+// @access  Private
+router.get('/:id/emi-schedule', auth, async (req, res) => {
+  try {
+    const loan = await Loan.findById(req.params.id);
+    if (!loan) {
+      return res.status(404).json({ msg: 'Loan not found' });
+    }
+
+    // Check if loan belongs to user (unless admin)
+    if (req.user.role !== 'admin' && loan.user.toString() !== req.user.id) {
+      return res.status(401).json({ msg: 'Not authorized' });
+    }
+
+    if (loan.status !== 'approved' && loan.status !== 'completed') {
+      return res.status(400).json({ msg: 'EMI schedule not available for this loan status' });
+    }
+
+    // Generate EMI schedule
+    const schedule = [];
+    const monthlyPayment = loan.monthlyPayment;
+    const monthlyRate = loan.loanDetails.interestRate / 100 / 12;
+    let balance = loan.loanDetails.approvedAmount;
+    const startDate = loan.approvalDate || new Date();
+
+    for (let i = 1; i <= loan.loanDetails.preferredTerm; i++) {
+      const interestAmount = balance * monthlyRate;
+      const principalAmount = monthlyPayment - interestAmount;
+      balance = Math.max(0, balance - principalAmount);
+
+      const dueDate = new Date(startDate);
+      dueDate.setMonth(dueDate.getMonth() + i);
+
+      // Check if this EMI has been paid
+      const paidEmi = loan.emiPayments?.find(payment => 
+        payment.paymentDate && 
+        new Date(payment.paymentDate).getMonth() === dueDate.getMonth() &&
+        new Date(payment.paymentDate).getFullYear() === dueDate.getFullYear()
+      );
+
+      schedule.push({
+        emiNumber: i,
+        dueDate: dueDate,
+        emiAmount: monthlyPayment,
+        principalAmount: principalAmount,
+        interestAmount: interestAmount,
+        balanceAfterPayment: balance,
+        status: paidEmi ? 'paid' : (dueDate < new Date() ? 'overdue' : 'pending'),
+        paidDate: paidEmi?.paymentDate || null,
+        transactionId: paidEmi?.transactionId || null
+      });
+
+      if (balance <= 0) break;
+    }
+
+    res.json({
+      loanId: loan._id,
+      applicationNumber: loan.applicationNumber,
+      totalAmount: loan.loanDetails.approvedAmount,
+      monthlyPayment: monthlyPayment,
+      remainingBalance: loan.remainingBalance,
+      nextEmiDate: loan.nextEmiDate,
+      schedule: schedule
+    });
+  } catch (err) {
+    console.error('EMI schedule error:', err.message);
+    res.status(500).json({ msg: 'Server Error' });
   }
 });
 
@@ -293,3 +440,4 @@ router.get('/draft/current', auth, async (req, res) => {
 });
 
 module.exports = router;
+

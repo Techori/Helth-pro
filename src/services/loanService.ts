@@ -1,5 +1,28 @@
 
+
 import { apiRequest } from './api';
+
+export interface EmiPayment {
+  paymentDate: string;
+  amount: number;
+  principalAmount: number;
+  interestAmount: number;
+  transactionId: string;
+  paymentMethod: string;
+  status: string;
+}
+
+export interface EmiScheduleItem {
+  emiNumber: number;
+  dueDate: string;
+  emiAmount: number;
+  principalAmount: number;
+  interestAmount: number;
+  balanceAfterPayment: number;
+  status: 'paid' | 'pending' | 'overdue';
+  paidDate?: string;
+  transactionId?: string;
+}
 
 export interface LoanData {
   _id: string;
@@ -78,6 +101,9 @@ export interface LoanData {
   agreementSigned?: boolean;
   nachMandateSigned?: boolean;
   termsAccepted?: boolean;
+  nextEmiDate?: string;
+  emiPayments?: EmiPayment[];
+  completionDate?: string;
 }
 
 export const fetchPatientLoans = async (uhid: string): Promise<LoanData[]> => {
@@ -177,3 +203,29 @@ export const getCreditScore = async (panNumber: string) => {
     throw error;
   }
 };
+
+export const payEmi = async (loanId: string, amount: number, paymentMethod: string = 'online') => {
+  try {
+    console.log('Processing EMI payment:', { loanId, amount, paymentMethod });
+    const response = await apiRequest(`/loans/${loanId}/pay-emi`, {
+      method: 'POST',
+      body: JSON.stringify({ amount, paymentMethod })
+    });
+    return response;
+  } catch (error) {
+    console.error('Failed to process EMI payment:', error);
+    throw error;
+  }
+};
+
+export const getEmiSchedule = async (loanId: string) => {
+  try {
+    console.log('Fetching EMI schedule for loan:', loanId);
+    const response = await apiRequest(`/loans/${loanId}/emi-schedule`);
+    return response;
+  } catch (error) {
+    console.error('Failed to fetch EMI schedule:', error);
+    throw error;
+  }
+};
+

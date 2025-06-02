@@ -1,5 +1,39 @@
 
+
 const mongoose = require('mongoose');
+
+const EmiPaymentSchema = new mongoose.Schema({
+  paymentDate: {
+    type: Date,
+    required: true
+  },
+  amount: {
+    type: Number,
+    required: true
+  },
+  principalAmount: {
+    type: Number,
+    required: true
+  },
+  interestAmount: {
+    type: Number,
+    required: true
+  },
+  transactionId: {
+    type: String,
+    required: true
+  },
+  paymentMethod: {
+    type: String,
+    enum: ['online', 'bank_transfer', 'cash', 'cheque'],
+    default: 'online'
+  },
+  status: {
+    type: String,
+    enum: ['pending', 'completed', 'failed'],
+    default: 'completed'
+  }
+});
 
 const LoanSchema = new mongoose.Schema({
   user: {
@@ -139,7 +173,7 @@ const LoanSchema = new mongoose.Schema({
   // Application Status
   status: {
     type: String,
-    enum: ['draft', 'submitted', 'under_review', 'approved', 'rejected', 'additional_docs_needed'],
+    enum: ['draft', 'submitted', 'under_review', 'approved', 'rejected', 'additional_docs_needed', 'completed'],
     default: 'draft'
   },
   rejectionReason: String,
@@ -151,6 +185,7 @@ const LoanSchema = new mongoose.Schema({
   },
   approvalDate: Date,
   submissionDate: Date,
+  completionDate: Date,
   
   // Payment and Agreement
   firstPaymentAmount: Number,
@@ -171,7 +206,11 @@ const LoanSchema = new mongoose.Schema({
   // Calculated fields
   monthlyPayment: Number,
   remainingBalance: Number,
-  maxEligibleAmount: Number
+  maxEligibleAmount: Number,
+  
+  // EMI Payment Tracking
+  nextEmiDate: Date,
+  emiPayments: [EmiPaymentSchema]
 });
 
 // Generate application number before saving
@@ -184,3 +223,4 @@ LoanSchema.pre('save', async function(next) {
 });
 
 module.exports = mongoose.model('loan', LoanSchema);
+

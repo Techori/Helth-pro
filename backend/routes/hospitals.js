@@ -10,7 +10,8 @@ const Patient = require('../models/Patient'); // ADD THIS
 const { addPatient } = require("../controllers/hospital/patientController");
 const { addHealthCard } = require("../controllers/hospital/patientController");
 
-
+const {getPaymentUser} = require("../controllers/hospital/getPaymentUser")
+router.get('/get-user',auth, getPaymentUser);
 
 
 
@@ -36,7 +37,6 @@ router.get('/', auth, async (req, res) => {
 
 router.post("/patients", addPatient);
 router.post('/health-card', addHealthCard);
-
 // @route   POST api/hospitals
 // @desc    Add new hospital
 // @access  Private

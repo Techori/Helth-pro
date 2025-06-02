@@ -15,12 +15,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { registerFace } from "@/services/faceAuthService";
 
 interface FaceAuthComponentProps {
-  patientId: string;
+  emailId: string;
   onFaceRegistered: (success: boolean) => void;
 }
 
 const FaceAuthComponent = ({
-  patientId,
+  emailId,
   onFaceRegistered,
 }: FaceAuthComponentProps) => {
   const [isModelLoaded, setIsModelLoaded] = useState(false);
@@ -367,7 +367,7 @@ const FaceAuthComponent = ({
 
       // Create data structure for MongoDB
       const faceData = {
-        patientId,
+        emailId,
         faceImage: capturedImage,
         descriptor: Array.from(fullFaceDescription.descriptor), // Convert Float32Array to regular array for storage
         isNominee: registrationType === "nominee",

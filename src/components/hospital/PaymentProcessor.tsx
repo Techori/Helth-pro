@@ -26,6 +26,7 @@ import {
   processHealthCardPayment,
   processLoanRequest,
 } from "@/services/transactionService";
+import { getPaymentUser } from "@/services/hospitalService";
 import FaceAuthVerification from "@/components/payment/FaceAuthVerification";
 
 interface PatientInfo {
@@ -59,37 +60,7 @@ const PaymentProcessor = () => {
   const [showFaceAuth, setShowFaceAuth] = useState(false);
   const [paymentData, setPaymentData] = useState<any>(null);
 
-  // Mock patient data for demo purposes
-  const mockPatients = [
-    {
-      id: "P12345",
-      name: "Rahul Sharma",
-      gender: "Male",
-      age: 34,
-      phone: "9876543210",
-      email: "rahul.sharma@example.com",
-      cardNumber: "HC-1234-5678-9012",
-      cardBalance: 15000,
-      cardStatus: "Active" as const,
-      loanLimit: 50000,
-      loanBalance: 20000,
-    },
-    {
-      id: "P67890",
-      name: "Priya Patel",
-      gender: "Female",
-      age: 28,
-      phone: "8765432109",
-      email: "priya.patel@example.com",
-      cardNumber: "HC-5678-9012-3456",
-      cardBalance: 8500,
-      cardStatus: "Active" as const,
-      loanLimit: 30000,
-      loanBalance: 5000,
-    },
-  ];
-
-  const handleSearch = () => {
+  const handleSearch = async () => {
     if (!searchTerm) return;
 
     setSearching(true);
@@ -97,34 +68,43 @@ const PaymentProcessor = () => {
     setPaymentSuccess(false);
     setShowFaceAuth(false);
 
-    // Simulate API call
-    setTimeout(() => {
-      const foundPatient = mockPatients.find(
-        (p) =>
-          p.id.toLowerCase() === searchTerm.toLowerCase() ||
-          p.cardNumber.toLowerCase() === searchTerm.toLowerCase() ||
-          p.name.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-
-      setPatientInfo(foundPatient || null);
-      setSearching(false);
-
-      if (!foundPatient) {
+    try {
+      const raw = await getPaymentUser(searchTerm);
+      // Map API response to PatientInfo
+      const mappedPatient: PatientInfo = {
+        id: raw.patientId || raw._id,
+        name: raw.name,
+        gender: raw.gender,
+        age: raw.age,
+        phone: raw.phone,
+        email: raw.email,
+        cardNumber: raw.cardNumber || "",
+        cardBalance: raw.cardBalance || 0,
+        cardStatus: raw.cardStatus
+          ? raw.cardStatus.charAt(0).toUpperCase() + raw.cardStatus.slice(1)
+          : "Inactive",
+        loanLimit: raw.loanLimit ?? 0,
+        loanBalance: raw.loanBalance ?? 0,
+      };
+      setPatientInfo(mappedPatient);
+    } catch (error: any) {
+      const msg = error.message || "Failed to fetch patient";
+      if (msg.toLowerCase().includes("patient not found")) {
         toast({
           variant: "destructive",
           title: "Patient not found",
-          description: "No patient matches the search criteria.",
+          description: msg,
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error fetching patient",
+          description: msg,
         });
       }
-    }, 800);
-
-    // if( searchTerm.startsWith("HC-")) {
-    //   // Search by Health Card Number
-    // }
-    // else {
-    //   // Search by patient ID
-    // }
-    
+    } finally {
+      setSearching(false);
+    }
   };
 
   const initiatePayment = () => {
@@ -470,17 +450,14 @@ const PaymentProcessor = () => {
                           />
                         </div>
 
-                        {parseFloat(paymentAmount) > 0 &&
+                        {patientInfo &&
                           parseFloat(paymentAmount) >
                             patientInfo.cardBalance && (
-                            <Alert variant="destructive" className="mt-4">
-                              <X className="h-4 w-4" />
-                              <AlertTitle>Insufficient balance</AlertTitle>
+                            <Alert variant="destructive">
+                              <AlertTitle>Insufficient Balance</AlertTitle>
                               <AlertDescription>
-                                The payment amount (₹
-                                {parseFloat(paymentAmount).toLocaleString()})
-                                exceeds the patient's Health Card balance (₹
-                                {patientInfo.cardBalance.toLocaleString()}).
+                                The entered amount exceeds the patient's card
+                                balance.
                               </AlertDescription>
                             </Alert>
                           )}
@@ -496,9 +473,7 @@ const PaymentProcessor = () => {
                             processingPayment
                           }
                         >
-                          {processingPayment
-                            ? "Processing..."
-                            : "Continue to Face Verification"}
+                          Pay ₹{paymentAmount}
                         </Button>
                       </TabsContent>
                       <TabsContent value="newloan" className="space-y-4 pt-4">
@@ -598,14 +573,10 @@ const PaymentProcessor = () => {
                           disabled={
                             !paymentAmount ||
                             parseFloat(paymentAmount) <= 0 ||
-                            parseFloat(paymentAmount) >
-                              patientInfo.loanLimit - patientInfo.loanBalance ||
                             processingPayment
                           }
                         >
-                          {processingPayment
-                            ? "Processing..."
-                            : "Continue to Face Verification"}
+                          Request Loan ₹{paymentAmount}
                         </Button>
                       </TabsContent>
                     </Tabs>

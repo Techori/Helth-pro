@@ -4,7 +4,6 @@ const cors = require('cors');
 const path = require('path');
 const mongoose = require('mongoose');
 
-
 console.log('Starting server initialization...');
 
 // Request logger middleware - MOVED UP
@@ -111,6 +110,7 @@ const setupRoute = (path, router) => {
     // Add route-specific logging middleware
     router.use((req, res, next) => {
       console.log(`[${path}] Handling ${req.method} request`);
+      console.log(`[${path}] User ID: ${req.user ? req.user.id : 'unauthorized'}`);
       next();
     });
 
@@ -130,28 +130,21 @@ const setupRoute = (path, router) => {
   }
 };
 
-
-
 setupRoute('/api/auth', require('./routes/auth'));
 setupRoute('/api/users', require('./routes/users'));
 setupRoute('/api/hospitals', require('./routes/hospitals'));
 setupRoute('/api/health-cards', require('./routes/healthCards'));
 setupRoute('/api/loans', require('./routes/loans'));
+setupRoute('/api/kyc', require('./routes/kyc'));
 setupRoute('/api/transactions', require('./routes/transactions'));
 setupRoute('/api/notifications', require('./routes/notifications'));
-
 // Assuming you have a users.js file in the routes directory
 setupRoute('/api/hospitalusers', require('./routes/HospitalUser'));
 setupRoute('/api/support/tickets', require('./routes/supportTickets'));
-
-
 setupRoute('/api', require('./routes/upload')); // Upload route
 setupRoute('/api', require('./routes/files')); 
 
 setupRoute('/api', require('./routes/hospitals'));
-
-
-
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {
   try {

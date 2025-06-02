@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,12 +12,54 @@ import { toast } from "@/hooks/use-toast";
 
 const ComplianceVerification = () => {
   const [activeTab, setActiveTab] = useState("documents");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFileName, setSelectedFileName] = useState<string>("");
 
-  const handleUpload = () => {
-    toast({
-      title: "Document Uploaded",
-      description: "Your document has been uploaded successfully and is pending verification.",
-    });
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files.length > 0) {
+      const file = event.target.files[0];
+      setSelectedFile(file);
+      setSelectedFileName(file.name); // Update the state with the file name
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      toast({
+        title: "No File Selected",
+        description: "Please select a file to upload.",
+      });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+
+    try {
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Document Uploaded",
+          description: "Your document has been uploaded successfully and is pending verification.",
+        });
+        setSelectedFile(null); // Reset file input
+        setSelectedFileName(""); // Clear the file name
+      } else {
+        toast({
+          title: "Upload Failed",
+          description: "There was an error uploading your document. Please try again.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Upload Error",
+        description: "An unexpected error occurred. Please try again later.",
+      });
+    }
   };
 
   return (
@@ -31,7 +72,7 @@ const ComplianceVerification = () => {
               <CardDescription>Manage regulatory compliance and document verification</CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              <Button className="flex items-center gap-1">
+              <Button className="flex items-center gap-1" onClick={() => document.getElementById('document-file')?.click()}>
                 <UploadCloud className="h-4 w-4" /> Upload Document
               </Button>
             </div>
@@ -177,6 +218,7 @@ const ComplianceVerification = () => {
                         id="document-file" 
                         type="file" 
                         className="hidden" 
+                        onChange={handleFileChange}
                       />
                       <Button 
                         variant="outline" 
@@ -185,6 +227,9 @@ const ComplianceVerification = () => {
                       >
                         Select File
                       </Button>
+                      {selectedFileName && (
+                        <p className="mt-2 text-sm text-gray-600">Selected File: {selectedFileName}</p>
+                      )}
                     </div>
                   </div>
                   <Button onClick={handleUpload}>Upload Document</Button>

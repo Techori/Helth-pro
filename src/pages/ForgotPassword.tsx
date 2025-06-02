@@ -82,4 +82,7 @@ export default function ForgotPassword() {
       </Card>
     </div>
   );
-}
+
+};
+
+module.exports= ForgotPassword;

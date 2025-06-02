@@ -3,6 +3,7 @@ const connectDB = require('./config/db');
 const cors = require('cors');
 const path = require('path');
 const mongoose = require('mongoose');
+const patientRoutes = require('./routes/patient');
 
 
 console.log('Starting server initialization...');
@@ -139,6 +140,7 @@ setupRoute('/api/health-cards', require('./routes/healthCards'));
 setupRoute('/api/loans', require('./routes/loans'));
 setupRoute('/api/transactions', require('./routes/transactions'));
 setupRoute('/api/notifications', require('./routes/notifications'));
+setupRoute('/api/patient', patientRoutes);
 
 // Assuming you have a users.js file in the routes directory
 setupRoute('/api/hospitalusers', require('./routes/HospitalUser'));

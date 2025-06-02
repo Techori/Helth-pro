@@ -1,0 +1,110 @@
+const express = require('express');
+const router = express.Router();
+const Patient = require('../models/Patient');
+const faceapi = require('face-api.js');
+const canvas = require('canvas');
+const { Canvas, Image, ImageData } = canvas;
+faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
+
+// Configure face-api.js
+const FACE_DETECTION_OPTIONS = new faceapi.TinyFaceDetectorOptions({ inputSize: 224 });
+const FACE_MATCH_THRESHOLD = 0.6;
+
+// Register new patient with face data
+router.post('/register', async (req, res) => {
+  try {
+    const { name, age, gender, contact, faceImage } = req.body;
+
+    // Convert base64 image to buffer
+    const imageBuffer = Buffer.from(faceImage.split(',')[1], 'base64');
+    const img = await canvas.loadImage(imageBuffer);
+
+    // Detect face and compute face descriptor
+    const detection = await faceapi.detectSingleFace(img, FACE_DETECTION_OPTIONS)
+      .withFaceLandmarks()
+      .withFaceDescriptor();
+
+    if (!detection) {
+      return res.status(400).json({ error: 'No face detected in the image' });
+    }
+
+    // Create new patient with face embeddings
+    const patient = new Patient({
+      name,
+      age,
+      gender,
+      contact,
+      faceEmbeddings: Array.from(detection.descriptor),
+      faceImage
+    });
+
+    await patient.save();
+
+    res.status(201).json({
+      message: 'Patient registered successfully',
+      patient: {
+        id: patient._id,
+        name: patient.name,
+        email: patient.contact.email
+      }
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ error: 'Error registering patient' });
+  }
+});
+
+// Verify patient using face
+router.post('/verify', async (req, res) => {
+  try {
+    const { faceImage } = req.body;
+
+    // Convert base64 image to buffer
+    const imageBuffer = Buffer.from(faceImage.split(',')[1], 'base64');
+    const img = await canvas.loadImage(imageBuffer);
+
+    // Detect face and compute face descriptor
+    const detection = await faceapi.detectSingleFace(img, FACE_DETECTION_OPTIONS)
+      .withFaceLandmarks()
+      .withFaceDescriptor();
+
+    if (!detection) {
+      return res.status(400).json({ error: 'No face detected in the image' });
+    }
+
+    // Get all patients
+    const patients = await Patient.find({});
+    const queryDescriptor = Array.from(detection.descriptor);
+
+    // Find matching patient
+    let bestMatch = null;
+    let bestDistance = Infinity;
+
+    for (const patient of patients) {
+      const distance = faceapi.euclideanDistance(queryDescriptor, patient.faceEmbeddings);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestMatch = patient;
+      }
+    }
+
+    // Check if the best match is within threshold
+    if (bestDistance <= FACE_MATCH_THRESHOLD) {
+      res.json({
+        verified: true,
+        patient: {
+          id: bestMatch._id,
+          name: bestMatch.name,
+          email: bestMatch.contact.email
+        }
+      });
+    } else {
+      res.json({ verified: false });
+    }
+  } catch (error) {
+    console.error('Verification error:', error);
+    res.status(500).json({ error: 'Error verifying patient' });
+  }
+});
+
+module.exports = router;

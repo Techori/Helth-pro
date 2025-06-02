@@ -1,6 +1,16 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const patientSchema = new mongoose.Schema({
+const patientSchema = new mongoose.Schema(
+  {
+    uhid: {
+      type: String,
+      required: true,
+      unique: true,
+    },
+    phone: {
+      type: String,
+      required: true,
+    },
   name: {
     type: String,
     required: true,
@@ -23,8 +33,33 @@ const patientSchema = new mongoose.Schema({
     email: {
       type: String,
       required: true,
-      unique: true
+      unique: true,
+    },
+    cardNumber: {
+      type: String,
+      unique: true,
+      sparse: true, // Allows null/undefined
+    },
+    cardStatus: {
+      type: String,
+      enum: ["active", "inactive", "blocked"],
+      default: "inactive",
+    },
+    cardBalance: {
+      type: Number,
+      default: 0,
+    },
+    lastVisit: {
+      type: Date,
+    },
+    patientId: {
+      type: String,
+      required: true,
+      unique: true,
     }
+  },
+  { timestamps: true },
+
   },
   faceEmbeddings: {
     type: [Number],

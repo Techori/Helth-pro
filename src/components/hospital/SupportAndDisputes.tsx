@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Card, 
   CardHeader, 
@@ -55,9 +54,10 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { apiRequest } from "@/services/api";
 
 interface SupportTicket {
-  id: string;
+  _id: string;
   subject: string;
   category: string;
   status: "Open" | "In Progress" | "Resolved" | "Closed";
@@ -67,6 +67,11 @@ interface SupportTicket {
   description: string;
   patientId?: string;
   transactionId?: string;
+  user: {
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
 }
 
 interface DisputeTicket {
@@ -86,6 +91,8 @@ const SupportAndDisputes = () => {
   const [activeTab, setActiveTab] = useState("support");
   const [isCreatingTicket, setIsCreatingTicket] = useState(false);
   const [isCreatingDispute, setIsCreatingDispute] = useState(false);
+  const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [newTicket, setNewTicket] = useState({
     subject: "",
@@ -103,42 +110,26 @@ const SupportAndDisputes = () => {
     reason: "",
   });
 
-  // Mock support tickets
-  const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([
-    {
-      id: "TKT-1001",
-      subject: "Health Card Payment Issue",
-      category: "Payment",
-      status: "Open",
-      priority: "High",
-      createdAt: "19 Nov 2023",
-      updatedAt: "19 Nov 2023",
-      description: "Patient's health card payment is showing as declined even though the balance is sufficient.",
-      patientId: "P12345",
-      transactionId: "TRX-78901"
-    },
-    {
-      id: "TKT-1002",
-      subject: "Login Problems",
-      category: "Technical",
-      status: "In Progress",
-      priority: "Medium",
-      createdAt: "18 Nov 2023",
-      updatedAt: "19 Nov 2023",
-      description: "Unable to login to the dashboard from certain computers."
-    },
-    {
-      id: "TKT-1003",
-      subject: "Loan Application Not Processing",
-      category: "Loan",
-      status: "Resolved",
-      priority: "High",
-      createdAt: "15 Nov 2023",
-      updatedAt: "18 Nov 2023",
-      description: "Patient loan application LN-1005 has been stuck in pending status for 3 days.",
-      transactionId: "LN-1005"
+  useEffect(() => {
+    fetchSupportTickets();
+  }, []);
+
+  const fetchSupportTickets = async () => {
+    try {
+      setIsLoading(true);
+      const response = await apiRequest('/support/tickets');
+      setSupportTickets(response);
+    } catch (error) {
+      console.error('Error fetching support tickets:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to fetch support tickets. Please try again later.",
+      });
+    } finally {
+      setIsLoading(false);
     }
-  ]);
+  };
 
   // Mock dispute tickets
   const [disputeTickets, setDisputeTickets] = useState<DisputeTicket[]>([
@@ -176,7 +167,7 @@ const SupportAndDisputes = () => {
 
   const filteredSupportTickets = supportTickets.filter(ticket => 
     ticket.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    ticket.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    ticket._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (ticket.patientId && ticket.patientId.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (ticket.transactionId && ticket.transactionId.toLowerCase().includes(searchTerm.toLowerCase()))
   );
@@ -187,7 +178,7 @@ const SupportAndDisputes = () => {
     dispute.transactionId.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleCreateSupportTicket = () => {
+  const handleCreateSupportTicket = async () => {
     // Basic validation
     if (!newTicket.subject || !newTicket.description) {
       toast({
@@ -198,34 +189,35 @@ const SupportAndDisputes = () => {
       return;
     }
 
-    const ticket: SupportTicket = {
-      id: `TKT-${1000 + supportTickets.length + 1}`,
-      subject: newTicket.subject,
-      category: newTicket.category,
-      status: "Open",
-      priority: newTicket.priority as "Low" | "Medium" | "High" | "Urgent",
-      createdAt: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
-      updatedAt: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
-      description: newTicket.description,
-      patientId: newTicket.patientId || undefined,
-      transactionId: newTicket.transactionId || undefined,
-    };
+    try {
+      const response = await apiRequest('/support/tickets', {
+        method: 'POST',
+        body: JSON.stringify(newTicket)
+      });
 
-    setSupportTickets([ticket, ...supportTickets]);
-    setIsCreatingTicket(false);
-    setNewTicket({
-      subject: "",
-      category: "Technical",
-      priority: "Medium",
-      description: "",
-      patientId: "",
-      transactionId: "",
-    });
+      setSupportTickets([response, ...supportTickets]);
+      setIsCreatingTicket(false);
+      setNewTicket({
+        subject: "",
+        category: "Technical",
+        priority: "Medium",
+        description: "",
+        patientId: "",
+        transactionId: "",
+      });
 
-    toast({
-      title: "Support Ticket Created",
-      description: `Ticket ${ticket.id} has been submitted successfully.`,
-    });
+      toast({
+        title: "Support Ticket Created",
+        description: `Ticket has been submitted successfully.`,
+      });
+    } catch (error) {
+      console.error('Error creating support ticket:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to create support ticket. Please try again later.",
+      });
+    }
   };
 
   const handleCreateDispute = () => {
@@ -416,8 +408,8 @@ const SupportAndDisputes = () => {
                     </TableHeader>
                     <TableBody>
                       {filteredSupportTickets.map((ticket) => (
-                        <TableRow key={ticket.id}>
-                          <TableCell className="font-medium">{ticket.id}</TableCell>
+                        <TableRow key={ticket._id}>
+                          <TableCell className="font-medium">{ticket._id}</TableCell>
                           <TableCell>{ticket.subject}</TableCell>
                           <TableCell>{ticket.category}</TableCell>
                           <TableCell>{ticket.createdAt}</TableCell>

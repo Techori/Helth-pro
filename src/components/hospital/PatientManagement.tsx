@@ -1,30 +1,31 @@
+
 import { useState } from "react";
-import { 
-  Card, 
-  CardHeader, 
-  CardTitle, 
-  CardDescription, 
-  CardContent 
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, UserPlus, CreditCard, FileText, Clock } from "lucide-react";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
 } from "@/components/ui/dialog";
 import { Label as FormLabel } from "@/components/ui/label";
 import {
@@ -35,6 +36,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+  import { apiRequest } from "../../services/api"
 
 interface Patient {
   id: string;
@@ -56,7 +58,7 @@ const PatientManagement = () => {
   const [newPatientInfo, setNewPatientInfo] = useState({
     name: "",
     age: "",
-    gender: "Male",
+    gender: "male",
     phone: "",
     email: "",
     cardNumber: "",
@@ -113,42 +115,68 @@ const PatientManagement = () => {
     },
   ]);
 
-  const filteredPatients = patients.filter(patient => 
+  const filteredPatients = patients.filter(patient =>
     patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     patient.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
     patient.cardNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
     patient.phone.includes(searchTerm)
   );
 
-  const handleAddPatient = () => {
-    if (!newPatientInfo.name || !newPatientInfo.phone) {
-      toast({
-        variant: "destructive",
-        title: "Missing Information",
-        description: "Please fill all required fields.",
-      });
-      return;
+
+ const handleAddPatient = async () => {
+  if (!newPatientInfo.name || !newPatientInfo.phone) {
+    toast({
+      variant: "destructive",
+      title: "Missing Information",
+      description: "Please fill all required fields.",
+    });
+    return;
+  }
+
+  // Convert age to an integer
+  const age = parseInt(newPatientInfo.age, 10);
+
+  if (isNaN(age)) {
+    toast({
+      variant: "destructive",
+      title: "Invalid Age",
+      description: "Please enter a valid age.",
+    });
+    return;
+  }
+
+  const patientData = {
+    ...newPatientInfo,
+    age, // Use the parsed integer age
+    gender: newPatientInfo.gender.toLowerCase(),
+  };
+
+  console.log("Adding patient with info:", patientData);
+
+  try {
+    const response = await fetch("/api/hospitals/patients", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(patientData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Error adding patient:", errorData);
+      throw new Error(errorData.message || "Failed to add patient");
     }
 
-    const newPatient: Patient = {
-      id: `P${Math.floor(10000 + Math.random() * 90000)}`,
-      name: newPatientInfo.name,
-      age: parseInt(newPatientInfo.age) || 0,
-      gender: newPatientInfo.gender,
-      phone: newPatientInfo.phone,
-      email: newPatientInfo.email,
-      cardNumber: newPatientInfo.cardNumber || "Not Issued",
-      cardStatus: newPatientInfo.cardNumber ? "Active" : "Not Issued",
-      cardBalance: 0,
-      lastVisit: "Today"
-    };
+    const data = await response.json();
+    const newPatient: Patient = data.patient;
 
     setPatients([newPatient, ...patients]);
     setIsAddingPatient(false);
     setNewPatientInfo({
       name: "",
       age: "",
-      gender: "Male",
+      gender: "male",
       phone: "",
       email: "",
       cardNumber: "",
@@ -158,7 +186,16 @@ const PatientManagement = () => {
       title: "Patient Added",
       description: `${newPatient.name} has been successfully added to the system.`,
     });
-  };
+  } catch (err: any) {
+    console.error("Error:", err);
+    toast({
+      variant: "destructive",
+      title: "Error",
+      description: err.message || "Something went wrong",
+    });
+  }
+};
+
 
   const handleVerifyCard = (patient: Patient) => {
     toast({
@@ -191,7 +228,7 @@ const PatientManagement = () => {
                   Enter patient details to add them to the system.
                 </DialogDescription>
               </DialogHeader>
-              
+
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-1 gap-4">
                   <div>
@@ -199,79 +236,79 @@ const PatientManagement = () => {
                     <Input
                       id="name"
                       value={newPatientInfo.name}
-                      onChange={(e) => setNewPatientInfo({...newPatientInfo, name: e.target.value})}
+                      onChange={(e) => setNewPatientInfo({ ...newPatientInfo, name: e.target.value })}
                       placeholder="Full Name"
                     />
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <FormLabel htmlFor="age">Age</FormLabel>
                     <Input
                       id="age"
                       value={newPatientInfo.age}
-                      onChange={(e) => setNewPatientInfo({...newPatientInfo, age: e.target.value})}
+                      onChange={(e) => setNewPatientInfo({ ...newPatientInfo, age: e.target.value })}
                       placeholder="Age"
                       type="number"
                     />
                   </div>
                   <div>
                     <FormLabel htmlFor="gender">Gender</FormLabel>
-                    <Select 
+                    <Select
                       value={newPatientInfo.gender}
-                      onValueChange={(value) => setNewPatientInfo({...newPatientInfo, gender: value})}
+                      onValueChange={(value) => setNewPatientInfo({ ...newPatientInfo, gender: value })}
                     >
                       <SelectTrigger id="gender">
                         <SelectValue placeholder="Gender" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Male">Male</SelectItem>
-                        <SelectItem value="Female">Female</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-1 gap-4">
                   <div>
                     <FormLabel htmlFor="phone">Phone Number*</FormLabel>
                     <Input
                       id="phone"
                       value={newPatientInfo.phone}
-                      onChange={(e) => setNewPatientInfo({...newPatientInfo, phone: e.target.value})}
+                      onChange={(e) => setNewPatientInfo({ ...newPatientInfo, phone: e.target.value })}
                       placeholder="Phone Number"
                     />
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-1 gap-4">
                   <div>
                     <FormLabel htmlFor="email">Email Address</FormLabel>
                     <Input
                       id="email"
                       value={newPatientInfo.email}
-                      onChange={(e) => setNewPatientInfo({...newPatientInfo, email: e.target.value})}
+                      onChange={(e) => setNewPatientInfo({ ...newPatientInfo, email: e.target.value })}
                       placeholder="Email Address"
                       type="email"
                     />
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-1 gap-4">
                   <div>
                     <FormLabel htmlFor="card">Health Card Number (if available)</FormLabel>
                     <Input
                       id="card"
                       value={newPatientInfo.cardNumber}
-                      onChange={(e) => setNewPatientInfo({...newPatientInfo, cardNumber: e.target.value})}
+                      onChange={(e) => setNewPatientInfo({ ...newPatientInfo, cardNumber: e.target.value })}
                       placeholder="HC-XXXX-XXXX-XXXX"
                     />
                   </div>
                 </div>
               </div>
-              
+
               <DialogFooter>
                 <Button variant="outline" onClick={() => setIsAddingPatient(false)}>Cancel</Button>
                 <Button onClick={handleAddPatient}>Add Patient</Button>
@@ -289,7 +326,7 @@ const PatientManagement = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          
+
           {filteredPatients.length > 0 ? (
             <div className="rounded-md border">
               <Table>
@@ -311,14 +348,13 @@ const PatientManagement = () => {
                       <TableCell className="font-medium">{patient.id}</TableCell>
                       <TableCell>{patient.name}</TableCell>
                       <TableCell>{patient.age} / {patient.gender}</TableCell>
-                      <TableCell className="text-xs">{patient.phone}<br/>{patient.email}</TableCell>
+                      <TableCell className="text-xs">{patient.phone}<br />{patient.email}</TableCell>
                       <TableCell className="font-mono text-xs">{patient.cardNumber}</TableCell>
                       <TableCell>
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          patient.cardStatus === 'Active' ? 'bg-green-100 text-green-800' : 
-                          patient.cardStatus === 'Inactive' ? 'bg-yellow-100 text-yellow-800' : 
-                          'bg-gray-100 text-gray-800'
-                        }`}>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${patient.cardStatus === 'Active' ? 'bg-green-100 text-green-800' :
+                            patient.cardStatus === 'Inactive' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-gray-100 text-gray-800'
+                          }`}>
                           {patient.cardStatus}
                         </span>
                       </TableCell>

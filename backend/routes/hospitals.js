@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();
 const { check, validationResult } = require('express-validator');
@@ -6,10 +5,20 @@ const auth = require('../middleware/auth');
 
 const Hospital = require('../models/Hospital');
 const User = require('../models/User');
+const Patient = require('../models/Patient');
+const { addPatient } = require("../controllers/hospital/patientController");
+const { addHealthCard } = require("../controllers/hospital/patientController");
 
-// @route   GET api/hospitals
-// @desc    Get all hospitals
-// @access  Private
+router.get('/patients', async (req, res) => {
+  try {
+    const patients = await Patient.find().sort({ createdAt: -1 });
+    res.json(patients);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 router.get('/', auth, async (req, res) => {
   try {
     const hospitals = await Hospital.find().sort({ date: -1 });
@@ -19,6 +28,9 @@ router.get('/', auth, async (req, res) => {
     res.status(500).send('Server Error');
   }
 });
+
+router.post("/patients", addPatient);
+router.post('/health-card', addHealthCard);
 
 // @route   POST api/hospitals
 // @desc    Add new hospital
@@ -79,12 +91,12 @@ router.post(
   }
 );
 
-// @route   GET api/hospitals/:id
-// @desc    Get hospital by ID
+// @route   GET api/hospitals/:hospitalId
+// @desc    Get hospital by Hospital ID
 // @access  Private
-router.get('/:id', auth, async (req, res) => {
+router.get('/:hospitalId', auth, async (req, res) => {
   try {
-    const hospital = await Hospital.findById(req.params.id);
+    const hospital = await Hospital.findOne({ hospitalId: req.params.hospitalId });
 
     if (!hospital) {
       return res.status(404).json({ msg: 'Hospital not found' });
@@ -93,17 +105,14 @@ router.get('/:id', auth, async (req, res) => {
     res.json(hospital);
   } catch (err) {
     console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ msg: 'Hospital not found' });
-    }
     res.status(500).send('Server Error');
   }
 });
 
-// @route   PUT api/hospitals/:id
-// @desc    Update hospital
+// @route   PUT api/hospitals/:hospitalId
+// @desc    Update hospital by Hospital ID
 // @access  Private
-router.put('/:id', auth, async (req, res) => {
+router.put('/:hospitalId', auth, async (req, res) => {
   const {
     name,
     address,
@@ -129,7 +138,7 @@ router.put('/:id', auth, async (req, res) => {
   if (status) hospitalFields.status = status;
 
   try {
-    let hospital = await Hospital.findById(req.params.id);
+    let hospital = await Hospital.findOne({ hospitalId: req.params.hospitalId });
 
     if (!hospital) return res.status(404).json({ msg: 'Hospital not found' });
 
@@ -138,8 +147,8 @@ router.put('/:id', auth, async (req, res) => {
       return res.status(401).json({ msg: 'Not authorized' });
     }
 
-    hospital = await Hospital.findByIdAndUpdate(
-      req.params.id,
+    hospital = await Hospital.findOneAndUpdate(
+      { hospitalId: req.params.hospitalId },
       { $set: hospitalFields },
       { new: true }
     );
@@ -148,6 +157,33 @@ router.put('/:id', auth, async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
+  }
+});
+
+// Update hospital profile
+router.put('/profile', auth, async (req, res) => {
+  try {
+    const { name, email, phone, address, website, licenseNumber, foundedYear, type, bedCount } = req.body;
+
+    // Validate input
+    if (!name || !email || !phone || !address || !licenseNumber) {
+      return res.status(400).json({ message: "Required fields are missing." });
+    }
+
+    // Find and update the hospital profile
+    const updatedHospital = await Hospital.findOneAndUpdate(
+      { email }, // Assuming email is unique and used to identify the hospital
+      { name, phone, address, website, licenseNumber, foundedYear, type, bedCount },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedHospital) {
+      return res.status(404).json({ message: "Hospital not found." });
+    }
+
+    res.status(200).json({ message: "Profile updated successfully", data: updatedHospital });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
   }
 });
 

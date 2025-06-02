@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/useAuth';
-import { getHospitalById } from '@/services/hospitalService';
+import { getHospitalByHospitalId } from '../../services/hospitalService';
 import { Hospital } from '@/types/app.types';
 import { Hospital as HospitalIcon, MapPin, Mail, Phone, Globe } from 'lucide-react';
 
@@ -22,7 +22,7 @@ const HospitalProfileInfo = () => {
         // In real scenario, this would come from user data
         if (authState.user) {
           // Get hospital data associated with the current user
-          const data = await getHospitalById(authState.user.id);
+          const data = await getHospitalByHospitalId(authState.user.hospitalId);
           setHospital(data);
         }
       } catch (err) {

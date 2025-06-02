@@ -126,12 +126,20 @@ const Login = () => {
           navigate(redirectPath, { replace: true });
         }
       }
-    } catch (err: any) {
-      console.error('Unexpected login error:', err);
-      setError('An unexpected error occurred');
+    } catch (err: unknown) {
+      console.error('Unexpected demo login error:', err);
+
+      let errorMessage = 'An unexpected error occurred';
+
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+
+      setError(errorMessage);
+
       toast({
-        title: "Login Failed",
-        description: err.message || "An unexpected error occurred",
+        title: "Demo Login Failed",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -189,12 +197,20 @@ const Login = () => {
           navigate(redirectPath, { replace: true });
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Unexpected demo login error:', err);
-      setError('An unexpected error occurred');
+
+      let errorMessage = 'An unexpected error occurred';
+
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+
+      setError(errorMessage);
+
       toast({
         title: "Demo Login Failed",
-        description: err.message || "An unexpected error occurred",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {

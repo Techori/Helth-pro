@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,13 +13,68 @@ import { toast } from "@/hooks/use-toast";
 
 const HealthCardManagement = () => {
   const [activeTab, setActiveTab] = useState("cards");
+  const [newCardInfo, setNewCardInfo] = useState({
+    patientId: "",
+    cardType: "Silver",
+    expiryDate: "",
+  });
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
 
-  // Mock function for adding a card
-  const handleAddCard = () => {
-    toast({
-      title: "Card Added Successfully",
-      description: "New health card has been issued to the patient",
-    });
+  const handleAddCard = async () => {
+    if (!newCardInfo.patientId || !newCardInfo.cardType || !newCardInfo.expiryDate) {
+      toast({
+        variant: "destructive",
+        title: "Missing Information",
+        description: "Please fill all required fields.",
+      });
+      return;
+    }
+
+    const cardData = {
+      ...newCardInfo,
+      cardType: newCardInfo.cardType.toLowerCase(),
+    };
+
+    console.log("Issuing card with info:", cardData);
+
+    try {
+      const response = await fetch("/api/hospitals/health-card", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(cardData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Error issuing card:", errorData);
+        throw new Error(errorData.message || "Failed to issue health card");
+      }
+
+      const data = await response.json();
+      const newCard = data.data;
+
+      toast({
+        title: "Card Issued",
+        description: `Health card for patient ID ${newCard.patientId} has been issued successfully.`,
+      });
+
+      // Optionally update UI or reset form state
+      setNewCardInfo({
+        patientId: "",
+        cardType: "silver",
+        expiryDate: "",
+      });
+
+    } catch (err: any) {
+      console.error("Error:", err);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: err.message || "Something went wrong",
+      });
+    }
   };
 
   return (
@@ -55,13 +109,18 @@ const HealthCardManagement = () => {
                         id="patient-id"
                         placeholder="Enter patient ID"
                         className="col-span-3"
+                        value={newCardInfo.patientId}
+                        onChange={(e) => setNewCardInfo({ ...newCardInfo, patientId: e.target.value })}
                       />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                       <Label htmlFor="card-type" className="text-right">
                         Card Type
                       </Label>
-                      <Select>
+                      <Select
+                        value={newCardInfo.cardType}
+                        onValueChange={(value) => setNewCardInfo({ ...newCardInfo, cardType: value })}
+                      >
                         <SelectTrigger className="col-span-3">
                           <SelectValue placeholder="Select card type" />
                         </SelectTrigger>
@@ -74,20 +133,16 @@ const HealthCardManagement = () => {
                       </Select>
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="validity" className="text-right">
-                        Validity
+                      <Label htmlFor="expiry-date" className="text-right">
+                        Expiry Date
                       </Label>
-                      <Select>
-                        <SelectTrigger className="col-span-3">
-                          <SelectValue placeholder="Select validity" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="6">6 Months</SelectItem>
-                          <SelectItem value="12">1 Year</SelectItem>
-                          <SelectItem value="24">2 Years</SelectItem>
-                          <SelectItem value="36">3 Years</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Input
+                        id="expiry-date"
+                        type="date"
+                        className="col-span-3"
+                        value={newCardInfo.expiryDate}
+                        onChange={(e) => setNewCardInfo({ ...newCardInfo, expiryDate: e.target.value })}
+                      />
                     </div>
                   </div>
                   <DialogFooter>

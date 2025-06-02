@@ -2,16 +2,20 @@
 const mongoose = require('mongoose');
 
 const HealthCardSchema = new mongoose.Schema({
+  patientId: {
+  type: String,
+  required: true
+},
   cardNumber: {
     type: String,
     required: true,
     unique: true
   },
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'user',
-    required: true
-  },
+  // user: {
+  //   type: mongoose.Schema.Types.ObjectId,
+  //   ref: 'user',
+  //   required: true
+  // },
   availableCredit: {
     type: Number,
     required: true,
@@ -25,6 +29,11 @@ const HealthCardSchema = new mongoose.Schema({
     type: String,
     enum: ['active', 'expired', 'pending'],
     default: 'pending'
+  },
+  cardType: {
+    type: String,
+    enum: ['silver', 'gold', 'platinum','basic'],
+    default: 'silver'
   },
   issueDate: {
     type: Date,

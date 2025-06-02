@@ -86,6 +86,7 @@ export interface AuthUser {
   role?: UserRole;
   firstName?: string;
   lastName?: string;
+  hospitalId?: string;
 }
 
 export interface AuthState {

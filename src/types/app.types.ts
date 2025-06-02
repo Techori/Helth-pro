@@ -112,11 +112,11 @@ export interface AuthUser {
   role?: UserRole;
   firstName?: string;
   lastName?: string;
+  hospitalId?: string;
   phone?: string;
   kycStatus?: 'pending' | 'completed' | 'rejected';
   uhid?: string; // Unique Health ID
   kycData?: any; // KYC data can be any type, adjust as needed
-
 }
 
 export interface AuthState {

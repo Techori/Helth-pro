@@ -64,7 +64,12 @@ const UserSchema = new mongoose.Schema({
     default: null,
 
   },
-
+  hospitalId: {
+    type: String,
+    unique: true,
+    sparse: true, // Allows null for non-hospital roles
+  },
+  
   resetPasswordTokenExpiry: {
 
     type: Date,

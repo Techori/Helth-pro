@@ -4,19 +4,25 @@ const { validationResult } = require("express-validator");
 const User = require("../../models/User");
 
 // Helper to generate UHID
-async function generateUHID(stateCode, rtoCode, hospitalShort, User) {
-  const now = new Date();
-  const year = now.getFullYear().toString().slice(-2);
-  const month = (now.getMonth() + 1).toString().padStart(2, '0');
-  // Find the latest patient to get the last serial
-  const lastPatient = await User.findOne({ role: "patient" }).sort({ date: -1 });
-  let serial = 1;
-  if (lastPatient && lastPatient.uhid) {
-    const lastSerial = parseInt(lastPatient.uhid.slice(-4));
-    if (!isNaN(lastSerial)) serial = lastSerial + 1;
+async function generateUHID(User) {
+  let uhid;
+  let uhidExists = true;
+  while (uhidExists) {
+    uhid = `UHID${Math.floor(100000 + Math.random() * 900000)}`;
+    uhidExists = await User.exists({ uhid });
   }
-  const serialStr = serial.toString().padStart(4, '0');
-  return `${year}${month}_${stateCode}${rtoCode}_${hospitalShort}${serialStr}`;
+  return uhid;
+}
+
+// Helper to generate Hospital ID
+async function generateHospitalId(User) {
+  let hospitalId;
+  let hospitalIdExists = true;
+  while (hospitalIdExists) {
+    hospitalId = `HOSP${Math.floor(100000 + Math.random() * 900000)}`;
+    hospitalIdExists = await User.exists({ hospitalId });
+  }
+  return hospitalId;
 }
 
 module.exports = async (req, res) => {
@@ -25,7 +31,7 @@ module.exports = async (req, res) => {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { firstName, lastName, email, password, role, stateCode, rtoCode, hospitalShort } = req.body;
+  const { firstName, lastName, email, password, role } = req.body;
 
   try {
     let user = await User.findOne({ email });
@@ -43,7 +49,12 @@ module.exports = async (req, res) => {
 
     // Generate UHID for patients
     if ((role || "patient") === "patient") {
-      user.uhid = await generateUHID(stateCode, rtoCode, hospitalShort, User);
+      user.uhid = await generateUHID(User);
+    }
+
+    // Generate Hospital ID for hospitals
+    if (role === "hospital") {
+      user.hospitalId = await generateHospitalId(User);
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -69,6 +80,6 @@ module.exports = async (req, res) => {
     );
   } catch (err) {
     console.error(err.message);
-    res.status(500).send("Server Error01");
+    res.status(500).send("Server Error");
   }
 };

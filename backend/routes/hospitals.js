@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();
 const { check, validationResult } = require('express-validator');
@@ -6,13 +5,9 @@ const auth = require('../middleware/auth');
 
 const Hospital = require('../models/Hospital');
 const User = require('../models/User');
-const Patient = require('../models/Patient'); // ADD THIS
+const Patient = require('../models/Patient');
 const { addPatient } = require("../controllers/hospital/patientController");
 const { addHealthCard } = require("../controllers/hospital/patientController");
-
-
-
-
 
 router.get('/patients', async (req, res) => {
   try {
@@ -96,12 +91,12 @@ router.post(
   }
 );
 
-// @route   GET api/hospitals/:id
-// @desc    Get hospital by ID
+// @route   GET api/hospitals/:hospitalId
+// @desc    Get hospital by Hospital ID
 // @access  Private
-router.get('/:id', auth, async (req, res) => {
+router.get('/:hospitalId', auth, async (req, res) => {
   try {
-    const hospital = await Hospital.findById(req.params.id);
+    const hospital = await Hospital.findOne({ hospitalId: req.params.hospitalId });
 
     if (!hospital) {
       return res.status(404).json({ msg: 'Hospital not found' });
@@ -110,17 +105,14 @@ router.get('/:id', auth, async (req, res) => {
     res.json(hospital);
   } catch (err) {
     console.error(err.message);
-    if (err.kind === 'ObjectId') {
-      return res.status(404).json({ msg: 'Hospital not found' });
-    }
     res.status(500).send('Server Error');
   }
 });
 
-// @route   PUT api/hospitals/:id
-// @desc    Update hospital
+// @route   PUT api/hospitals/:hospitalId
+// @desc    Update hospital by Hospital ID
 // @access  Private
-router.put('/:id', auth, async (req, res) => {
+router.put('/:hospitalId', auth, async (req, res) => {
   const {
     name,
     address,
@@ -146,7 +138,7 @@ router.put('/:id', auth, async (req, res) => {
   if (status) hospitalFields.status = status;
 
   try {
-    let hospital = await Hospital.findById(req.params.id);
+    let hospital = await Hospital.findOne({ hospitalId: req.params.hospitalId });
 
     if (!hospital) return res.status(404).json({ msg: 'Hospital not found' });
 
@@ -155,8 +147,8 @@ router.put('/:id', auth, async (req, res) => {
       return res.status(401).json({ msg: 'Not authorized' });
     }
 
-    hospital = await Hospital.findByIdAndUpdate(
-      req.params.id,
+    hospital = await Hospital.findOneAndUpdate(
+      { hospitalId: req.params.hospitalId },
       { $set: hospitalFields },
       { new: true }
     );
@@ -168,8 +160,6 @@ router.put('/:id', auth, async (req, res) => {
   }
 });
 
-
-// Update hospital profile
 // Update hospital profile
 router.put('/profile', auth, async (req, res) => {
   try {
@@ -196,7 +186,5 @@ router.put('/profile', auth, async (req, res) => {
     res.status(500).json({ message: "Server error", error });
   }
 });
-
-
 
 module.exports = router;

@@ -5,7 +5,7 @@ const auth = require("../middleware/auth");
 
 const register = require("../controllers/face-auth/register");
 const validate = require("../controllers/face-auth/validate");
-
+const isRegistered = require("../controllers/face-auth/isRegistered");
 // @route   POST api/face-auth/register
 // @desc    Register face data for a user or nominee
 // @access  Private
@@ -31,6 +31,16 @@ router.post(
     check("descriptor", "Face descriptor is required").isArray(),
   ],
   validate
+);
+
+const { query } = require("express-validator");
+router.get(
+  "/isRegistered",
+  [
+    query("emailId", "Invalid Email ID").isEmail(),
+    query("isNominee").optional().isBoolean(),
+  ],
+  isRegistered
 );
 
 module.exports = router;

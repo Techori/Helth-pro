@@ -12,7 +12,8 @@ import {
 } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { registerFace } from "@/services/faceAuthService";
+import { registerFace, isFaceRegistered } from "@/services/faceAuthService";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface FaceAuthComponentProps {
   emailId: string;
@@ -26,6 +27,7 @@ const FaceAuthComponent = ({
   const [isModelLoaded, setIsModelLoaded] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [isRegistered, setIsRegistered] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [detectedFace, setDetectedFace] =
     useState<faceapi.FaceDetection | null>(null);
@@ -74,6 +76,7 @@ const FaceAuthComponent = ({
     };
 
     loadModels();
+    // Initial registration status check will be handled in separate effect
 
     // Clean up when component unmounts
     return () => {
@@ -384,6 +387,8 @@ const FaceAuthComponent = ({
           registrationType === "self" ? "Your" : "Nominee"
         } face has been registered for authentication.`,
       });
+      setIsRegistered(true);
+      resetCapture(); // Reset UI after successful registration
       onFaceRegistered(true);
     } catch (error) {
       console.error("Face registration error:", error);
@@ -399,6 +404,22 @@ const FaceAuthComponent = ({
       setIsRegistering(false);
     }
   };
+
+  // Check registration status when email or type changes
+  useEffect(() => {
+    const checkRegistration = async () => {
+      try {
+        const registered = await isFaceRegistered(
+          emailId,
+          registrationType === "nominee"
+        );
+        setIsRegistered(registered);
+      } catch (error) {
+        console.error("Error checking registration:", error);
+      }
+    };
+    if (emailId) checkRegistration();
+  }, [emailId, registrationType]);
 
   return (
     <Card>
@@ -445,20 +466,60 @@ const FaceAuthComponent = ({
         </Tabs>
 
         <div className="space-y-4 mt-4">
+          {/* Registration status banner */}
+          <Alert
+            variant={isRegistered ? "default" : "destructive"}
+            className={`${
+              isRegistered ? "bg-green-50 border-green-200 text-green-800" : ""
+            }`}
+          >
+            <AlertTitle className="flex items-center">
+              {isRegistered && <Check className="h-4 w-4 mr-2" />}
+              Registration Status
+            </AlertTitle>
+            <AlertDescription>
+              {isRegistered
+                ? registrationType === "self"
+                  ? "Your face is registered and ready for payment authentication."
+                  : "Nominee face is registered and ready for payment authentication."
+                : registrationType === "self"
+                ? "Your face is not registered yet. Please register to enable face authentication."
+                : "Nominee face is not registered yet. Please register to enable face authentication."}
+            </AlertDescription>
+          </Alert>
+
           <div className="flex flex-col items-center">
             {!isCapturing && !capturedImage ? (
               <div
-                className="w-full max-w-md h-64 bg-gray-100 rounded-lg flex items-center justify-center"
+                className={`w-full max-w-md h-64 rounded-lg flex items-center justify-center ${
+                  isRegistered
+                    ? "bg-green-50 border border-green-200"
+                    : "bg-gray-100"
+                }`}
                 onClick={startCapture}
                 style={{ cursor: isModelLoaded ? "pointer" : "not-allowed" }}
               >
                 <div className="text-center text-gray-500">
-                  <Camera className="h-10 w-10 mx-auto mb-2" />
-                  <p>Click to begin face registration</p>
+                  {isRegistered ? (
+                    <Check className="h-10 w-10 mx-auto mb-2 text-green-500" />
+                  ) : (
+                    <Camera className="h-10 w-10 mx-auto mb-2" />
+                  )}
+                  <p>
+                    {isRegistered
+                      ? "Face registered successfully"
+                      : "Click to begin face registration"}
+                  </p>
                   <p className="text-xs mt-2">
-                    Registering{" "}
-                    {registrationType === "self" ? "your own" : "a nominee"}{" "}
-                    face
+                    {isRegistered
+                      ? `Click to ${
+                          registrationType === "self"
+                            ? "update your"
+                            : "update nominee"
+                        } face data`
+                      : `Registering ${
+                          registrationType === "self" ? "your own" : "a nominee"
+                        } face`}
                   </p>
                 </div>
               </div>
@@ -587,7 +648,9 @@ const FaceAuthComponent = ({
               className="flex-1"
             >
               {isRegistering
-                ? "Registering..."
+                ? "Processing..."
+                : isRegistered
+                ? `Update ${registrationType === "self" ? "Face" : "Nominee"}`
                 : `Register ${
                     registrationType === "self" ? "Face" : "Nominee"
                   }`}

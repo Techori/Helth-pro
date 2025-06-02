@@ -266,7 +266,7 @@ const PaymentProcessor = () => {
                       <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
                       <Input
                         id="patient-search"
-                        placeholder="Enter Patient ID, Card Number or Name"
+                        placeholder="Enter Email ID or Card Number"
                         className="pl-8"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}

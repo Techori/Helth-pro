@@ -320,7 +320,7 @@ const ProfileSettings = ({ patientData }: ProfileSettingsProps) => {
 
       {/* Face Authentication Component */}
       <FaceAuthComponent
-        patientId={patientData.patientId}
+        emailId={patientData.email}
         onFaceRegistered={handleFaceRegistered}
       />
 

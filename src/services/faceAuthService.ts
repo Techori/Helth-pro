@@ -1,4 +1,4 @@
-// Using direct fetch against local dev API
+// Using direct fetch `${LOCAL_API_URL}/face-auth/isRegistered`against local dev API
 const LOCAL_API_URL = "http://localhost:4000/api";
 
 // Data interfaces for face authentication
@@ -77,4 +77,27 @@ export const verifyFace = async (
     console.error("Face verification failed:", error);
     throw error;
   }
+};
+
+/**
+ * Check if face data is registered for user or nominee
+ */
+export const isFaceRegistered = async (
+  emailId: string,
+  isNominee: boolean = false
+): Promise<boolean> => {
+  const params = new URLSearchParams({
+    emailId,
+    isNominee: isNominee.toString(),
+  });
+  const res = await fetch(
+    `${LOCAL_API_URL}/face-auth/isRegistered?${params.toString()}`,
+    { method: "GET" }
+  );
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.message || "Failed to check registration");
+  }
+  const data = await res.json();
+  return data.isFind === 1;
 };

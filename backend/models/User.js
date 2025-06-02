@@ -43,6 +43,11 @@ const UserSchema = new mongoose.Schema({
     unique: true,
     sparse: true, // Allows null for non-patient roles
   },
+  hospitalId: {
+    type: String,
+    unique: true,
+    sparse: true, // Allows null for non-hospital roles
+  },
 });
 
 module.exports = mongoose.model("user", UserSchema);

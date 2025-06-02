@@ -1,4 +1,3 @@
-
 import { apiRequest } from './api';
 import { Hospital } from '@/types/app.types';
 
@@ -7,9 +6,9 @@ export const getAllHospitals = async (): Promise<Hospital[]> => {
   return apiRequest('/hospitals');
 };
 
-// Get hospital by ID
-export const getHospitalById = async (id: string): Promise<Hospital> => {
-  return apiRequest(`/hospitals/${id}`);
+// Get hospital by Hospital ID
+export const getHospitalByHospitalId = async (hospitalId: string): Promise<Hospital> => {
+  return apiRequest(`/hospitals/${hospitalId}`);
 };
 
 // Register a new hospital
@@ -20,17 +19,17 @@ export const registerHospital = async (hospitalData: Partial<Hospital>): Promise
   });
 };
 
-// Update hospital
-export const updateHospital = async (id: string, hospitalData: Partial<Hospital>): Promise<Hospital> => {
-  return apiRequest(`/hospitals/${id}`, {
+// Update hospital by Hospital ID
+export const updateHospital = async (hospitalId: string, hospitalData: Partial<Hospital>): Promise<Hospital> => {
+  return apiRequest(`/hospitals/${hospitalId}`, {
     method: 'PUT',
     body: JSON.stringify(hospitalData)
   });
 };
 
-// Get hospital status
-export const getHospitalStatus = async (id: string): Promise<{ status: string }> => {
-  return apiRequest(`/hospitals/${id}/status`);
+// Get hospital status by Hospital ID
+export const getHospitalStatus = async (hospitalId: string): Promise<{ status: string }> => {
+  return apiRequest(`/hospitals/${hospitalId}/status`);
 };
 
 // Get hospitals by status

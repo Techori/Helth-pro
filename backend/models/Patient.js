@@ -58,9 +58,6 @@ const patientSchema = new mongoose.Schema(
       unique: true,
     }
   },
-  { timestamps: true },
-
-  },
   faceEmbeddings: {
     type: [Number],
     required: true

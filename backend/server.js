@@ -1,9 +1,9 @@
-const express = require("express");
-const connectDB = require("./config/db");
-const cors = require("cors");
-const path = require("path");
-const mongoose = require("mongoose");
-
+const express = require('express');
+const connectDB = require('./config/db');
+const cors = require('cors');
+const path = require('path');
+const mongoose = require('mongoose');
+const patientRoutes = require('./routes/patient');
 
 
 console.log('Starting server initialization...');
@@ -134,15 +134,17 @@ const setupRoute = (path, router) => {
   }
 };
 
-setupRoute("/api/auth", require("./routes/auth"));
-setupRoute("/api/users", require("./routes/users"));
-setupRoute("/api/hospitals", require("./routes/hospitals"));
-setupRoute("/api/health-cards", require("./routes/healthCards"));
-setupRoute("/api/loans", require("./routes/loans"));
-setupRoute("/api/transactions", require("./routes/transactions"));
-setupRoute("/api/notifications", require("./routes/notifications"));
-setupRoute("/api/face-auth", require("./routes/face-verification"));
 
+setupRoute('/api/auth', require('./routes/auth'));
+setupRoute('/api/users', require('./routes/users'));
+setupRoute('/api/hospitals', require('./routes/hospitals'));
+setupRoute('/api/health-cards', require('./routes/healthCards'));
+setupRoute('/api/loans', require('./routes/loans'));
+setupRoute('/api/kyc', require('./routes/kyc'));
+setupRoute('/api/transactions', require('./routes/transactions'));
+setupRoute('/api/notifications', require('./routes/notifications'));
+setupRoute('/api/patient', patientRoutes);
+setupRoute("/api/face-auth", require("./routes/face-verification"));
 
 // Assuming you have a users.js file in the routes directory
 setupRoute('/api/hospitalusers', require('./routes/HospitalUser'));

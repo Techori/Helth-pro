@@ -1,10 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/useAuth';
-import { getHospitalById } from '@/services/hospitalService';
 import { Hospital } from '@/types/app.types';
 import { Hospital as HospitalIcon, MapPin, Mail, Phone, Globe } from 'lucide-react';
 
@@ -18,11 +16,28 @@ const HospitalProfileInfo = () => {
     const fetchHospitalData = async () => {
       try {
         setLoading(true);
-        // Using a mock hospital ID for demo purposes
-        // In real scenario, this would come from user data
         if (authState.user) {
-          // Get hospital data associated with the current user
-          const data = await getHospitalById(authState.user.id);
+          const token = localStorage.getItem('token');
+          if (!token) {
+            throw new Error('No authentication token found');
+          }
+
+          const response = await fetch('/api/hospitals/me', {
+            headers: {
+              'x-auth-token': token
+            }
+          });
+
+          if (!response.ok) {
+            if (response.status === 404) {
+              setError('Hospital profile not found. Please complete your profile setup.');
+            } else {
+              throw new Error('Failed to fetch hospital data');
+            }
+            return;
+          }
+
+          const data = await response.json();
           setHospital(data);
         }
       } catch (err) {

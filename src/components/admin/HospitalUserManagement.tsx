@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,14 +8,34 @@ import { useToast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, UserPlus, Eye, UserCog, Lock, MoreHorizontal, Phone, Building, Mail } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const HospitalUserManagement = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+  const [isAddingStaff, setIsAddingStaff] = useState(false);
+  const [newStaff, setNewStaff] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    hospital: "",
+    role: "",
+    department: "",
+    status: "Active"
+  });
 
-  // Mock data for hospital staff
-  const hospitalStaff = [
+  // Convert to state variable
+  const [hospitalStaff, setHospitalStaff] = useState([
     {
       id: "HS-001",
       name: "Dr. Anil Kapoor",
@@ -105,7 +124,7 @@ const HospitalUserManagement = () => {
       status: "Active",
       lastLogin: "06/04/2025 09:20 AM"
     }
-  ];
+  ]);
 
   // Filter hospital staff based on search term and active tab
   const filteredStaff = hospitalStaff.filter(staff => {
@@ -125,9 +144,56 @@ const HospitalUserManagement = () => {
   });
 
   const handleAddStaff = () => {
+    // Validate form data
+    if (!newStaff.name || !newStaff.email || !newStaff.phone || !newStaff.hospital || !newStaff.role || !newStaff.department) {
+      toast({
+        variant: "destructive",
+        title: "Invalid form",
+        description: "Please fill in all required fields.",
+      });
+      return;
+    }
+
+    // Generate a new staff ID
+    const newStaffId = `HS-${String(hospitalStaff.length + 1).padStart(3, '0')}`;
+
+    // Create new staff object
+    const staffToAdd = {
+      id: newStaffId,
+      name: newStaff.name,
+      email: newStaff.email,
+      phone: newStaff.phone,
+      hospital: newStaff.hospital,
+      role: newStaff.role,
+      department: newStaff.department,
+      status: newStaff.status,
+      lastLogin: "Never",
+      registeredOn: new Date().toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      }).replace(/\//g, '/')
+    };
+
+    // Add staff to the list using setState
+    setHospitalStaff(prevStaff => [...prevStaff, staffToAdd]);
+
+    // Reset form and close dialog
+    setNewStaff({
+      name: "",
+      email: "",
+      phone: "",
+      hospital: "",
+      role: "",
+      department: "",
+      status: "Active"
+    });
+    setIsAddingStaff(false);
+
+    // Show success toast
     toast({
-      title: "Add Hospital Staff",
-      description: "Opening form to add new hospital staff member",
+      title: "Staff Added",
+      description: `Staff member ${staffToAdd.name} has been added successfully.`,
     });
   };
 
@@ -194,7 +260,7 @@ const HospitalUserManagement = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <Button onClick={handleAddStaff}>
+              <Button onClick={() => setIsAddingStaff(true)}>
                 <UserPlus className="mr-2 h-4 w-4" />
                 Add Staff
               </Button>
@@ -368,6 +434,95 @@ const HospitalUserManagement = () => {
           </div>
         </CardFooter>
       </Card>
+
+      {/* Add Staff Dialog */}
+      <Dialog open={isAddingStaff} onOpenChange={setIsAddingStaff}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add New Staff Member</DialogTitle>
+            <DialogDescription>
+              Create a new staff account and set their role and department.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Full Name</Label>
+              <Input
+                id="name"
+                placeholder="Enter full name"
+                value={newStaff.name}
+                onChange={(e) => setNewStaff({ ...newStaff, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address</Label>
+              <Input
+                id="email"
+                placeholder="Enter email address"
+                type="email"
+                value={newStaff.email}
+                onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input
+                id="phone"
+                placeholder="Enter phone number"
+                value={newStaff.phone}
+                onChange={(e) => setNewStaff({ ...newStaff, phone: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="hospital">Hospital</Label>
+              <Select value={newStaff.hospital} onValueChange={(value) => setNewStaff({ ...newStaff, hospital: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select hospital" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="City General Hospital">City General Hospital</SelectItem>
+                  <SelectItem value="Carewell Hospital">Carewell Hospital</SelectItem>
+                  <SelectItem value="LifeCare Hospital">LifeCare Hospital</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="role">Role</Label>
+                <Select value={newStaff.role} onValueChange={(value) => setNewStaff({ ...newStaff, role: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Manager">Manager</SelectItem>
+                    <SelectItem value="Staff">Staff</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="department">Department</Label>
+                <Select value={newStaff.department} onValueChange={(value) => setNewStaff({ ...newStaff, department: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Finance">Finance</SelectItem>
+                    <SelectItem value="Billing">Billing</SelectItem>
+                    <SelectItem value="Front Desk">Front Desk</SelectItem>
+                    <SelectItem value="Relationship">Relationship</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddingStaff(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddStaff}>Add Staff</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

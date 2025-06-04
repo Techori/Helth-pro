@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,13 +7,30 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { Search, UserPlus, Eye, UserCog, Lock, MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const AdminUserManagement = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
+  const [isAddingUser, setIsAddingUser] = useState(false);
+  const [newUser, setNewUser] = useState({
+    name: "",
+    email: "",
+    role: "",
+    status: "Active"
+  });
 
   // Mock data for users
-  const users = [
+  const [users, setUsers] = useState([
     {
       id: "USR-001",
       name: "Rahul Sharma",
@@ -69,7 +85,7 @@ const AdminUserManagement = () => {
       lastLogin: "01/04/2025 04:50 PM",
       registeredOn: "08/01/2025"
     }
-  ];
+  ]);
 
   // Filter users based on search term
   const filteredUsers = users.filter(
@@ -79,6 +95,54 @@ const AdminUserManagement = () => {
       user.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.role.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleAddUser = () => {
+    // Validate form data
+    if (!newUser.name || !newUser.email || !newUser.role) {
+      toast({
+        variant: "destructive",
+        title: "Invalid form",
+        description: "Please fill in all required fields.",
+      });
+      return;
+    }
+
+    // Generate a new user ID
+    const newUserId = `USR-${String(users.length + 1).padStart(3, '0')}`;
+
+    // Create new user object
+    const userToAdd = {
+      id: newUserId,
+      name: newUser.name,
+      email: newUser.email,
+      role: newUser.role,
+      status: newUser.status,
+      lastLogin: "Never",
+      registeredOn: new Date().toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      }).replace(/\//g, '/')
+    };
+
+    // Add user to the list
+    setUsers([...users, userToAdd]);
+
+    // Reset form and close dialog
+    setNewUser({
+      name: "",
+      email: "",
+      role: "",
+      status: "Active"
+    });
+    setIsAddingUser(false);
+
+    // Show success toast
+    toast({
+      title: "User Added",
+      description: `User ${userToAdd.name} has been added successfully.`,
+    });
+  };
 
   const handleUserAction = (action: string, userId: string, userName: string) => {
     switch (action) {
@@ -137,7 +201,7 @@ const AdminUserManagement = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <Button>
+              <Button onClick={() => setIsAddingUser(true)}>
                 <UserPlus className="mr-2 h-4 w-4" />
                 Add User
               </Button>
@@ -275,6 +339,58 @@ const AdminUserManagement = () => {
           </div>
         </CardFooter>
       </Card>
+
+      {/* Add User Dialog */}
+      <Dialog open={isAddingUser} onOpenChange={setIsAddingUser}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add New User</DialogTitle>
+            <DialogDescription>
+              Create a new user account and set their role.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Full Name</Label>
+              <Input
+                id="name"
+                placeholder="Enter full name"
+                value={newUser.name}
+                onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address</Label>
+              <Input
+                id="email"
+                placeholder="Enter email address"
+                type="email"
+                value={newUser.email}
+                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="role">Role</Label>
+              <Select value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Patient">Patient</SelectItem>
+                  <SelectItem value="Hospital Staff">Hospital Staff</SelectItem>
+                  <SelectItem value="Hospital Admin">Hospital Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddingUser(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddUser}>Add User</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

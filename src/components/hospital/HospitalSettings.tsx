@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,6 +11,7 @@ import { Check, Save, Upload, Building, Users, Shield, FileCheck, UserCheck, Upl
 const HospitalSettings = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("profile");
+  const [isLoading, setIsLoading] = useState(false); // Add loading state
 
   // Hospital profile state
   const [hospitalProfile, setHospitalProfile] = useState({
@@ -55,15 +55,15 @@ const HospitalSettings = () => {
   ]);
 
   const [selectedFileName, setSelectedFileName] = useState("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [documentType, setDocumentType] = useState<string>("");
-  const [validUntil, setValidUntil] = useState<string>("");
-  const [description, setDescription] = useState<string>("");
-  const [currentPassword, setCurrentPassword] = useState<string>("");
-  const [newPassword, setNewPassword] = useState<string>("");
-  const [confirmPassword, setConfirmPassword] = useState<string>("");
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [documentType, setDocumentType] = useState("");
+  const [validUntil, setValidUntil] = useState("");
+  const [description, setDescription] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event) => {
     const file = event.target.files?.[0];
     if (file) {
       setSelectedFile(file);
@@ -131,36 +131,87 @@ const HospitalSettings = () => {
   };
 
   const handleSaveProfile = async () => {
+    // Validate required fields
+    const requiredFields = ["name", "email", "phone"];
+    const missingFields = requiredFields.filter(
+      (field) => !hospitalProfile[field]?.trim()
+    );
+
+    if (missingFields.length > 0) {
+      toast({
+        variant: "destructive",
+        title: "Missing Information",
+        description: `Please fill in the following required fields: ${missingFields.join(", ")}.`,
+      });
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(hospitalProfile.email)) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Email",
+        description: "Please enter a valid email address.",
+      });
+      return;
+    }
+
+    // Validate phone format (basic check for digits and optional country code)
+    const phoneRegex = /^\+?\d{10,15}$/;
+    if (!phoneRegex.test(hospitalProfile.phone)) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Phone Number",
+        description: "Please enter a valid phone number (e.g., +919876543210).",
+      });
+      return;
+    }
+
+    setIsLoading(true); // Set loading state
+
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       if (!token) {
-        throw new Error("No authentication token found");
+        throw new Error("No authentication token found. Please log in again.");
       }
 
       const response = await fetch("/api/hospitals/profile", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(hospitalProfile),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.msg || "Failed to update profile");
+        throw new Error(data.msg || "Failed to update profile");
       }
 
       toast({
         title: "Profile Updated",
-        description: "Hospital profile has been successfully updated.",
+        description: data.msg || "Hospital profile has been successfully updated.",
       });
     } catch (error) {
+      let errorMessage = "Something went wrong. Please try again.";
+      if (error.message.includes("token")) {
+        errorMessage = "Authentication failed. Please log in again.";
+      } else if (error.message.includes("Email already in use")) {
+        errorMessage = "This email is already in use by another hospital.";
+      } else if (error.message.includes("Hospital not found")) {
+        errorMessage = "Hospital profile not found. Please contact support.";
+      }
+
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Something went wrong",
+        description: errorMessage,
       });
+    } finally {
+      setIsLoading(false); // Reset loading state
     }
   };
 
@@ -233,87 +284,87 @@ const HospitalSettings = () => {
   };
 
   const handleUpdatePassword = async () => {
-  // Validate inputs
-  if (!currentPassword || !newPassword || !confirmPassword) {
-    toast({
-      title: "Missing Information",
-      description: "Please fill in all password fields.",
-      variant: "destructive",
-    });
-    return;
-  }
-
-  if (newPassword !== confirmPassword) {
-    toast({
-      title: "Password Mismatch",
-      description: "New password and confirm password do not match.",
-      variant: "destructive",
-    });
-    return;
-  }
-
-  if (newPassword.length < 8) {
-    toast({
-      title: "Invalid Password",
-      description: "New password must be at least 8 characters long.",
-      variant: "destructive",
-    });
-    return;
-  }
-
-  try {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      throw new Error("No authentication token found");
+    // Validate inputs
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all password fields.",
+        variant: "destructive",
+      });
+      return;
     }
 
-    // Step 1: Verify current password
-    const verifyResponse = await fetch("/api/users/verify-password", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      },
-      body: JSON.stringify({ password: currentPassword }),
-    });
-
-    if (!verifyResponse.ok) {
-      const error = await verifyResponse.json();
-      throw new Error(error.msg || "Current password is incorrect");
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Password Mismatch",
+        description: "New password and confirm password do not match.",
+        variant: "destructive",
+      });
+      return;
     }
 
-    // Step 2: Update password
-    const updateResponse = await fetch("/api/users/update-password", {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`,
-      },
-      body: JSON.stringify({ newPassword }),
-    });
-
-    if (!updateResponse.ok) {
-      const error = await updateResponse.json();
-      throw new Error(error.msg || "Failed to update password");
+    if (newPassword.length < 8) {
+      toast({
+        title: "Invalid Password",
+        description: "New password must be at least 8 characters long.",
+        variant: "destructive",
+      });
+      return;
     }
 
-    toast({
-      title: "Password Updated",
-      description: "Your password has been successfully updated.",
-    });
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
 
-    // Clear password fields
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-  } catch (error) {
-    toast({
-      variant: "destructive",
-      title: "Error",
-      description: error.message || "Something went wrong",
-    });
-  }
-};
+      // Step 1: Verify current password
+      const verifyResponse = await fetch("/api/users/verify-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ password: currentPassword }),
+      });
+
+      if (!verifyResponse.ok) {
+        const error = await verifyResponse.json();
+        throw new Error(error.msg || "Current password is incorrect");
+      }
+
+      // Step 2: Update password
+      const updateResponse = await fetch("/api/users/update-password", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ newPassword }),
+      });
+
+      if (!updateResponse.ok) {
+        const error = await updateResponse.json();
+        throw new Error(error.msg || "Failed to update password");
+      }
+
+      toast({
+        title: "Password Updated",
+        description: "Your password has been successfully updated.",
+      });
+
+      // Clear password fields
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Something went wrong",
+      });
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -411,9 +462,9 @@ const HospitalSettings = () => {
               </div>
             </CardContent>
             <CardFooter>
-              <Button onClick={handleSaveProfile}>
+              <Button onClick={handleSaveProfile} disabled={isLoading}>
                 <Save className="mr-2 h-4 w-4" />
-                Save Changes
+                {isLoading ? "Saving..." : "Save Changes"}
               </Button>
             </CardFooter>
           </Card>
@@ -590,7 +641,9 @@ const HospitalSettings = () => {
                       onChange={(e) => setBranchInfo({ ...branchInfo, branchManagerEmail: e.target.value })}
                     />
                   </div>
-                  <div className="space-y-2">
+                  <div classNameыт
+
+                    className="space-y-2">
                     <Label htmlFor="branchCode">Branch Code</Label>
                     <Input
                       id="branchCode"

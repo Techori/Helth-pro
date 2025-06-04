@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/ui/use-toast";
-import { Check, Save, Upload, Building, Users, Shield, FileCheck, UserCheck } from "lucide-react";
+import { Check, Save, Upload, Building, Users, Shield, FileCheck, UserCheck, UploadCloud } from "lucide-react";
 
 const HospitalSettings = () => {
   const { toast } = useToast();
@@ -54,30 +54,258 @@ const HospitalSettings = () => {
     { name: "Biomedical Waste Authorization", status: "Pending", date: "15/02/2023" },
   ]);
 
-  const handleSaveProfile = async () => {
-  try {
-    const token = localStorage.getItem('token'); // Assuming the token is stored in localStorage
+  const [selectedFileName, setSelectedFileName] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [documentType, setDocumentType] = useState<string>("");
+  const [validUntil, setValidUntil] = useState<string>("");
+  const [description, setDescription] = useState<string>("");
+  const [currentPassword, setCurrentPassword] = useState<string>("");
+  const [newPassword, setNewPassword] = useState<string>("");
+  const [confirmPassword, setConfirmPassword] = useState<string>("");
 
-    const response = await fetch("/api/hospitals/profile", {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setSelectedFileName(file.name);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      toast({
+        title: "No File Selected",
+        description: "Please select a file to upload.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!documentType.trim() || !validUntil.trim() || !description.trim()) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill all document fields before uploading.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    formData.append("documentType", documentType);
+    formData.append("validUntil", validUntil);
+    formData.append("description", description);
+
+    try {
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (response.ok) {
+        toast({
+          title: "Document Uploaded",
+          description: "Your document has been uploaded successfully and is pending verification.",
+        });
+
+        // Clear fields
+        setSelectedFile(null);
+        setSelectedFileName("");
+        setDocumentType("");
+        setValidUntil("");
+        setDescription("");
+      } else {
+        toast({
+          title: "Upload Failed",
+          description: "There was an error uploading your document. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Upload Error",
+        description: "An unexpected error occurred. Please try again later.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const response = await fetch("/api/hospitals/profile", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify(hospitalProfile),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.msg || "Failed to update profile");
+      }
+
+      toast({
+        title: "Profile Updated",
+        description: "Hospital profile has been successfully updated.",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Something went wrong",
+      });
+    }
+  };
+
+  const handleSaveBranchInfo = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const response = await fetch("/api/hospitals/branch", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify(branchInfo),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.msg || "Failed to update branch information");
+      }
+
+      toast({
+        title: "Branch Information Updated",
+        description: "RI Medicare branch information has been successfully updated.",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Something went wrong",
+      });
+    }
+  };
+
+  const handleSaveRmInfo = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const response = await fetch("/api/hospitals/relationship-manager", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify(rmInfo),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.msg || "Failed to update relationship manager information");
+      }
+
+      toast({
+        title: "RM Information Updated",
+        description: "Relationship manager information has been successfully updated.",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Something went wrong",
+      });
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+  // Validate inputs
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    toast({
+      title: "Missing Information",
+      description: "Please fill in all password fields.",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    toast({
+      title: "Password Mismatch",
+      description: "New password and confirm password do not match.",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  if (newPassword.length < 8) {
+    toast({
+      title: "Invalid Password",
+      description: "New password must be at least 8 characters long.",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+
+    // Step 1: Verify current password
+    const verifyResponse = await fetch("/api/users/verify-password", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+      },
+      body: JSON.stringify({ password: currentPassword }),
+    });
+
+    if (!verifyResponse.ok) {
+      const error = await verifyResponse.json();
+      throw new Error(error.msg || "Current password is incorrect");
+    }
+
+    // Step 2: Update password
+    const updateResponse = await fetch("/api/users/update-password", {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`, // Include the token in the request
+        "Authorization": `Bearer ${token}`,
       },
-      body: JSON.stringify(hospitalProfile),
+      body: JSON.stringify({ newPassword }),
     });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to update profile");
+    if (!updateResponse.ok) {
+      const error = await updateResponse.json();
+      throw new Error(error.msg || "Failed to update password");
     }
 
-    const result = await response.json();
-
     toast({
-      title: "Profile Updated",
-      description: "Hospital profile has been successfully updated.",
+      title: "Password Updated",
+      description: "Your password has been successfully updated.",
     });
+
+    // Clear password fields
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
   } catch (error) {
     toast({
       variant: "destructive",
@@ -86,27 +314,6 @@ const HospitalSettings = () => {
     });
   }
 };
-
-  const handleSaveBranchInfo = () => {
-    toast({
-      title: "Branch Information Updated",
-      description: "RI Medicare branch information has been successfully updated.",
-    });
-  };
-
-  const handleSaveRmInfo = () => {
-    toast({
-      title: "RM Information Updated",
-      description: "Relationship manager information has been successfully updated.",
-    });
-  };
-
-  const handleUploadDocument = () => {
-    toast({
-      title: "Document Uploaded",
-      description: "Your document has been uploaded and is pending verification.",
-    });
-  };
 
   return (
     <div className="space-y-6">
@@ -130,75 +337,75 @@ const HospitalSettings = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="hospitalName">Hospital Name</Label>
-                  <Input 
-                    id="hospitalName" 
-                    value={hospitalProfile.name} 
-                    onChange={(e) => setHospitalProfile({...hospitalProfile, name: e.target.value})}
+                  <Input
+                    id="hospitalName"
+                    value={hospitalProfile.name}
+                    onChange={(e) => setHospitalProfile({ ...hospitalProfile, name: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="hospitalEmail">Email Address</Label>
-                  <Input 
-                    id="hospitalEmail" 
-                    type="email" 
-                    value={hospitalProfile.email} 
-                    onChange={(e) => setHospitalProfile({...hospitalProfile, email: e.target.value})}
+                  <Input
+                    id="hospitalEmail"
+                    type="email"
+                    value={hospitalProfile.email}
+                    onChange={(e) => setHospitalProfile({ ...hospitalProfile, email: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="hospitalPhone">Phone Number</Label>
-                  <Input 
-                    id="hospitalPhone" 
-                    value={hospitalProfile.phone} 
-                    onChange={(e) => setHospitalProfile({...hospitalProfile, phone: e.target.value})}
+                  <Input
+                    id="hospitalPhone"
+                    value={hospitalProfile.phone}
+                    onChange={(e) => setHospitalProfile({ ...hospitalProfile, phone: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="hospitalWebsite">Website</Label>
-                  <Input 
-                    id="hospitalWebsite" 
-                    value={hospitalProfile.website} 
-                    onChange={(e) => setHospitalProfile({...hospitalProfile, website: e.target.value})}
+                  <Input
+                    id="hospitalWebsite"
+                    value={hospitalProfile.website}
+                    onChange={(e) => setHospitalProfile({ ...hospitalProfile, website: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="hospitalAddress">Address</Label>
-                  <Input 
-                    id="hospitalAddress" 
-                    value={hospitalProfile.address} 
-                    onChange={(e) => setHospitalProfile({...hospitalProfile, address: e.target.value})}
+                  <Input
+                    id="hospitalAddress"
+                    value={hospitalProfile.address}
+                    onChange={(e) => setHospitalProfile({ ...hospitalProfile, address: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="licenseNumber">License Number</Label>
-                  <Input 
-                    id="licenseNumber" 
+                  <Input
+                    id="licenseNumber"
                     value={hospitalProfile.licenseNumber}
-                    onChange={(e) => setHospitalProfile({...hospitalProfile, licenseNumber: e.target.value})}
+                    onChange={(e) => setHospitalProfile({ ...hospitalProfile, licenseNumber: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="foundedYear">Founded Year</Label>
-                  <Input 
-                    id="foundedYear" 
+                  <Input
+                    id="foundedYear"
                     value={hospitalProfile.foundedYear}
-                    onChange={(e) => setHospitalProfile({...hospitalProfile, foundedYear: e.target.value})}
+                    onChange={(e) => setHospitalProfile({ ...hospitalProfile, foundedYear: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="hospitalType">Hospital Type</Label>
-                  <Input 
-                    id="hospitalType" 
+                  <Input
+                    id="hospitalType"
                     value={hospitalProfile.type}
-                    onChange={(e) => setHospitalProfile({...hospitalProfile, type: e.target.value})}
+                    onChange={(e) => setHospitalProfile({ ...hospitalProfile, type: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="bedCount">Bed Count</Label>
-                  <Input 
-                    id="bedCount" 
+                  <Input
+                    id="bedCount"
                     value={hospitalProfile.bedCount}
-                    onChange={(e) => setHospitalProfile({...hospitalProfile, bedCount: e.target.value})}
+                    onChange={(e) => setHospitalProfile({ ...hospitalProfile, bedCount: e.target.value })}
                   />
                 </div>
               </div>
@@ -222,7 +429,7 @@ const HospitalSettings = () => {
                     Manage compliance certifications and documents
                   </CardDescription>
                 </div>
-                <Button>
+                <Button onClick={() => document.getElementById('document-file')?.click()}>
                   <Upload className="mr-2 h-4 w-4" />
                   Upload New Document
                 </Button>
@@ -264,7 +471,7 @@ const HospitalSettings = () => {
                   <div>
                     <h4 className="font-medium">Compliance Status</h4>
                     <p className="text-sm text-muted-foreground mb-2">
-                      Your hospital is currently <span className="text-amber-600 font-medium">partially compliant</span>. 
+                      Your hospital is currently <span className="text-amber-600 font-medium">partially compliant</span>.
                       Please upload all required documents to achieve full compliance.
                     </p>
                     <div className="w-full bg-slate-200 rounded-full h-2.5">
@@ -276,6 +483,72 @@ const HospitalSettings = () => {
               </div>
             </CardFooter>
           </Card>
+
+          <div className="mt-6 p-6 border rounded-md bg-gray-50">
+            <h3 className="text-lg font-medium mb-4">Upload New Document</h3>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="document-type">Document Type</Label>
+                  <select
+                    id="document-type"
+                    className="w-full p-2 border rounded-md"
+                    value={documentType}
+                    onChange={(e) => setDocumentType(e.target.value)}
+                  >
+                    <option value="">Select Document Type</option>
+                    <option value="registration">Hospital Registration</option>
+                    <option value="license">Medical License</option>
+                    <option value="tax">Tax Compliance</option>
+                    <option value="safety">Safety Certificate</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="valid-until">Valid Until</Label>
+                  <Input
+                    id="valid-until"
+                    type="date"
+                    value={validUntil}
+                    onChange={(e) => setValidUntil(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="document-description">Description</Label>
+                <textarea
+                  id="document-description"
+                  placeholder="Enter additional details about this document"
+                  className="w-full p-2 border rounded-md"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="document-file">Upload File</Label>
+                <div className="border-2 border-dashed rounded-md p-8 text-center">
+                  <UploadCloud className="mx-auto h-10 w-10 text-gray-400" />
+                  <p className="mt-2 text-sm text-gray-600">Drag and drop your file here, or click to browse</p>
+                  <input
+                    id="document-file"
+                    type="file"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                  <Button
+                    variant="outline"
+                    className="mt-4"
+                    onClick={() => document.getElementById('document-file')?.click()}
+                  >
+                    Select File
+                  </Button>
+                  {selectedFileName && (
+                    <p className="mt-2 text-sm text-gray-600">Selected File: {selectedFileName}</p>
+                  )}
+                </div>
+              </div>
+              <Button onClick={handleUpload}>Upload Document</Button>
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="verification" className="space-y-6 mt-6">
@@ -295,50 +568,50 @@ const HospitalSettings = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="branchName">RI Medicare Branch</Label>
-                    <Input 
-                      id="branchName" 
+                    <Input
+                      id="branchName"
                       value={branchInfo.branchName}
-                      onChange={(e) => setBranchInfo({...branchInfo, branchName: e.target.value})}
+                      onChange={(e) => setBranchInfo({ ...branchInfo, branchName: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="branchManagerName">Branch Manager Name</Label>
-                    <Input 
-                      id="branchManagerName" 
+                    <Input
+                      id="branchManagerName"
                       value={branchInfo.branchManagerName}
-                      onChange={(e) => setBranchInfo({...branchInfo, branchManagerName: e.target.value})}
+                      onChange={(e) => setBranchInfo({ ...branchInfo, branchManagerName: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="branchManagerEmail">Branch Manager Email</Label>
-                    <Input 
-                      id="branchManagerEmail" 
+                    <Input
+                      id="branchManagerEmail"
                       value={branchInfo.branchManagerEmail}
-                      onChange={(e) => setBranchInfo({...branchInfo, branchManagerEmail: e.target.value})}
+                      onChange={(e) => setBranchInfo({ ...branchInfo, branchManagerEmail: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="branchCode">Branch Code</Label>
-                    <Input 
-                      id="branchCode" 
+                    <Input
+                      id="branchCode"
                       value={branchInfo.branchCode}
-                      onChange={(e) => setBranchInfo({...branchInfo, branchCode: e.target.value})}
+                      onChange={(e) => setBranchInfo({ ...branchInfo, branchCode: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="branchContact">Branch Contact Number</Label>
-                    <Input 
-                      id="branchContact" 
+                    <Input
+                      id="branchContact"
                       value={branchInfo.branchContact}
-                      onChange={(e) => setBranchInfo({...branchInfo, branchContact: e.target.value})}
+                      onChange={(e) => setBranchInfo({ ...branchInfo, branchContact: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="branchAddress">Branch Address</Label>
-                    <Input 
-                      id="branchAddress" 
+                    <Input
+                      id="branchAddress"
                       value={branchInfo.branchAddress}
-                      onChange={(e) => setBranchInfo({...branchInfo, branchAddress: e.target.value})}
+                      onChange={(e) => setBranchInfo({ ...branchInfo, branchAddress: e.target.value })}
                     />
                   </div>
                 </div>
@@ -358,42 +631,42 @@ const HospitalSettings = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="relationshipManager">Relationship Manager</Label>
-                    <Input 
-                      id="relationshipManager" 
+                    <Input
+                      id="relationshipManager"
                       value={rmInfo.relationshipManager}
-                      onChange={(e) => setRmInfo({...rmInfo, relationshipManager: e.target.value})}
+                      onChange={(e) => setRmInfo({ ...rmInfo, relationshipManager: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="rmContact">Relationship Manager Contact Number</Label>
-                    <Input 
-                      id="rmContact" 
+                    <Input
+                      id="rmContact"
                       value={rmInfo.rmContact}
-                      onChange={(e) => setRmInfo({...rmInfo, rmContact: e.target.value})}
+                      onChange={(e) => setRmInfo({ ...rmInfo, rmContact: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="rmEmail">Relationship Manager Email</Label>
-                    <Input 
-                      id="rmEmail" 
+                    <Input
+                      id="rmEmail"
                       value={rmInfo.rmEmail}
-                      onChange={(e) => setRmInfo({...rmInfo, rmEmail: e.target.value})}
+                      onChange={(e) => setRmInfo({ ...rmInfo, rmEmail: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="salesManager">Sales Manager Name</Label>
-                    <Input 
-                      id="salesManager" 
+                    <Input
+                      id="salesManager"
                       value={rmInfo.salesManager}
-                      onChange={(e) => setRmInfo({...rmInfo, salesManager: e.target.value})}
+                      onChange={(e) => setRmInfo({ ...rmInfo, salesManager: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="salesManagerEmail">Sales Manager Email</Label>
-                    <Input 
-                      id="salesManagerEmail" 
+                    <Input
+                      id="salesManagerEmail"
                       value={rmInfo.salesManagerEmail}
-                      onChange={(e) => setRmInfo({...rmInfo, salesManagerEmail: e.target.value})}
+                      onChange={(e) => setRmInfo({ ...rmInfo, salesManagerEmail: e.target.value })}
                     />
                   </div>
                 </div>
@@ -430,19 +703,34 @@ const HospitalSettings = () => {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="current-password">Current Password</Label>
-                <Input id="current-password" type="password" />
+                <Input
+                  id="current-password"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="new-password">New Password</Label>
-                <Input id="new-password" type="password" />
+                <Input
+                  id="new-password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirm-password">Confirm New Password</Label>
-                <Input id="confirm-password" type="password" />
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
               </div>
-              
+
               <Separator className="my-4" />
-              
+
               <div>
                 <h3 className="font-medium mb-2">Two-Factor Authentication</h3>
                 <p className="text-sm text-muted-foreground mb-4">
@@ -452,9 +740,9 @@ const HospitalSettings = () => {
                   Enable Two-Factor Authentication
                 </Button>
               </div>
-              
+
               <Separator className="my-4" />
-              
+
               <div>
                 <h3 className="font-medium mb-2">Active Sessions</h3>
                 <p className="text-sm text-muted-foreground mb-4">
@@ -479,7 +767,7 @@ const HospitalSettings = () => {
               </div>
             </CardContent>
             <CardFooter>
-              <Button>Update Security Settings</Button>
+              <Button onClick={handleUpdatePassword}>Update Security Settings</Button>
             </CardFooter>
           </Card>
         </TabsContent>

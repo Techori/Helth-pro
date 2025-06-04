@@ -1,11 +1,12 @@
+
 const express = require("express");
 const router = express.Router();
 const { check } = require("express-validator");
 const auth = require("../middleware/auth");
 
 const signup = require("../controllers/user/signup");
-const get = require("../controllers/user/get");
-const update = require("../controllers/user/update");
+const userController = require("../controllers/user/get");
+const updateController = require("../controllers/user/update");
 const forgotPassword = require("../controllers/user/forgotPassword");
 const verifyResetPassword = require("../controllers/user/verifyResetPassword");
 
@@ -23,8 +24,10 @@ router.post(
   signup
 );
 
-router.get("/get", auth, get);
-router.put("/update", auth, update);
+router.get("/get", auth, userController.getUser);
+router.post("/verify-password", auth, userController.verifyPassword);
+router.put("/update", auth, updateController.updateUser);
+router.put("/update-password", auth, updateController.updatePassword);
 
 // Forgot Password Route
 router.post("/forgot-password", forgotPassword);

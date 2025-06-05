@@ -6,6 +6,8 @@ const {
   quickActionLoan,
   quickActionUser,
   quickActionHealthCard,
+  addPlatformFee,
+  addSalesTarget,
 } = require('../controllers/admin/adminController');
 
 // @route   POST api/admin/quick-action/hospital
@@ -27,5 +29,14 @@ router.post('/quick-action/user', auth, quickActionUser);
 // @desc    Quick action to create a health card
 // @access  Private (Admin only)
 router.post('/quick-action/health-card', auth, quickActionHealthCard);
+
+router.post('/quick-action-user', auth, quickActionUser);
+
+
+
+router.post('/add-fee', auth, addPlatformFee);
+
+router.post('/add-sales-target', auth, addSalesTarget);
+
 
 module.exports = router;

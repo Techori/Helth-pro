@@ -20,7 +20,7 @@ const UserSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ["patient", "hospital", "admin", "sales", "crm", "agent", "support"],
+    enum: ["patient", "hospital", "admin", "sales", "crm", "agent", "support","hospital staff", "hospital admin"],
     default: "patient",
   },
   avatar: {
@@ -47,6 +47,10 @@ const UserSchema = new mongoose.Schema({
     type: String,
     unique: true,
     sparse: true, // Allows null for non-hospital roles
+  },
+   notes: {
+    type: String,
+    default: '',
   },
 });
 

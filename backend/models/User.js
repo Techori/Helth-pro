@@ -1,4 +1,3 @@
-
 const mongoose = require('mongoose');
 
 const UserSchema = new mongoose.Schema({
@@ -31,7 +30,14 @@ const UserSchema = new mongoose.Schema({
   uhid: {
     type: String,
     unique: true,
-    sparse: true
+    sparse: true,
+    validate: {
+      validator: function(v) {
+        // Only allow UHID if role is patient
+        return this.role !== 'patient' ? !v : true;
+      },
+      message: 'UHID can only be assigned to patients'
+    }
   },
   kycStatus: {
     type: String,
@@ -64,12 +70,12 @@ const UserSchema = new mongoose.Schema({
     default: null,
 
   },
-  hospitalId: {
+    hospitalId: {
     type: String,
     unique: true,
     sparse: true, // Allows null for non-hospital roles
   },
-  
+
   resetPasswordTokenExpiry: {
 
     type: Date,
@@ -78,6 +84,16 @@ const UserSchema = new mongoose.Schema({
 
   },
 
+});
+
+// Add pre-save middleware to clear UHID if role is not patient
+UserSchema.pre('save', function(next) {
+  if (this.role !== 'patient') {
+    this.uhid = undefined;
+    this.kycStatus = undefined;
+    this.kycData = undefined;
+  }
+  next();
 });
 
 module.exports = mongoose.model('user', UserSchema);

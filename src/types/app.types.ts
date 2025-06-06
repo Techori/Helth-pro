@@ -1,4 +1,3 @@
-
 // Add any custom application types here
 export type NotificationType = 'success' | 'error' | 'info' | 'warning';
 
@@ -37,6 +36,17 @@ export interface Hospital {
   user?: string;
 }
 
+export interface Doctor {
+  id: string;
+  name: string;
+  hospitalId: string;
+  specialty: string;
+  qualification: string;
+  experience: number;
+  rating: number;
+  availability: string[];
+}
+
 export interface HealthCard {
   id: string;
   user_id: string;
@@ -71,12 +81,28 @@ export interface SupportTicket {
 
 export interface Transaction {
   id: string;
-  user_id: string;
+  user_id?: string;
   amount: number;
   type: 'payment' | 'refund' | 'charge';
   description: string;
   status: 'completed' | 'pending' | 'failed';
   created_at: string;
+}
+
+export interface Appointment {
+  id: string;
+  patientName: string;
+  patientId: string;
+  hospitalName: string;
+  hospitalId: string;
+  doctorName: string;
+  specialty: string;
+  date: string;
+  time: string;
+  status: 'pending' | 'completed' | 'confirmed' | 'cancelled';
+  reason: string;
+  notes: string;
+  slot?: string; // Optional field to store the selected time slot (e.g., "Monday: 9AM - 2PM")
 }
 
 // Auth types
@@ -86,6 +112,11 @@ export interface AuthUser {
   role?: UserRole;
   firstName?: string;
   lastName?: string;
+  hospitalId?: string;
+  phone?: string;
+  kycStatus?: 'pending' | 'completed' | 'rejected';
+  uhid?: string; // Unique Health ID
+  kycData?: any; // KYC data can be any type, adjust as needed
 }
 
 export interface AuthState {

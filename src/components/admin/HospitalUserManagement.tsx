@@ -1,111 +1,54 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, UserPlus, Eye, UserCog, Lock, MoreHorizontal, Phone, Building, Mail } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { StaffMember, addStaff, getAllStaff, updateStaffStatus } from "@/services/staffService";
 
 const HospitalUserManagement = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+  const [isAddingStaff, setIsAddingStaff] = useState(false);
+  const [hospitalStaff, setHospitalStaff] = useState<StaffMember[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [newStaffInfo, setNewStaffInfo] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    role: "",
+    hospital: "",
+    department: "",
+  });
 
-  // Mock data for hospital staff
-  const hospitalStaff = [
-    {
-      id: "HS-001",
-      name: "Dr. Anil Kapoor",
-      email: "anil.kapoor@citygeneralhospital.com",
-      phone: "+91 9876543210",
-      role: "Hospital Manager",
-      hospital: "City General Hospital",
-      department: "Administration",
-      status: "Active",
-      lastLogin: "06/04/2025 10:23 AM"
-    },
-    {
-      id: "HS-002",
-      name: "Meena Shah",
-      email: "meena.shah@citygeneralhospital.com",
-      phone: "+91 9876543211",
-      role: "Billing Staff",
-      hospital: "City General Hospital",
-      department: "Finance",
-      status: "Active",
-      lastLogin: "06/04/2025 09:45 AM"
-    },
-    {
-      id: "HS-003",
-      name: "Rahul Verma",
-      email: "rahul.verma@citygeneralhospital.com",
-      phone: "+91 9876543212",
-      role: "Front Desk Staff",
-      hospital: "City General Hospital",
-      department: "Reception",
-      status: "Active",
-      lastLogin: "06/04/2025 08:30 AM"
-    },
-    {
-      id: "HS-004",
-      name: "Sunita Patel",
-      email: "sunita.patel@citygeneralhospital.com",
-      phone: "+91 9876543213",
-      role: "Finance Staff",
-      hospital: "City General Hospital",
-      department: "Finance",
-      status: "Active",
-      lastLogin: "05/04/2025 04:15 PM"
-    },
-    {
-      id: "HS-005",
-      name: "Dr. Raj Malhotra",
-      email: "raj.malhotra@lifecarehospital.com",
-      phone: "+91 9876543214",
-      role: "Hospital Manager",
-      hospital: "LifeCare Hospital",
-      department: "Administration",
-      status: "Active",
-      lastLogin: "06/04/2025 11:10 AM"
-    },
-    {
-      id: "HS-006",
-      name: "Pooja Singh",
-      email: "pooja.singh@lifecarehospital.com",
-      phone: "+91 9876543215",
-      role: "Relationship Manager",
-      hospital: "LifeCare Hospital",
-      department: "Marketing",
-      status: "Active",
-      lastLogin: "05/04/2025 02:30 PM"
-    },
-    {
-      id: "HS-007",
-      name: "Vikram Agarwal",
-      email: "vikram.agarwal@citymedicalcenter.com",
-      phone: "+91 9876543216",
-      role: "Finance Staff",
-      hospital: "City Medical Center",
-      department: "Finance",
-      status: "Inactive",
-      lastLogin: "01/04/2025 10:45 AM"
-    },
-    {
-      id: "HS-008",
-      name: "Neha Reddy",
-      email: "neha.reddy@citymedicalcenter.com",
-      phone: "+91 9876543217",
-      role: "Front Desk Staff",
-      hospital: "City Medical Center",
-      department: "Reception",
-      status: "Active",
-      lastLogin: "06/04/2025 09:20 AM"
+  // Load staff data on component mount
+  useEffect(() => {
+    loadStaffData();
+  }, []);
+
+  const loadStaffData = async () => {
+    try {
+      setIsLoading(true);
+      const staff = await getAllStaff();
+      setHospitalStaff(staff);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load staff data. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
     }
-  ];
+  };
 
   // Filter hospital staff based on search term and active tab
   const filteredStaff = hospitalStaff.filter(staff => {
@@ -125,46 +68,102 @@ const HospitalUserManagement = () => {
   });
 
   const handleAddStaff = () => {
-    toast({
-      title: "Add Hospital Staff",
-      description: "Opening form to add new hospital staff member",
-    });
+    setIsAddingStaff(true);
   };
 
-  const handleUserAction = (action: string, userId: string, userName: string) => {
-    switch (action) {
-      case "view":
-        toast({
-          title: "View Staff Profile",
-          description: `Viewing profile for ${userName} (${userId})`,
-        });
-        break;
-      case "edit":
-        toast({
-          title: "Edit Staff",
-          description: `Editing staff ${userName} (${userId})`,
-        });
-        break;
-      case "reset":
-        toast({
-          title: "Reset Password",
-          description: `Password reset link sent to ${userName}`,
-        });
-        break;
-      case "suspend":
-        toast({
-          title: "Staff Suspended",
-          description: `${userName} has been suspended`,
-        });
-        break;
-      case "activate":
-        toast({
-          title: "Staff Activated",
-          description: `${userName} has been activated`,
-        });
-        break;
-      default:
-        break;
+  const handleSaveStaff = async () => {
+    // Basic validation
+    if (!newStaffInfo.name || !newStaffInfo.email || !newStaffInfo.role || !newStaffInfo.hospital || !newStaffInfo.department) {
+      toast({
+        variant: "destructive",
+        title: "Invalid form",
+        description: "Please fill in all required fields.",
+      });
+      return;
+    }
+
+    try {
+      const newStaff = await addStaff(newStaffInfo);
+      setHospitalStaff(prevStaff => [...prevStaff, newStaff]);
+      
+      toast({
+        title: "Staff Added",
+        description: `Staff member ${newStaffInfo.name} has been added successfully.`,
+      });
+
+      // Reset form and close dialog
+      setNewStaffInfo({
+        name: "",
+        email: "",
+        phone: "",
+        role: "",
+        hospital: "",
+        department: "",
+      });
+      setIsAddingStaff(false);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to add staff member. Please try again.",
+      });
+    }
+  };
+
+  const handleUserAction = async (action: string, userId: string, userName: string) => {
+    try {
+      switch (action) {
+        case "view":
+          toast({
+            title: "View Staff Profile",
+            description: `Viewing profile for ${userName} (${userId})`,
+          });
+          break;
+        case "edit":
+          toast({
+            title: "Edit Staff",
+            description: `Editing staff ${userName} (${userId})`,
+          });
+          break;
+        case "reset":
+          toast({
+            title: "Reset Password",
+            description: `Password reset link sent to ${userName}`,
+          });
+          break;
+        case "suspend":
+          await updateStaffStatus(userId, "Inactive");
+          setHospitalStaff(prevStaff =>
+            prevStaff.map(staff =>
+              staff.id === userId ? { ...staff, status: "Inactive" } : staff
+            )
+          );
+          toast({
+            title: "Staff Suspended",
+            description: `${userName} has been suspended`,
+          });
+          break;
+        case "activate":
+          await updateStaffStatus(userId, "Active");
+          setHospitalStaff(prevStaff =>
+            prevStaff.map(staff =>
+              staff.id === userId ? { ...staff, status: "Active" } : staff
+            )
+          );
+          toast({
+            title: "Staff Activated",
+            description: `${userName} has been activated`,
+          });
+          break;
+        default:
+          break;
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to perform action. Please try again.",
+      });
     }
   };
 
@@ -201,6 +200,114 @@ const HospitalUserManagement = () => {
             </div>
           </div>
         </CardHeader>
+
+        {/* Add Staff Dialog */}
+        <Dialog open={isAddingStaff} onOpenChange={setIsAddingStaff}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Add New Staff Member</DialogTitle>
+              <DialogDescription>
+                Fill in the details to add a new staff member to the hospital.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <Label htmlFor="name">Full Name*</Label>
+                  <Input
+                    id="name"
+                    value={newStaffInfo.name}
+                    onChange={(e) => setNewStaffInfo({ ...newStaffInfo, name: e.target.value })}
+                    placeholder="Enter full name"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="email">Email Address*</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={newStaffInfo.email}
+                    onChange={(e) => setNewStaffInfo({ ...newStaffInfo, email: e.target.value })}
+                    placeholder="Enter email"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <Input
+                    id="phone"
+                    value={newStaffInfo.phone}
+                    onChange={(e) => setNewStaffInfo({ ...newStaffInfo, phone: e.target.value })}
+                    placeholder="Enter phone number"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="role">Role*</Label>
+                  <Select
+                    value={newStaffInfo.role}
+                    onValueChange={(value) => setNewStaffInfo({ ...newStaffInfo, role: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Hospital Manager">Hospital Manager</SelectItem>
+                      <SelectItem value="Finance Staff">Finance Staff</SelectItem>
+                      <SelectItem value="Front Desk Staff">Front Desk Staff</SelectItem>
+                      <SelectItem value="Relationship Manager">Relationship Manager</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="department">Department*</Label>
+                  <Select
+                    value={newStaffInfo.department}
+                    onValueChange={(value) => setNewStaffInfo({ ...newStaffInfo, department: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Administration">Administration</SelectItem>
+                      <SelectItem value="Finance">Finance</SelectItem>
+                      <SelectItem value="Reception">Reception</SelectItem>
+                      <SelectItem value="Marketing">Marketing</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="hospital">Hospital*</Label>
+                <Select
+                  value={newStaffInfo.hospital}
+                  onValueChange={(value) => setNewStaffInfo({ ...newStaffInfo, hospital: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select hospital" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="City General Hospital">City General Hospital</SelectItem>
+                    <SelectItem value="LifeCare Hospital">LifeCare Hospital</SelectItem>
+                    <SelectItem value="City Medical Center">City Medical Center</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsAddingStaff(false)}>Cancel</Button>
+              <Button onClick={handleSaveStaff}>Add Staff Member</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
             <Card className="p-4" onClick={() => setActiveTab("all")}>

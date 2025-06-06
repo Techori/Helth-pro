@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,10 +6,21 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { Edit, Save, Plus, Pencil, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const AdminPlatformFeeManagement = () => {
   const { toast } = useToast();
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [isAddingFee, setIsAddingFee] = useState(false);
   
   // Mock data for platform fees
   const [feeStructures, setFeeStructures] = useState([
@@ -60,6 +70,13 @@ const AdminPlatformFeeManagement = () => {
     fee: 0,
     description: ""
   });
+
+  const [newFee, setNewFee] = useState({
+    category: "",
+    fee: 0,
+    type: "",
+    description: ""
+  });
   
   const handleEdit = (index: number) => {
     setEditingIndex(index);
@@ -93,6 +110,53 @@ const AdminPlatformFeeManagement = () => {
     setEditingIndex(null);
   };
 
+  const handleAddFee = () => {
+    // Validate form data
+    if (!newFee.category || !newFee.type || !newFee.description) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (newFee.fee < 0) {
+      toast({
+        title: "Validation Error",
+        description: "Fee amount cannot be negative",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Add new fee to the list
+    const newFeeStructure = {
+      id: feeStructures.length + 1,
+      category: newFee.category,
+      fee: Number(newFee.fee),
+      type: newFee.type,
+      description: newFee.description,
+      lastUpdated: new Date().toLocaleDateString('en-GB', {
+        day: '2-digit', month: '2-digit', year: 'numeric'
+      }).replace(/\//g, '/')
+    };
+
+    setFeeStructures([newFeeStructure, ...feeStructures]);
+    setIsAddingFee(false);
+    setNewFee({
+      category: "",
+      fee: 0,
+      type: "",
+      description: ""
+    });
+
+    toast({
+      title: "Fee Added",
+      description: `New fee for ${newFee.category} has been added successfully.`,
+    });
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -102,7 +166,7 @@ const AdminPlatformFeeManagement = () => {
               <CardTitle>Platform Fee Management</CardTitle>
               <CardDescription>Manage and update platform fees and charges</CardDescription>
             </div>
-            <Button>
+            <Button onClick={() => setIsAddingFee(true)}>
               <Plus className="mr-2 h-4 w-4" />
               Add New Fee
             </Button>
@@ -227,6 +291,80 @@ const AdminPlatformFeeManagement = () => {
           <p className="text-sm text-muted-foreground">Last updated platform fee structure: April 6, 2025</p>
         </CardFooter>
       </Card>
+
+      <Dialog open={isAddingFee} onOpenChange={setIsAddingFee}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Fee</DialogTitle>
+            <DialogDescription>
+              Add a new fee structure to the platform
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="category" className="text-right">
+                Category
+              </Label>
+              <Input
+                id="category"
+                value={newFee.category}
+                onChange={(e) => setNewFee({ ...newFee, category: e.target.value })}
+                className="col-span-3"
+                placeholder="Enter fee category"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="fee" className="text-right">
+                Fee Amount
+              </Label>
+              <Input
+                id="fee"
+                type="number"
+                value={newFee.fee}
+                onChange={(e) => setNewFee({ ...newFee, fee: parseFloat(e.target.value) })}
+                className="col-span-3"
+                placeholder="Enter fee amount"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="type" className="text-right">
+                Fee Type
+              </Label>
+              <Select
+                value={newFee.type}
+                onValueChange={(value) => setNewFee({ ...newFee, type: value })}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select fee type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="One-time">One-time</SelectItem>
+                  <SelectItem value="Percentage">Percentage</SelectItem>
+                  <SelectItem value="Annual">Annual</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="description" className="text-right">
+                Description
+              </Label>
+              <Input
+                id="description"
+                value={newFee.description}
+                onChange={(e) => setNewFee({ ...newFee, description: e.target.value })}
+                className="col-span-3"
+                placeholder="Enter fee description"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddingFee(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddFee}>Add Fee</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

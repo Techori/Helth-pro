@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,51 +54,357 @@ const HospitalSettings = () => {
   ]);
 
   const handleSaveProfile = async () => {
-  try {
-    const token = localStorage.getItem('token'); // Assuming the token is stored in localStorage
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+      console.log('Token:', token);
 
-    const response = await fetch("/api/hospitals/profile", {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`, // Include the token in the request
-      },
-      body: JSON.stringify(hospitalProfile),
-    });
+      // First, get the current hospital profile to check if it exists and get the ID
+      const getProfileResponse = await fetch("/api/hospitals/me", {
+        method: "GET",
+        headers: {
+          "x-auth-token": token
+        }
+      });
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to update profile");
+      console.log('Get Profile Response Status:', getProfileResponse.status);
+      
+      let hospitalId = null;
+      if (getProfileResponse.ok) {
+        const profileData = await getProfileResponse.json();
+        hospitalId = profileData._id;
+        console.log('Existing hospital ID:', hospitalId);
+      }
+
+      // Transform the data to match the backend schema
+      const hospitalData = {
+        name: hospitalProfile.name,
+        contactEmail: hospitalProfile.email,
+        contactPhone: hospitalProfile.phone,
+        address: hospitalProfile.address,
+        website: hospitalProfile.website,
+        licenseNumber: hospitalProfile.licenseNumber,
+        foundedYear: parseInt(hospitalProfile.foundedYear),
+        hospitalType: hospitalProfile.type,
+        bedCount: parseInt(hospitalProfile.bedCount),
+        status: 'active',
+        // Add required fields
+        city: 'Mumbai',
+        state: 'Maharashtra',
+        zipCode: '400001',
+        contactPerson: hospitalProfile.name
+      };
+
+      console.log('Sending hospital data:', JSON.stringify(hospitalData, null, 2));
+
+      // Determine the endpoint based on whether we have a hospital ID
+      const endpoint = hospitalId ? `/api/hospitals/${hospitalId}` : '/api/hospitals/me';
+      console.log('Using endpoint:', endpoint);
+
+      // Use PUT for both create and update
+      const response = await fetch(endpoint, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "x-auth-token": token
+        },
+        body: JSON.stringify(hospitalData),
+      });
+
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+      const result = await response.json();
+      console.log('Response data:', JSON.stringify(result, null, 2));
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          throw new Error('You are not authorized to update hospital profiles');
+        } else if (response.status === 400) {
+          throw new Error(result.message || 'Invalid data provided');
+        } else if (response.status === 404) {
+          throw new Error('Hospital profile not found');
+        } else {
+          throw new Error(result.message || "Failed to update profile");
+        }
+      }
+
+      toast({
+        title: "Profile Updated",
+        description: "Hospital profile has been successfully updated.",
+      });
+
+      // Refresh the page to show updated data
+      window.location.reload();
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Something went wrong while updating the profile",
+      });
     }
-
-    const result = await response.json();
-
-    toast({
-      title: "Profile Updated",
-      description: "Hospital profile has been successfully updated.",
-    });
-  } catch (error) {
-    toast({
-      variant: "destructive",
-      title: "Error",
-      description: error.message || "Something went wrong",
-    });
-  }
-};
-
-  const handleSaveBranchInfo = () => {
-    toast({
-      title: "Branch Information Updated",
-      description: "RI Medicare branch information has been successfully updated.",
-    });
   };
 
-  const handleSaveRmInfo = () => {
-    toast({
-      title: "RM Information Updated",
-      description: "Relationship manager information has been successfully updated.",
-    });
+  const handleSaveBranch = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      console.log('Token from localStorage:', token);
+      
+      if (!token) {
+        toast({
+          title: "Error",
+          description: "Please login to save branch information",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // First, check if hospital profile exists
+      const hospitalResponse = await fetch('/hospitals/me', {
+        headers: {
+          'x-auth-token': token
+        }
+      });
+
+      if (!hospitalResponse.ok) {
+        if (hospitalResponse.status === 404) {
+          // Create a new hospital profile if it doesn't exist
+          const createHospitalResponse = await fetch('/hospitals/me', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-auth-token': token
+            },
+            body: JSON.stringify({
+              name: hospitalProfile.name,
+              contactEmail: hospitalProfile.email,
+              contactPhone: hospitalProfile.phone,
+              address: hospitalProfile.address,
+              website: hospitalProfile.website,
+              licenseNumber: hospitalProfile.licenseNumber,
+              foundedYear: parseInt(hospitalProfile.foundedYear),
+              hospitalType: hospitalProfile.type,
+              bedCount: parseInt(hospitalProfile.bedCount),
+              status: 'active',
+              city: 'Mumbai',
+              state: 'Maharashtra',
+              zipCode: '400001',
+              contactPerson: hospitalProfile.name
+            })
+          });
+
+          if (!createHospitalResponse.ok) {
+            const errorData = await createHospitalResponse.json();
+            throw new Error(errorData.message || 'Failed to create hospital profile');
+          }
+        } else {
+          const errorData = await hospitalResponse.json();
+          throw new Error(errorData.message || 'Failed to check hospital profile');
+        }
+      }
+
+      console.log('Saving branch information:', branchInfo);
+      console.log('Request headers:', {
+        'Content-Type': 'application/json',
+        'x-auth-token': token
+      });
+
+      const response = await fetch('/hospitals/branch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        },
+        body: JSON.stringify(branchInfo)
+      });
+
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      
+      // Check if response has content before trying to parse JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server response was not JSON');
+      }
+
+      const responseText = await response.text();
+      console.log('Raw response:', responseText);
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (e) {
+        console.error('Failed to parse response as JSON:', e);
+        throw new Error('Invalid JSON response from server');
+      }
+
+      if (!response.ok) {
+        if (response.status === 400) {
+          throw new Error(data.message || 'Invalid data provided');
+        } else if (response.status === 404) {
+          throw new Error('Hospital profile not found');
+        } else {
+          throw new Error(data.message || 'Failed to save branch information');
+        }
+      }
+
+      toast({
+        title: "Success",
+        description: "Branch information saved successfully"
+      });
+      setBranchInfo(data.data || data);
+    } catch (error) {
+      console.error('Error saving branch information:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to save branch information',
+        variant: "destructive"
+      });
+    }
   };
+
+  const handleSaveRM = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      console.log('Token from localStorage:', token);
+      
+      if (!token) {
+        toast({
+          title: "Error",
+          description: "Please login to save RM information",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // First, check if hospital profile exists
+      const hospitalResponse = await fetch('/api/hospitals/me', {
+        headers: {
+          'x-auth-token': token
+        }
+      });
+
+      if (!hospitalResponse.ok) {
+        if (hospitalResponse.status === 404) {
+          // Create a new hospital profile if it doesn't exist
+          const createHospitalResponse = await fetch('/api/hospitals/me', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-auth-token': token
+            },
+            body: JSON.stringify({
+              name: hospitalProfile.name,
+              contactEmail: hospitalProfile.email,
+              contactPhone: hospitalProfile.phone,
+              address: hospitalProfile.address,
+              website: hospitalProfile.website,
+              licenseNumber: hospitalProfile.licenseNumber,
+              foundedYear: parseInt(hospitalProfile.foundedYear),
+              hospitalType: hospitalProfile.type,
+              bedCount: parseInt(hospitalProfile.bedCount),
+              status: 'active',
+              city: 'Mumbai',
+              state: 'Maharashtra',
+              zipCode: '400001',
+              contactPerson: hospitalProfile.name
+            })
+          });
+
+          if (!createHospitalResponse.ok) {
+            const errorData = await createHospitalResponse.json();
+            throw new Error(errorData.message || 'Failed to create hospital profile');
+          }
+        } else {
+          const errorData = await hospitalResponse.json();
+          throw new Error(errorData.message || 'Failed to check hospital profile');
+        }
+      }
+
+      console.log('Saving RM information:', rmInfo);
+      console.log('Request headers:', {
+        'Content-Type': 'application/json',
+        'x-auth-token': token
+      });
+
+      const response = await fetch('/api/hospitals/rm', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': token
+        },
+        body: JSON.stringify(rmInfo)
+      });
+
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+      
+      const data = await response.json();
+      console.log('RM save response:', data);
+
+      if (!response.ok) {
+        if (response.status === 400) {
+          throw new Error(data.message || 'Invalid data provided');
+        } else if (response.status === 404) {
+          throw new Error('Hospital profile not found');
+        } else {
+          throw new Error(data.message || 'Failed to save RM information');
+        }
+      }
+
+      toast({
+        title: "Success",
+        description: "RM information saved successfully"
+      });
+      setRmInfo(data.data);
+    } catch (error) {
+      console.error('Error saving RM information:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : 'Failed to save RM information',
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Add useEffect to fetch branch and RM information on component mount
+  useEffect(() => {
+    const fetchBranchAndRMInfo = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        // Fetch branch information
+        const branchResponse = await fetch('/hospitals/branch', {
+          headers: {
+            'x-auth-token': token
+          }
+        });
+        const branchData = await branchResponse.json();
+        if (branchData && Object.keys(branchData).length > 0) {
+          setBranchInfo(branchData);
+        }
+
+        // Fetch RM information
+        const rmResponse = await fetch('/hospitals/rm', {
+          headers: {
+            'x-auth-token': token
+          }
+        });
+        const rmData = await rmResponse.json();
+        if (rmData && Object.keys(rmData).length > 0) {
+          setRmInfo(rmData);
+        }
+      } catch (error) {
+        console.error('Error fetching branch and RM information:', error);
+      }
+    };
+
+    fetchBranchAndRMInfo();
+  }, []);
 
   const handleUploadDocument = () => {
     toast({
@@ -342,7 +647,7 @@ const HospitalSettings = () => {
                     />
                   </div>
                 </div>
-                <Button className="mt-4" onClick={handleSaveBranchInfo}>
+                <Button className="mt-4" onClick={handleSaveBranch}>
                   <Save className="mr-2 h-4 w-4" />
                   Save Branch Information
                 </Button>
@@ -397,7 +702,7 @@ const HospitalSettings = () => {
                     />
                   </div>
                 </div>
-                <Button className="mt-4" onClick={handleSaveRmInfo}>
+                <Button className="mt-4" onClick={handleSaveRM}>
                   <Save className="mr-2 h-4 w-4" />
                   Save RM Information
                 </Button>

@@ -1,11 +1,10 @@
-
-
 const express = require('express');
 const router = express.Router();
 const { check, validationResult } = require('express-validator');
 const auth = require('../middleware/auth');
 const Loan = require('../models/Loan');
 const User = require('../models/User');
+const HealthCard = require('../models/HealthCard');
 
 // Credit score criteria for loan eligibility
 const getCreditScoreCriteria = (creditScore) => {
@@ -439,5 +438,82 @@ router.get('/draft/current', auth, async (req, res) => {
   }
 });
 
-module.exports = router;
+// @route   POST api/loans/:id/disburse-to-health-card
+// @desc    Disburse approved loan amount to health card
+// @access  Private
+router.post('/:id/disburse-to-health-card', [
+  auth,
+  [
+    check('healthCardId', 'Health card ID is required').not().isEmpty()
+  ]
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
 
+    const { healthCardId } = req.body;
+
+    const loan = await Loan.findById(req.params.id);
+    if (!loan) {
+      return res.status(404).json({ msg: 'Loan not found' });
+    }
+
+    // Check if loan belongs to user (unless admin)
+    if (req.user.role !== 'admin' && loan.user.toString() !== req.user.id) {
+      return res.status(401).json({ msg: 'Not authorized' });
+    }
+
+    if (loan.status !== 'approved') {
+      return res.status(400).json({ msg: 'Loan must be approved before disbursement' });
+    }
+
+    if (loan.disbursedToHealthCard) {
+      return res.status(400).json({ msg: 'Loan amount already disbursed to health card' });
+    }
+
+    // Find and verify health card
+    const healthCard = await HealthCard.findById(healthCardId);
+    if (!healthCard) {
+      return res.status(404).json({ msg: 'Health card not found' });
+    }
+
+    if (healthCard.user.toString() !== loan.user.toString()) {
+      return res.status(400).json({ msg: 'Health card does not belong to loan applicant' });
+    }
+
+    if (healthCard.status !== 'active') {
+      return res.status(400).json({ msg: 'Health card must be active for disbursement' });
+    }
+
+    // Disburse loan amount to health card
+    const disbursementAmount = loan.loanDetails.approvedAmount;
+    healthCard.availableCredit += disbursementAmount;
+    
+    // Update loan status
+    loan.disbursedToHealthCard = true;
+    loan.healthCardId = healthCardId;
+    loan.status = 'disbursed';
+    
+    // Save both documents
+    await healthCard.save();
+    await loan.save();
+
+    // Generate transaction ID
+    const transactionId = `DISB${Date.now()}${Math.floor(Math.random() * 1000)}`;
+
+    res.json({
+      message: 'Loan amount successfully disbursed to health card',
+      transactionId,
+      disbursementAmount,
+      healthCardNewBalance: healthCard.availableCredit,
+      loan
+    });
+  } catch (err) {
+    console.error('Loan disbursement error:', err.message);
+    res.status(500).json({ msg: 'Server Error' });
+  }
+});
+
+module.exports = router;

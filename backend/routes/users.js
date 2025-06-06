@@ -13,7 +13,6 @@ const verifyResetPassword = require("../controllers/user/verifyResetPassword");
 const auth = require('../middleware/auth');
 
 const User = require('../models/User');
-
 router.post(
   "/signup",
   [

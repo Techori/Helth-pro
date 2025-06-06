@@ -1,5 +1,3 @@
-
-
 import { apiRequest } from './api';
 
 export interface EmiPayment {
@@ -104,6 +102,8 @@ export interface LoanData {
   nextEmiDate?: string;
   emiPayments?: EmiPayment[];
   completionDate?: string;
+  disbursedToHealthCard?: boolean;
+  healthCardId?: string;
 }
 
 export const fetchPatientLoans = async (uhid: string): Promise<LoanData[]> => {
@@ -175,6 +175,8 @@ export const updateLoanStatus = async (
     approvedAmount?: number;
     interestRate?: number;
     term?: number;
+    disburseToHealthCard?: boolean;
+    healthCardId?: string;
   }
 ) => {
   try {
@@ -189,6 +191,20 @@ export const updateLoanStatus = async (
     return response;
   } catch (error) {
     console.error('Failed to update loan status:', error);
+    throw error;
+  }
+};
+
+export const disburseToHealthCard = async (loanId: string, healthCardId: string): Promise<any> => {
+  try {
+    console.log('Disbursing loan to health card:', { loanId, healthCardId });
+    const response = await apiRequest(`/loans/${loanId}/disburse-to-health-card`, {
+      method: 'POST',
+      body: JSON.stringify({ healthCardId })
+    });
+    return response;
+  } catch (error) {
+    console.error('Failed to disburse to health card:', error);
     throw error;
   }
 };
@@ -228,4 +244,3 @@ export const getEmiSchedule = async (loanId: string) => {
     throw error;
   }
 };
-

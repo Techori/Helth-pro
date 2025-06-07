@@ -51,3 +51,8 @@ export const getPaymentUser = async (searchTerm: string): Promise<any> => {
     `/hospitals/get-user?searchTerm=${encodeURIComponent(searchTerm)}`
   );
 };
+// Get hospital analytics
+export const getHospitalAnalytics = async (hospitalId: string) => {
+  return apiRequest(`/hospitals/${hospitalId}/analytics`);
+};
+

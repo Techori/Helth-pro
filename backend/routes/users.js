@@ -176,19 +176,52 @@ router.get('/me', auth, async (req, res) => {
 // @desc    Update user profile
 // @access  Private
 router.put('/me', auth, async (req, res) => {
-  const { firstName, lastName, email } = req.body;
+  const {
+    firstName,
+    lastName,
+    email,
+    phone,
+    address,
+    preferredHospital,
+    emergencyContact
+  } = req.body;
   
   // Build user object
   const userFields = {};
   if (firstName) userFields.firstName = firstName;
   if (lastName) userFields.lastName = lastName;
   if (email) userFields.email = email;
+  if (phone) userFields.phone = phone;
+  
+  // Update KYC data
+  userFields.kycData = {};
+  if (address) userFields.kycData.address = address;
+  
+  // Additional fields
+  if (preferredHospital) userFields.preferredHospital = preferredHospital;
+  if (emergencyContact) userFields.emergencyContact = emergencyContact;
   
   try {
     let user = await User.findById(req.user.id);
     
     if (!user) {
       return res.status(404).json({ msg: 'User not found' });
+    }
+    
+    // Check if email is being changed and verify it's not already in use
+    if (email && email !== user.email) {
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({ msg: 'Email already in use' });
+      }
+    }
+    
+    // Check if phone is being changed and verify it's not already in use
+    if (phone && phone !== user.phone) {
+      const existingUser = await User.findOne({ phone });
+      if (existingUser) {
+        return res.status(400).json({ msg: 'Phone number already in use' });
+      }
     }
     
     user = await User.findByIdAndUpdate(

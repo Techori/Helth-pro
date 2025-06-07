@@ -143,6 +143,7 @@ setupRoute('/api/loans', require('./routes/loans'));
 setupRoute('/api/kyc', require('./routes/kyc'));
 setupRoute('/api/transactions', require('./routes/transactions'));
 setupRoute('/api/notifications', require('./routes/notifications'));
+setupRoute('/api/staff', require('./routes/staffRoutes'));
 setupRoute('/api/patient', patientRoutes);
 setupRoute("/api/face-auth", require("./routes/face-verification"));
 

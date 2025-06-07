@@ -67,13 +67,9 @@ const HospitalUserManagement = () => {
     return matchesSearch;
   });
 
-  const handleAddStaff = () => {
-    setIsAddingStaff(true);
-  };
-
-  const handleSaveStaff = async () => {
-    // Basic validation
-    if (!newStaffInfo.name || !newStaffInfo.email || !newStaffInfo.role || !newStaffInfo.hospital || !newStaffInfo.department) {
+  const handleAddStaff = async () => {
+    // Validate form data
+    if (!newStaffInfo.name || !newStaffInfo.email || !newStaffInfo.phone || !newStaffInfo.hospital || !newStaffInfo.role || !newStaffInfo.department) {
       toast({
         variant: "destructive",
         title: "Invalid form",
@@ -83,7 +79,29 @@ const HospitalUserManagement = () => {
     }
 
     try {
-      const newStaff = await addStaff(newStaffInfo);
+      // Generate a new staff ID
+      const newStaffId = `HS-${String(hospitalStaff.length + 1).padStart(3, '0')}`;
+
+      // Create new staff object
+      const staffToAdd = {
+        id: newStaffId,
+        name: newStaffInfo.name,
+        email: newStaffInfo.email,
+        phone: newStaffInfo.phone,
+        hospital: newStaffInfo.hospital,
+        role: newStaffInfo.role,
+        department: newStaffInfo.department,
+        status: "Active",
+        lastLogin: "Never",
+        registeredOn: new Date().toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        }).replace(/\//g, '/')
+      };
+
+      // Call the service to add staff
+      const newStaff = await addStaff(staffToAdd);
       setHospitalStaff(prevStaff => [...prevStaff, newStaff]);
       
       toast({
@@ -193,120 +211,13 @@ const HospitalUserManagement = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <Button onClick={handleAddStaff}>
+              <Button onClick={() => setIsAddingStaff(true)}>
                 <UserPlus className="mr-2 h-4 w-4" />
                 Add Staff
               </Button>
             </div>
           </div>
         </CardHeader>
-
-        {/* Add Staff Dialog */}
-        <Dialog open={isAddingStaff} onOpenChange={setIsAddingStaff}>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>Add New Staff Member</DialogTitle>
-              <DialogDescription>
-                Fill in the details to add a new staff member to the hospital.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-1 gap-4">
-                <div>
-                  <Label htmlFor="name">Full Name*</Label>
-                  <Input
-                    id="name"
-                    value={newStaffInfo.name}
-                    onChange={(e) => setNewStaffInfo({ ...newStaffInfo, name: e.target.value })}
-                    placeholder="Enter full name"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="email">Email Address*</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={newStaffInfo.email}
-                    onChange={(e) => setNewStaffInfo({ ...newStaffInfo, email: e.target.value })}
-                    placeholder="Enter email"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    value={newStaffInfo.phone}
-                    onChange={(e) => setNewStaffInfo({ ...newStaffInfo, phone: e.target.value })}
-                    placeholder="Enter phone number"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="role">Role*</Label>
-                  <Select
-                    value={newStaffInfo.role}
-                    onValueChange={(value) => setNewStaffInfo({ ...newStaffInfo, role: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Hospital Manager">Hospital Manager</SelectItem>
-                      <SelectItem value="Finance Staff">Finance Staff</SelectItem>
-                      <SelectItem value="Front Desk Staff">Front Desk Staff</SelectItem>
-                      <SelectItem value="Relationship Manager">Relationship Manager</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="department">Department*</Label>
-                  <Select
-                    value={newStaffInfo.department}
-                    onValueChange={(value) => setNewStaffInfo({ ...newStaffInfo, department: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select department" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Administration">Administration</SelectItem>
-                      <SelectItem value="Finance">Finance</SelectItem>
-                      <SelectItem value="Reception">Reception</SelectItem>
-                      <SelectItem value="Marketing">Marketing</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="hospital">Hospital*</Label>
-                <Select
-                  value={newStaffInfo.hospital}
-                  onValueChange={(value) => setNewStaffInfo({ ...newStaffInfo, hospital: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select hospital" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="City General Hospital">City General Hospital</SelectItem>
-                    <SelectItem value="LifeCare Hospital">LifeCare Hospital</SelectItem>
-                    <SelectItem value="City Medical Center">City Medical Center</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddingStaff(false)}>Cancel</Button>
-              <Button onClick={handleSaveStaff}>Add Staff Member</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
@@ -475,6 +386,113 @@ const HospitalUserManagement = () => {
           </div>
         </CardFooter>
       </Card>
+
+      {/* Add Staff Dialog */}
+      <Dialog open={isAddingStaff} onOpenChange={setIsAddingStaff}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add New Staff Member</DialogTitle>
+            <DialogDescription>
+              Fill in the details to add a new staff member to the hospital.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <Label htmlFor="name">Full Name*</Label>
+                <Input
+                  id="name"
+                  value={newStaffInfo.name}
+                  onChange={(e) => setNewStaffInfo({ ...newStaffInfo, name: e.target.value })}
+                  placeholder="Enter full name"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="email">Email Address*</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={newStaffInfo.email}
+                  onChange={(e) => setNewStaffInfo({ ...newStaffInfo, email: e.target.value })}
+                  placeholder="Enter email"
+                />
+              </div>
+              <div>
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input
+                  id="phone"
+                  value={newStaffInfo.phone}
+                  onChange={(e) => setNewStaffInfo({ ...newStaffInfo, phone: e.target.value })}
+                  placeholder="Enter phone number"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="role">Role*</Label>
+                <Select
+                  value={newStaffInfo.role}
+                  onValueChange={(value) => setNewStaffInfo({ ...newStaffInfo, role: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Hospital Manager">Hospital Manager</SelectItem>
+                    <SelectItem value="Finance Staff">Finance Staff</SelectItem>
+                    <SelectItem value="Front Desk Staff">Front Desk Staff</SelectItem>
+                    <SelectItem value="Relationship Manager">Relationship Manager</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="department">Department*</Label>
+                <Select
+                  value={newStaffInfo.department}
+                  onValueChange={(value) => setNewStaffInfo({ ...newStaffInfo, department: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Administration">Administration</SelectItem>
+                    <SelectItem value="Finance">Finance</SelectItem>
+                    <SelectItem value="Reception">Reception</SelectItem>
+                    <SelectItem value="Marketing">Marketing</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="hospital">Hospital*</Label>
+              <Select
+                value={newStaffInfo.hospital}
+                onValueChange={(value) => setNewStaffInfo({ ...newStaffInfo, hospital: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select hospital" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="City General Hospital">City General Hospital</SelectItem>
+                  <SelectItem value="LifeCare Hospital">LifeCare Hospital</SelectItem>
+                  <SelectItem value="City Medical Center">City Medical Center</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddingStaff(false)}>Cancel</Button>
+            <Button onClick={handleAddStaff}>Add Staff Member</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

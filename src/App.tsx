@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { StrictMode, Suspense } from "react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { Chatbot } from "@/components/Chatbot";
+import { KYCChatbot } from "@/components/KYCChatbot";
 import Index from "./pages/Index";
 import ApplyLoan from "./pages/ApplyLoan";
 import OurCards from "./pages/OurCards";
@@ -170,7 +170,7 @@ const App = () => (
           </Suspense>
           <Toaster />
           <Sonner />
-          <Chatbot />
+          <KYCChatbot />
         </TooltipProvider>
       </BrowserRouter>
     </QueryClientProvider>

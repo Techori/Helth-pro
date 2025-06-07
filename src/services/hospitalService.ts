@@ -2,38 +2,56 @@
 import { apiRequest } from './api';
 import { Hospital } from '@/types/app.types';
 
+
 // Get all hospitals
 export const getAllHospitals = async (): Promise<Hospital[]> => {
-  return apiRequest('/hospitals');
+  return apiRequest("/hospitals");
 };
 
-// Get hospital by ID
-export const getHospitalById = async (id: string): Promise<Hospital> => {
-  return apiRequest(`/hospitals/${id}`);
+// Get hospital by Hospital ID
+export const getHospitalByHospitalId = async (hospitalId: string): Promise<Hospital> => {
+  return apiRequest(`/hospitals/${hospitalId}`);
 };
 
 // Register a new hospital
-export const registerHospital = async (hospitalData: Partial<Hospital>): Promise<Hospital> => {
-  return apiRequest('/hospitals', {
-    method: 'POST',
-    body: JSON.stringify(hospitalData)
+export const registerHospital = async (
+  hospitalData: Partial<Hospital>
+): Promise<Hospital> => {
+  return apiRequest("/hospitals", {
+    method: "POST",
+    body: JSON.stringify(hospitalData),
   });
 };
 
-// Update hospital
-export const updateHospital = async (id: string, hospitalData: Partial<Hospital>): Promise<Hospital> => {
-  return apiRequest(`/hospitals/${id}`, {
+
+// Update hospital by Hospital ID
+export const updateHospital = async (hospitalId: string, hospitalData: Partial<Hospital>): Promise<Hospital> => {
+  return apiRequest(`/hospitals/${hospitalId}`, {
     method: 'PUT',
     body: JSON.stringify(hospitalData)
   });
 };
 
-// Get hospital status
-export const getHospitalStatus = async (id: string): Promise<{ status: string }> => {
-  return apiRequest(`/hospitals/${id}/status`);
+// Get hospital status by Hospital ID
+export const getHospitalStatus = async (hospitalId: string): Promise<{ status: string }> => {
+  return apiRequest(`/hospitals/${hospitalId}/status`);
 };
 
 // Get hospitals by status
-export const getHospitalsByStatus = async (status: 'active' | 'pending' | 'inactive'): Promise<Hospital[]> => {
+export const getHospitalsByStatus = async (
+  status: "active" | "pending" | "inactive"
+): Promise<Hospital[]> => {
   return apiRequest(`/hospitals?status=${status}`);
+
+};
+
+// Get user details at payment
+export const getPaymentUser = async (searchTerm: string): Promise<any> => {
+  return apiRequest(
+    `/hospitals/get-user?searchTerm=${encodeURIComponent(searchTerm)}`
+  );
+};
+//get hospital analytics
+export const getHospitalAnalytics = async (hospitalId: string): Promise<any> => {
+  return apiRequest(`/hospitals/${hospitalId}/analytics`);
 };

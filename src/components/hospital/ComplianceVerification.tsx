@@ -14,12 +14,15 @@ const ComplianceVerification = () => {
   const [activeTab, setActiveTab] = useState("documents");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [selectedFileName, setSelectedFileName] = useState<string>("");
+  const [documentType, setDocumentType] = useState<string>("");
+  const [validUntil, setValidUntil] = useState<string>("");
+  const [description, setDescription] = useState<string>("");
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
       const file = event.target.files[0];
       setSelectedFile(file);
-      setSelectedFileName(file.name); // Update the state with the file name
+      setSelectedFileName(file.name);
     }
   };
 
@@ -28,12 +31,34 @@ const ComplianceVerification = () => {
       toast({
         title: "No File Selected",
         description: "Please select a file to upload.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!documentType) {
+      toast({
+        title: "Document Type Missing",
+        description: "Please select a document type.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!validUntil) {
+      toast({
+        title: "Valid Until Missing",
+        description: "Please provide a valid until date.",
+        variant: "destructive",
       });
       return;
     }
 
     const formData = new FormData();
     formData.append("file", selectedFile);
+    formData.append("documentType", documentType);
+    formData.append("validUntil", validUntil);
+    formData.append("description", description);
 
     try {
       const response = await fetch("/api/upload", {
@@ -46,18 +71,24 @@ const ComplianceVerification = () => {
           title: "Document Uploaded",
           description: "Your document has been uploaded successfully and is pending verification.",
         });
-        setSelectedFile(null); // Reset file input
-        setSelectedFileName(""); // Clear the file name
+        // Reset all form fields
+        setSelectedFile(null);
+        setSelectedFileName("");
+        setDocumentType("");
+        setValidUntil("");
+        setDescription("");
       } else {
         toast({
           title: "Upload Failed",
           description: "There was an error uploading your document. Please try again.",
+          variant: "destructive",
         });
       }
     } catch (error) {
       toast({
         title: "Upload Error",
         description: "An unexpected error occurred. Please try again later.",
+        variant: "destructive",
       });
     }
   };
@@ -186,6 +217,8 @@ const ComplianceVerification = () => {
                       <select 
                         id="document-type" 
                         className="w-full p-2 border rounded-md"
+                        value={documentType}
+                        onChange={(e) => setDocumentType(e.target.value)}
                       >
                         <option value="">Select Document Type</option>
                         <option value="registration">Hospital Registration</option>
@@ -199,6 +232,8 @@ const ComplianceVerification = () => {
                       <Input 
                         id="valid-until" 
                         type="date" 
+                        value={validUntil}
+                        onChange={(e) => setValidUntil(e.target.value)}
                       />
                     </div>
                   </div>
@@ -207,6 +242,8 @@ const ComplianceVerification = () => {
                     <Textarea 
                       id="document-description" 
                       placeholder="Enter additional details about this document"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">

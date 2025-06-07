@@ -6,8 +6,8 @@ const Transaction = require('../../models/Transaction');
 
 module.exports = async (req, res) => {
   try {
-    // Assuming req.user.id is the hospital's user ID (from auth middleware)
-    const hospital = await Hospital.findOne({ user: req.user.id });
+    // Assuming req.user.email is the hospital's email ID (from auth middleware)
+    const hospital = await User.findOne({ email: req.user.email });
 
     if (!hospital) {
       return res.status(404).json({ msg: 'Hospital not found' });

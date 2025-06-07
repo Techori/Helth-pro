@@ -144,9 +144,7 @@ const HospitalSettings = () => {
         description: `Please fill in the following required fields: ${missingFields.join(", ")}.`,
       });
       return;
-
     }
-  };
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -366,7 +364,6 @@ const HospitalSettings = () => {
         description: error.message || "Something went wrong",
       });
     }
-
   };
 
   return (
@@ -644,9 +641,7 @@ const HospitalSettings = () => {
                       onChange={(e) => setBranchInfo({ ...branchInfo, branchManagerEmail: e.target.value })}
                     />
                   </div>
-                  <div classNameыт
-
-                    className="space-y-2">
+                  <div className="space-y-2">
                     <Label htmlFor="branchCode">Branch Code</Label>
                     <Input
                       id="branchCode"
@@ -671,7 +666,7 @@ const HospitalSettings = () => {
                     />
                   </div>
                 </div>
-                <Button className="mt-4" onClick={handleSaveBranch}>
+                <Button className="mt-4" onClick={handleSaveBranchInfo}>
                   <Save className="mr-2 h-4 w-4" />
                   Save Branch Information
                 </Button>
@@ -726,7 +721,7 @@ const HospitalSettings = () => {
                     />
                   </div>
                 </div>
-                <Button className="mt-4" onClick={handleSaveRM}>
+                <Button className="mt-4" onClick={handleSaveRmInfo}>
                   <Save className="mr-2 h-4 w-4" />
                   Save RM Information
                 </Button>

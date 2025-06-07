@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,7 +22,7 @@ const AdminPlatformFeeManagement = () => {
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [isAddingFee, setIsAddingFee] = useState(false);
 
-  // Mock data for platform fees (initial state, updated by API)
+  // Mock data for platform fees
   const [feeStructures, setFeeStructures] = useState([
     {
       id: 1,
@@ -79,6 +78,7 @@ const AdminPlatformFeeManagement = () => {
     description: "",
   });
 
+
   const handleEdit = (index: number) => {
     setEditingIndex(index);
     setEditingFee({
@@ -113,13 +113,16 @@ const AdminPlatformFeeManagement = () => {
     setEditingIndex(null);
   };
 
+
   const handleAddFee = async () => {
+
     // Validate form data
     if (!newFee.category || !newFee.type || !newFee.description) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields",
         variant: "destructive",
+
       });
       return;
     }
@@ -129,6 +132,7 @@ const AdminPlatformFeeManagement = () => {
         title: "Validation Error",
         description: "Fee amount must be a valid non-negative number",
         variant: "destructive",
+
       });
       return;
     }
@@ -227,6 +231,7 @@ const AdminPlatformFeeManagement = () => {
         description: error.message || "Failed to add fee. Please try again.",
       });
     }
+
   };
 
   return (
@@ -373,6 +378,7 @@ const AdminPlatformFeeManagement = () => {
           <DialogHeader>
             <DialogTitle>Add New Fee</DialogTitle>
             <DialogDescription>Add a new fee structure to the platform</DialogDescription>
+
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">

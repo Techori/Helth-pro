@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,6 +30,7 @@ const AdminUserManagement = () => {
   });
 
   // Mock data for users (initial state, will be updated by API)
+
   const [users, setUsers] = useState([
     {
       id: "USR-001",
@@ -42,6 +42,7 @@ const AdminUserManagement = () => {
       registeredOn: "15/01/2025",
     },
     // ... other users (omitted for brevity)
+
   ]);
 
   // Filter users based on search term
@@ -52,6 +53,7 @@ const AdminUserManagement = () => {
       user.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.role.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
 
   const handleAddUser = async () => {
     // Validate form data
@@ -358,6 +360,7 @@ const AdminUserManagement = () => {
           <DialogHeader>
             <DialogTitle>Add New User</DialogTitle>
             <DialogDescription>Create a new user account and set their role.</DialogDescription>
+
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">

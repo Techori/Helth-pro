@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -144,7 +144,9 @@ const HospitalSettings = () => {
         description: `Please fill in the following required fields: ${missingFields.join(", ")}.`,
       });
       return;
+
     }
+  };
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -364,6 +366,7 @@ const HospitalSettings = () => {
         description: error.message || "Something went wrong",
       });
     }
+
   };
 
   return (
@@ -668,7 +671,7 @@ const HospitalSettings = () => {
                     />
                   </div>
                 </div>
-                <Button className="mt-4" onClick={handleSaveBranchInfo}>
+                <Button className="mt-4" onClick={handleSaveBranch}>
                   <Save className="mr-2 h-4 w-4" />
                   Save Branch Information
                 </Button>
@@ -723,7 +726,7 @@ const HospitalSettings = () => {
                     />
                   </div>
                 </div>
-                <Button className="mt-4" onClick={handleSaveRmInfo}>
+                <Button className="mt-4" onClick={handleSaveRM}>
                   <Save className="mr-2 h-4 w-4" />
                   Save RM Information
                 </Button>

@@ -1,87 +1,98 @@
+
 const mongoose = require('mongoose');
 
 const HospitalSchema = new mongoose.Schema({
+  hospitalId: {
+    type: String,
+    required: [true, 'Hospital ID is required'],
+    unique: true,
+    trim: true,
+  },
   name: {
     type: String,
-    required: true
+    required: true,
   },
   address: {
     type: String,
-    required: true
+    required: true,
   },
   city: {
     type: String,
-    required: true
   },
   state: {
     type: String,
-    required: true
   },
   zipCode: {
     type: String,
-    required: true
   },
   contactPerson: {
     type: String,
-    required: true
   },
   contactEmail: {
     type: String,
-    required: true
+    // Remove unique constraint; set to email in controller
   },
   contactPhone: {
     type: String,
-    required: true
   },
   specialties: {
     type: [String],
-    default: []
+    default: [],
   },
   services: {
     type: [String],
-    default: []
+    default: [],
   },
   hospitalType: {
     type: String,
-    enum: ['Government', 'Private', 'Trust', 'Clinic', 'Multispeciality'], // updated based on form
-    default: 'Private'
+    enum: ['Government', 'Private', 'Trust', 'Clinic', 'Multispeciality'],
+    default: 'Private',
   },
   bedCount: {
     type: Number,
-    default: 0
+    default: 0,
   },
-  registrationNumber: { // keep this but also allow `licenseNumber`
-    type: String
+  registrationNumber: {
+    type: String,
   },
-  licenseNumber: { // added field for license input
-    type: String
+  licenseNumber: {
+    type: String,
   },
   accreditations: {
     type: [String],
-    default: []
+    default: [],
   },
   status: {
     type: String,
     enum: ['active', 'pending', 'inactive'],
-    default: 'pending'
+    default: 'pending',
   },
   logo: {
-    type: String
+    type: String,
   },
   website: {
-    type: String
+    type: String,
   },
-  foundedYear: { // new field from form
-    type: Number
+  foundedYear: {
+    type: Number,
   },
   user: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'user'
+    ref: 'user',
+  },
+  email: {
+    type: String,
+  },
+  phone: {
+    type: String,
+  },
+  notes: {
+    type: String,
   },
   date: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
 module.exports = mongoose.model('hospital', HospitalSchema);

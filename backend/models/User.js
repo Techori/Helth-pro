@@ -24,8 +24,9 @@ const UserSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['patient', 'hospital', 'admin', 'sales', 'crm', 'agent', 'support'],
-    default: 'patient'
+    enum: ["patient", "hospital", "admin", "sales", "crm", "agent", "support","hospital staff", "hospital admin"],
+    default: "patient",
+
   },
   uhid: {
     type: String,
@@ -74,6 +75,10 @@ const UserSchema = new mongoose.Schema({
     type: String,
     unique: true,
     sparse: true, // Allows null for non-hospital roles
+  },
+   notes: {
+    type: String,
+    default: '',
   },
 
   resetPasswordTokenExpiry: {

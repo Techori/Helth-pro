@@ -5,172 +5,222 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
-import { Target, Search, Plus, ArrowUpDown, Calendar, Users, CreditCard, FileText } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/components/ui/use-toast";
+import { Search, Plus, TrendingUp, TrendingDown, Target, Calendar } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-const SalesTargetManagement = () => {
+const AdminSalesTargets = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeTab, setActiveTab] = useState("team");
+  const [isAddingTarget, setIsAddingTarget] = useState(false);
+  const [newTarget, setNewTarget] = useState({
+    hospital: "",
+    department: "",
+    targetAmount: "",
+    period: "",
+    status: "Active",
+  });
 
-  // Mock data for sales targets
-  const teamTargets = [
+  const [salesTargets, setSalesTargets] = useState([
     {
-      id: "TT-001",
-      teamName: "North Zone Team",
-      manager: "Vikram Malhotra",
-      healthCardTarget: 500,
-      healthCardAchieved: 342,
-      loanTarget: 200,
-      loanAchieved: 158,
-      period: "Q2 2025",
-      status: "In Progress"
+      id: "ST-001",
+      hospital: "City General Hospital",
+      department: "Cardiology",
+      targetAmount: 500000,
+      currentAmount: 350000,
+      period: "Q1 2025",
+      status: "Active",
+      progress: 70,
+      lastUpdated: "01/04/2025",
     },
     {
-      id: "TT-002",
-      teamName: "South Zone Team",
-      manager: "Priya Singh",
-      healthCardTarget: 450,
-      healthCardAchieved: 380,
-      loanTarget: 180,
-      loanAchieved: 165,
-      period: "Q2 2025",
-      status: "In Progress"
+      id: "ST-002",
+      hospital: "LifeCare Hospital",
+      department: "Orthopedics",
+      targetAmount: 750000,
+      currentAmount: 600000,
+      period: "Q1 2025",
+      status: "Active",
+      progress: 80,
+      lastUpdated: "01/04/2025",
     },
     {
-      id: "TT-003",
-      teamName: "East Zone Team",
-      manager: "Rahul Sharma",
-      healthCardTarget: 400,
-      healthCardAchieved: 215,
-      loanTarget: 150,
-      loanAchieved: 82,
-      period: "Q2 2025",
-      status: "In Progress"
+      id: "ST-003",
+      hospital: "Carewell Hospital",
+      department: "Neurology",
+      targetAmount: 1000000,
+      currentAmount: 450000,
+      period: "Q1 2025",
+      status: "Active",
+      progress: 45,
+      lastUpdated: "01/04/2025",
     },
-    {
-      id: "TT-004",
-      teamName: "West Zone Team",
-      manager: "Ananya Patel",
-      healthCardTarget: 480,
-      healthCardAchieved: 405,
-      loanTarget: 190,
-      loanAchieved: 176,
-      period: "Q2 2025",
-      status: "In Progress"
-    },
-    {
-      id: "TT-005",
-      teamName: "Corporate Sales Team",
-      manager: "Sanjay Mehta",
-      healthCardTarget: 600,
-      healthCardAchieved: 520,
-      loanTarget: 250,
-      loanAchieved: 198,
-      period: "Q2 2025",
-      status: "In Progress"
-    }
-  ];
+  ]);
 
-  const individualTargets = [
-    {
-      id: "IT-001",
-      name: "Ajay Kumar",
-      team: "North Zone Team",
-      healthCardTarget: 80,
-      healthCardAchieved: 65,
-      loanTarget: 30,
-      loanAchieved: 22,
-      period: "Q2 2025",
-      status: "On Track"
-    },
-    {
-      id: "IT-002",
-      name: "Meera Singh",
-      team: "North Zone Team",
-      healthCardTarget: 80,
-      healthCardAchieved: 72,
-      loanTarget: 30,
-      loanAchieved: 28,
-      period: "Q2 2025",
-      status: "On Track"
-    },
-    {
-      id: "IT-003",
-      name: "Rohit Verma",
-      team: "South Zone Team",
-      healthCardTarget: 75,
-      healthCardAchieved: 42,
-      loanTarget: 25,
-      loanAchieved: 12,
-      period: "Q2 2025",
-      status: "At Risk"
-    },
-    {
-      id: "IT-004",
-      name: "Deepika Shah",
-      team: "West Zone Team",
-      healthCardTarget: 80,
-      healthCardAchieved: 78,
-      loanTarget: 30,
-      loanAchieved: 32,
-      period: "Q2 2025",
-      status: "Exceeded"
-    },
-    {
-      id: "IT-005",
-      name: "Amit Patel",
-      team: "Corporate Sales Team",
-      healthCardTarget: 100,
-      healthCardAchieved: 105,
-      loanTarget: 40,
-      loanAchieved: 45,
-      period: "Q2 2025",
-      status: "Exceeded"
-    }
-  ];
-
-  const filteredTeamTargets = teamTargets.filter(
-    target => 
-      target.teamName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      target.manager.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      target.id.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredTargets = salesTargets.filter(
+    (target) =>
+      target.hospital.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      target.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      target.period.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const filteredIndividualTargets = individualTargets.filter(
-    target => 
-      target.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      target.team.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      target.id.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const handleAddTarget = async () => {
+    // Validate form data
+    if (
+      !newTarget.hospital ||
+      !newTarget.department ||
+      !newTarget.targetAmount ||
+      !newTarget.period
+    ) {
+      toast({
+        variant: "destructive",
+        title: "Invalid form",
+        description: "Please fill in all required fields.",
+      });
+      return;
+    }
 
-  const handleAddTarget = () => {
-    toast({
-      title: "Create New Target",
-      description: "Target creation form will open",
-    });
+    const targetAmount = Number(newTarget.targetAmount);
+    if (isNaN(targetAmount) || targetAmount <= 0) {
+      toast({
+        variant: "destructive",
+        title: "Invalid amount",
+        description: "Target amount must be a positive number.",
+      });
+      return;
+    }
+
+    // Generate a temporary target ID
+    const tempTargetId = `ST-${String(salesTargets.length + 1).padStart(3, "0")}`;
+
+    // Create new target object
+    const targetToAdd = {
+      id: tempTargetId,
+      hospital: newTarget.hospital,
+      department: newTarget.department,
+      targetAmount,
+      currentAmount: 0,
+      period: newTarget.period,
+      status: newTarget.status,
+      progress: 0,
+      lastUpdated: new Date().toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      }).replace(/\//g, "/"),
+    };
+
+    try {
+      // Get JWT token
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast({
+          variant: "destructive",
+          title: "Authentication Error",
+          description: "Please log in to add a sales target.",
+        });
+        return;
+      }
+
+      // Optimistic update
+      setSalesTargets((prevTargets) => [...prevTargets, targetToAdd]);
+
+      // Send request to backend
+      const response = await fetch("api/admin/add-sales-target", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          hospital: newTarget.hospital,
+          department: newTarget.department,
+          targetAmount,
+          period: newTarget.period,
+          status: newTarget.status,
+        }),
+      });
+
+      // Log raw response for debugging
+      const responseText = await response.text();
+      console.log("Raw response:", responseText);
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (err) {
+        console.error("JSON parse error:", err.message);
+        throw new Error("Invalid JSON response from server");
+      }
+
+      if (!response.ok) {
+        // Rollback optimistic update
+        setSalesTargets((prevTargets) =>
+          prevTargets.filter((target) => target.id !== tempTargetId)
+        );
+        throw new Error(data.msg || "Failed to add sales target");
+      }
+
+      // Update state with backend ID
+      setSalesTargets((prevTargets) =>
+        prevTargets.map((target) =>
+          target.id === tempTargetId ? { ...target, id: data.salesTarget._id } : target
+        )
+      );
+
+      // Reset form and close dialog
+      setNewTarget({
+        hospital: "",
+        department: "",
+        targetAmount: "",
+        period: "",
+        status: "Active",
+      });
+      setIsAddingTarget(false);
+
+      toast({
+        title: "Target Added",
+        description: `Sales target for ${newTarget.hospital} - ${newTarget.department} has been added successfully.`,
+      });
+    } catch (error) {
+      console.error("handleAddTarget error:", error.message);
+      // Rollback optimistic update
+      setSalesTargets((prevTargets) =>
+        prevTargets.filter((target) => target.id !== tempTargetId)
+      );
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to add sales target. Please try again.",
+      });
+    }
   };
 
-  const handleEditTarget = (id: string) => {
-    toast({
-      title: "Edit Target",
-      description: `Edit target with ID: ${id}`,
-    });
-  };
+  // Calculate total targets and progress
+  const totalTargetAmount = salesTargets.reduce((sum, target) => sum + target.targetAmount, 0);
+  const totalCurrentAmount = salesTargets.reduce((sum, target) => sum + target.currentAmount, 0);
+  const overallProgress = totalTargetAmount
+    ? Math.round((totalCurrentAmount / totalTargetAmount) * 100)
+    : 0;
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <CardTitle className="flex items-center gap-2">
-                <Target className="h-5 w-5 text-primary" />
-                Sales Target Management
-              </CardTitle>
+              <CardTitle>Sales Targets</CardTitle>
               <CardDescription>
-                Set and manage sales targets for teams and individual sales staff
+                Set and monitor sales targets for partner hospitals
               </CardDescription>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
@@ -184,7 +234,7 @@ const SalesTargetManagement = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <Button onClick={handleAddTarget}>
+              <Button onClick={() => setIsAddingTarget(true)}>
                 <Plus className="mr-2 h-4 w-4" />
                 New Target
               </Button>
@@ -192,356 +242,179 @@ const SalesTargetManagement = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <Card className="p-4">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-lg bg-blue-100 flex items-center justify-center">
-                  <Target className="h-6 w-6 text-blue-700" />
+              <div className="text-center space-y-2">
+                <div className="text-4xl font-bold text-primary">
+                  ₹{totalTargetAmount.toLocaleString()}
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Teams</p>
-                  <p className="text-2xl font-bold">{teamTargets.length}</p>
-                </div>
+                <div className="text-sm font-medium">Total Target</div>
               </div>
             </Card>
             <Card className="p-4">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-lg bg-green-100 flex items-center justify-center">
-                  <Users className="h-6 w-6 text-green-700" />
+              <div className="text-center space-y-2">
+                <div className="text-4xl font-bold text-emerald-500">
+                  ₹{totalCurrentAmount.toLocaleString()}
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Staff</p>
-                  <p className="text-2xl font-bold">{individualTargets.length}</p>
-                </div>
+                <div className="text-sm font-medium">Current Amount</div>
               </div>
             </Card>
             <Card className="p-4">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-lg bg-purple-100 flex items-center justify-center">
-                  <CreditCard className="h-6 w-6 text-purple-700" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Health Card Sales</p>
-                  <p className="text-2xl font-bold">
-                    {teamTargets.reduce((sum, target) => sum + target.healthCardAchieved, 0)}
-                  </p>
-                </div>
-              </div>
-            </Card>
-            <Card className="p-4">
-              <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-lg bg-amber-100 flex items-center justify-center">
-                  <FileText className="h-6 w-6 text-amber-700" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Loan Sales</p>
-                  <p className="text-2xl font-bold">
-                    {teamTargets.reduce((sum, target) => sum + target.loanAchieved, 0)}
-                  </p>
-                </div>
+              <div className="text-center space-y-2">
+                <div className="text-4xl font-bold text-blue-500">{overallProgress}%</div>
+                <div className="text-sm font-medium">Overall Progress</div>
               </div>
             </Card>
           </div>
-          
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="mb-4">
-              <TabsTrigger value="team">Team Targets</TabsTrigger>
-              <TabsTrigger value="individual">Individual Targets</TabsTrigger>
-              <TabsTrigger value="period">Target Periods</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="team">
-              {filteredTeamTargets.length > 0 ? (
-                <div className="rounded-md border overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>ID</TableHead>
-                        <TableHead>Team Name</TableHead>
-                        <TableHead>Manager</TableHead>
-                        <TableHead>
-                          <div className="flex items-center">
-                            Health Card Target
-                            <ArrowUpDown className="ml-2 h-4 w-4" />
+
+          {filteredTargets.length > 0 ? (
+            <div className="rounded-md border overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Hospital</TableHead>
+                    <TableHead>Department</TableHead>
+                    <TableHead>Target Amount</TableHead>
+                    <TableHead>Current Amount</TableHead>
+                    <TableHead>Progress</TableHead>
+                    <TableHead>Period</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Last Updated</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredTargets.map((target) => (
+                    <TableRow key={target.id}>
+                      <TableCell>{target.hospital}</TableCell>
+                      <TableCell>{target.department}</TableCell>
+                      <TableCell>₹{target.targetAmount.toLocaleString()}</TableCell>
+                      <TableCell>₹{target.currentAmount.toLocaleString()}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="w-full bg-secondary rounded-full h-2">
+                            <div
+                              className="h-2 rounded-full bg-primary"
+                              style={{ width: `${target.progress}%` }}
+                            />
                           </div>
-                        </TableHead>
-                        <TableHead>Health Card Progress</TableHead>
-                        <TableHead>
-                          <div className="flex items-center">
-                            Loan Target
-                            <ArrowUpDown className="ml-2 h-4 w-4" />
-                          </div>
-                        </TableHead>
-                        <TableHead>Loan Progress</TableHead>
-                        <TableHead>Period</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredTeamTargets.map((target) => (
-                        <TableRow key={target.id}>
-                          <TableCell className="font-medium">{target.id}</TableCell>
-                          <TableCell>{target.teamName}</TableCell>
-                          <TableCell>{target.manager}</TableCell>
-                          <TableCell>{target.healthCardTarget}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <div className="w-full max-w-xs bg-gray-200 rounded-full h-2.5">
-                                <div 
-                                  className={`h-2.5 rounded-full ${
-                                    (target.healthCardAchieved / target.healthCardTarget) >= 1 
-                                      ? 'bg-green-500' 
-                                      : (target.healthCardAchieved / target.healthCardTarget) >= 0.7 
-                                      ? 'bg-amber-500' 
-                                      : 'bg-red-500'
-                                  }`} 
-                                  style={{ width: `${Math.min(100, (target.healthCardAchieved / target.healthCardTarget) * 100)}%` }}
-                                />
-                              </div>
-                              <span className="text-xs whitespace-nowrap">
-                                {target.healthCardAchieved}/{target.healthCardTarget} ({Math.round((target.healthCardAchieved / target.healthCardTarget) * 100)}%)
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>{target.loanTarget}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <div className="w-full max-w-xs bg-gray-200 rounded-full h-2.5">
-                                <div 
-                                  className={`h-2.5 rounded-full ${
-                                    (target.loanAchieved / target.loanTarget) >= 1 
-                                      ? 'bg-green-500' 
-                                      : (target.loanAchieved / target.loanTarget) >= 0.7 
-                                      ? 'bg-amber-500' 
-                                      : 'bg-red-500'
-                                  }`} 
-                                  style={{ width: `${Math.min(100, (target.loanAchieved / target.loanTarget) * 100)}%` }}
-                                />
-                              </div>
-                              <span className="text-xs whitespace-nowrap">
-                                {target.loanAchieved}/{target.loanTarget} ({Math.round((target.loanAchieved / target.loanTarget) * 100)}%)
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3 text-muted-foreground" />
-                              <span>{target.period}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge 
-                              variant="outline"
-                              className={
-                                target.status === "Completed" ? "border-green-500 text-green-600" : 
-                                "border-amber-500 text-amber-600"
-                              }
-                            >
-                              {target.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => handleEditTarget(target.id)}
-                            >
-                              Edit
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              ) : (
-                <div className="text-center py-10 bg-gray-50 rounded-md border">
-                  <p className="text-muted-foreground">No team targets found</p>
-                </div>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="individual">
-              {filteredIndividualTargets.length > 0 ? (
-                <div className="rounded-md border overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>ID</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Team</TableHead>
-                        <TableHead>
-                          <div className="flex items-center">
-                            Health Card Target
-                            <ArrowUpDown className="ml-2 h-4 w-4" />
-                          </div>
-                        </TableHead>
-                        <TableHead>Health Card Progress</TableHead>
-                        <TableHead>
-                          <div className="flex items-center">
-                            Loan Target
-                            <ArrowUpDown className="ml-2 h-4 w-4" />
-                          </div>
-                        </TableHead>
-                        <TableHead>Loan Progress</TableHead>
-                        <TableHead>Period</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredIndividualTargets.map((target) => (
-                        <TableRow key={target.id}>
-                          <TableCell className="font-medium">{target.id}</TableCell>
-                          <TableCell>{target.name}</TableCell>
-                          <TableCell>{target.team}</TableCell>
-                          <TableCell>{target.healthCardTarget}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <div className="w-full max-w-xs bg-gray-200 rounded-full h-2.5">
-                                <div 
-                                  className={`h-2.5 rounded-full ${
-                                    (target.healthCardAchieved / target.healthCardTarget) > 1 
-                                      ? 'bg-green-500' 
-                                      : (target.healthCardAchieved / target.healthCardTarget) >= 0.7 
-                                      ? 'bg-amber-500' 
-                                      : 'bg-red-500'
-                                  }`} 
-                                  style={{ width: `${Math.min(100, (target.healthCardAchieved / target.healthCardTarget) * 100)}%` }}
-                                />
-                              </div>
-                              <span className="text-xs whitespace-nowrap">
-                                {target.healthCardAchieved}/{target.healthCardTarget} ({Math.round((target.healthCardAchieved / target.healthCardTarget) * 100)}%)
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>{target.loanTarget}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <div className="w-full max-w-xs bg-gray-200 rounded-full h-2.5">
-                                <div 
-                                  className={`h-2.5 rounded-full ${
-                                    (target.loanAchieved / target.loanTarget) > 1 
-                                      ? 'bg-green-500' 
-                                      : (target.loanAchieved / target.loanTarget) >= 0.7 
-                                      ? 'bg-amber-500' 
-                                      : 'bg-red-500'
-                                  }`} 
-                                  style={{ width: `${Math.min(100, (target.loanAchieved / target.loanTarget) * 100)}%` }}
-                                />
-                              </div>
-                              <span className="text-xs whitespace-nowrap">
-                                {target.loanAchieved}/{target.loanTarget} ({Math.round((target.loanAchieved / target.loanTarget) * 100)}%)
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3 text-muted-foreground" />
-                              <span>{target.period}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge 
-                              variant="outline"
-                              className={
-                                target.status === "Exceeded" ? "border-green-500 text-green-600" : 
-                                target.status === "On Track" ? "border-blue-500 text-blue-600" : 
-                                "border-red-500 text-red-600"
-                              }
-                            >
-                              {target.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => handleEditTarget(target.id)}
-                            >
-                              Edit
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              ) : (
-                <div className="text-center py-10 bg-gray-50 rounded-md border">
-                  <p className="text-muted-foreground">No individual targets found</p>
-                </div>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="period">
-              <div className="rounded-md border overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>ID</TableHead>
-                      <TableHead>Period Name</TableHead>
-                      <TableHead>Start Date</TableHead>
-                      <TableHead>End Date</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
+                          <span className="text-sm">{target.progress}%</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{target.period}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={target.status === "Active" ? "default" : "outline"}
+                          className={target.status === "Active" ? "bg-green-500" : ""}
+                        >
+                          {target.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{target.lastUpdated}</TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell className="font-medium">P-001</TableCell>
-                      <TableCell>Q1 2025</TableCell>
-                      <TableCell>01/01/2025</TableCell>
-                      <TableCell>31/03/2025</TableCell>
-                      <TableCell>
-                        <Badge className="bg-green-100 text-green-800">Completed</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Button variant="outline" size="sm">View</Button>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="font-medium">P-002</TableCell>
-                      <TableCell>Q2 2025</TableCell>
-                      <TableCell>01/04/2025</TableCell>
-                      <TableCell>30/06/2025</TableCell>
-                      <TableCell>
-                        <Badge className="bg-blue-100 text-blue-800">Active</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Button variant="outline" size="sm">Edit</Button>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell className="font-medium">P-003</TableCell>
-                      <TableCell>Q3 2025</TableCell>
-                      <TableCell>01/07/2025</TableCell>
-                      <TableCell>30/09/2025</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">Upcoming</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Button variant="outline" size="sm">Edit</Button>
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </div>
-            </TabsContent>
-          </Tabs>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 space-y-3">
+              <p className="text-muted-foreground">No targets found matching your search criteria</p>
+              <Button variant="outline" onClick={() => setSearchTerm("")}>
+                Clear Search
+              </Button>
+            </div>
+          )}
         </CardContent>
-        <CardFooter className="flex justify-between">
-          <div className="text-xs text-muted-foreground">
-            Showing {activeTab === "team" ? filteredTeamTargets.length : filteredIndividualTargets.length} results
+        <CardFooter>
+          <div className="flex justify-between w-full">
+            <p className="text-sm text-muted-foreground">
+              Showing {filteredTargets.length} of {salesTargets.length} targets
+            </p>
+            <Button variant="outline">Export Targets</Button>
           </div>
-          <Button variant="outline" size="sm">
-            Download Report
-          </Button>
         </CardFooter>
       </Card>
+
+      <Dialog open={isAddingTarget} onOpenChange={setIsAddingTarget}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add New Sales Target</DialogTitle>
+            <DialogDescription>
+              Set a new sales target for a hospital department.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="hospital">Hospital</Label>
+              <Select
+                value={newTarget.hospital}
+                onValueChange={(value) => setNewTarget({ ...newTarget, hospital: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select hospital" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="City General Hospital">City General Hospital</SelectItem>
+                  <SelectItem value="LifeCare Hospital">LifeCare Hospital</SelectItem>
+                  <SelectItem value="Carewell Hospital">Carewell Hospital</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="department">Department</Label>
+              <Select
+                value={newTarget.department}
+                onValueChange={(value) => setNewTarget({ ...newTarget, department: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Cardiology">Cardiology</SelectItem>
+                  <SelectItem value="Orthopedics">Orthopedics</SelectItem>
+                  <SelectItem value="Neurology">Neurology</SelectItem>
+                  <SelectItem value="Pediatrics">Pediatrics</SelectItem>
+                  <SelectItem value="General Medicine">General Medicine</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="targetAmount">Target Amount (₹)</Label>
+              <Input
+                id="targetAmount"
+                type="number"
+                placeholder="Enter target amount"
+                value={newTarget.targetAmount}
+                onChange={(e) => setNewTarget({ ...newTarget, targetAmount: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="period">Period</Label>
+              <Select
+                value={newTarget.period}
+                onValueChange={(value) => setNewTarget({ ...newTarget, period: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select period" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Q1 2025">Q1 2025</SelectItem>
+                  <SelectItem value="Q2 2025">Q2 2025</SelectItem>
+                  <SelectItem value="Q3 2025">Q3 2025</SelectItem>
+                  <SelectItem value="Q4 2025">Q4 2025</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddingTarget(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddTarget}>Add Target</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
-export default SalesTargetManagement;
+export default AdminSalesTargets;

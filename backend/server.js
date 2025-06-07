@@ -156,6 +156,8 @@ setupRoute('/api', require('./routes/files'));
 
 setupRoute('/api', require('./routes/hospitals'));
 
+setupRoute('/api/admin', require('./routes/admin'));
+
 
 
 // Serve static assets in production

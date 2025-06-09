@@ -2,25 +2,32 @@
 const mongoose = require('mongoose');
 
 const HealthCardSchema = new mongoose.Schema({
+<<<<<<< HEAD
   patientId: {
   type: String,
   required: true,
   unique: true
 },
+=======
+>>>>>>> e893cb6c5468d3646fe80dd0bad2dbdda9d26ea7
   cardNumber: {
     type: String,
     required: true,
     unique: true
   },
-  // user: {
-  //   type: mongoose.Schema.Types.ObjectId,
-  //   ref: 'user',
-  //   required: true
-  // },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'user',
+    required: true
+  },
+  uhid: {
+    type: String,
+    ref: 'user'
+  },
   availableCredit: {
     type: Number,
     required: true,
-    default: 25000
+    default: 0
   },
   usedCredit: {
     type: Number,
@@ -28,13 +35,35 @@ const HealthCardSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['active', 'expired', 'pending'],
+    enum: ['active', 'expired', 'pending', 'suspended', 'rejected'],
     default: 'pending'
   },
   cardType: {
     type: String,
-    enum: ['silver', 'gold', 'platinum','basic'],
-    default: 'silver'
+    enum: ['basic', 'premium', 'ricare_discount'],
+    default: 'basic'
+  },
+  discountPercentage: {
+    type: Number,
+    default: 0
+  },
+  monthlyLimit: {
+    type: Number
+  },
+  requestedCreditLimit: {
+    type: Number
+  },
+  medicalHistory: {
+    type: String
+  },
+  monthlyIncome: {
+    type: Number
+  },
+  employmentStatus: {
+    type: String
+  },
+  rejectionReason: {
+    type: String
   },
   issueDate: {
     type: Date,

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,10 +7,29 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DollarSign, Edit, FileText, Percent, Plus, Trash2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const CommissionStructure = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("health-card");
+  const [isAddingCommission, setIsAddingCommission] = useState(false);
+  const [newCommission, setNewCommission] = useState({
+    tier: "",
+    minSales: "",
+    maxSales: "",
+    commissionPercent: "",
+    bonusAmount: "",
+    status: "Active"
+  });
 
   // Mock data for commission structures
   const healthCardCommission = [
@@ -157,9 +175,48 @@ const CommissionStructure = () => {
   };
 
   const handleAddCommission = () => {
+    // Validate form data
+    if (!newCommission.tier || !newCommission.minSales || !newCommission.commissionPercent) {
+      toast({
+        variant: "destructive",
+        title: "Invalid form",
+        description: "Please fill in all required fields.",
+      });
+      return;
+    }
+
+    // Generate a new commission ID
+    const newCommissionId = `HC-${String(healthCardCommission.length + 1).padStart(3, '0')}`;
+
+    // Create new commission object
+    const commissionToAdd = {
+      id: newCommissionId,
+      tier: newCommission.tier,
+      minSales: Number(newCommission.minSales),
+      maxSales: newCommission.maxSales ? Number(newCommission.maxSales) : null,
+      commissionPercent: Number(newCommission.commissionPercent),
+      bonusAmount: Number(newCommission.bonusAmount) || 0,
+      status: newCommission.status
+    };
+
+    // Add commission to the list
+    setHealthCardCommission(prevCommissions => [...prevCommissions, commissionToAdd]);
+
+    // Reset form and close dialog
+    setNewCommission({
+      tier: "",
+      minSales: "",
+      maxSales: "",
+      commissionPercent: "",
+      bonusAmount: "",
+      status: "Active"
+    });
+    setIsAddingCommission(false);
+
+    // Show success toast
     toast({
-      title: "Add New Commission Tier",
-      description: "Opening form to add new commission tier",
+      title: "Commission Tier Added",
+      description: `New commission tier "${commissionToAdd.tier}" has been added successfully.`,
     });
   };
 
@@ -243,7 +300,7 @@ const CommissionStructure = () => {
             
             <TabsContent value="health-card">
               <div className="flex justify-end mb-4">
-                <Button onClick={handleAddCommission}>
+                <Button onClick={() => setIsAddingCommission(true)}>
                   <Plus className="mr-2 h-4 w-4" />
                   Add Commission Tier
                 </Button>
@@ -313,7 +370,7 @@ const CommissionStructure = () => {
             
             <TabsContent value="loan">
               <div className="flex justify-end mb-4">
-                <Button onClick={handleAddCommission}>
+                <Button onClick={() => setIsAddingCommission(true)}>
                   <Plus className="mr-2 h-4 w-4" />
                   Add Commission Tier
                 </Button>
@@ -383,7 +440,7 @@ const CommissionStructure = () => {
             
             <TabsContent value="bonus">
               <div className="flex justify-end mb-4">
-                <Button onClick={handleAddCommission}>
+                <Button onClick={() => setIsAddingCommission(true)}>
                   <Plus className="mr-2 h-4 w-4" />
                   Add Bonus Plan
                 </Button>
@@ -456,6 +513,92 @@ const CommissionStructure = () => {
           </Button>
         </CardFooter>
       </Card>
+
+      {/* Add Commission Dialog */}
+      <Dialog open={isAddingCommission} onOpenChange={setIsAddingCommission}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Add New Commission Tier</DialogTitle>
+            <DialogDescription>
+              Set a new commission tier for health card sales.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="tier">Tier Name</Label>
+              <Select 
+                value={newCommission.tier} 
+                onValueChange={(value) => setNewCommission({ ...newCommission, tier: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select tier" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Standard">Standard</SelectItem>
+                  <SelectItem value="Bronze">Bronze</SelectItem>
+                  <SelectItem value="Silver">Silver</SelectItem>
+                  <SelectItem value="Gold">Gold</SelectItem>
+                  <SelectItem value="Platinum">Platinum</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="minSales">Minimum Sales</Label>
+              <Input
+                id="minSales"
+                type="number"
+                placeholder="Enter minimum sales"
+                value={newCommission.minSales}
+                onChange={(e) => setNewCommission({ ...newCommission, minSales: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="maxSales">Maximum Sales (Optional)</Label>
+              <Input
+                id="maxSales"
+                type="number"
+                placeholder="Enter maximum sales"
+                value={newCommission.maxSales}
+                onChange={(e) => setNewCommission({ ...newCommission, maxSales: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="commissionPercent">Commission Percentage</Label>
+              <Input
+                id="commissionPercent"
+                type="number"
+                placeholder="Enter commission percentage"
+                value={newCommission.commissionPercent}
+                onChange={(e) => setNewCommission({ ...newCommission, commissionPercent: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="bonusAmount">Bonus Amount</Label>
+              <Input
+                id="bonusAmount"
+                type="number"
+                placeholder="Enter bonus amount"
+                value={newCommission.bonusAmount}
+                onChange={(e) => setNewCommission({ ...newCommission, bonusAmount: e.target.value })}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsAddingCommission(false)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleAddCommission}
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+            >
+              Add Tier
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

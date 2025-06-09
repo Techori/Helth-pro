@@ -1,29 +1,90 @@
+
 [
   {
-    "userEmail": "patient1@demo.com",
-    "amount": 50000,
-    "termMonths": 24,
-    "interestRate": 12,
+    "userEmail": "patient@demo.com",
+    "uhid": "UH12345001",
+    "applicationNumber": "ML20240001",
     "status": "approved",
-    "applicationDate": "2023-01-20T00:00:00.000Z",
-    "approvalDate": "2023-01-25T00:00:00.000Z",
-    "monthlyPayment": 2500,
-    "remainingBalance": 35000
+    "personalInfo": {
+      "fullName": "Patient User",
+      "dateOfBirth": "1990-01-15T00:00:00.000Z",
+      "gender": "male",
+      "phoneNumber": "9876543210",
+      "email": "patient@demo.com",
+      "homeAddress": "123 Main Street",
+      "city": "Mumbai",
+      "state": "Maharashtra",
+      "zipCode": "400001",
+      "nationalId": "ABCDE1234F",
+      "maritalStatus": "single",
+      "dependents": "0"
+    },
+    "employmentInfo": {
+      "employerName": "Tech Corp",
+      "occupation": "Software Engineer",
+      "employmentStatus": "full-time",
+      "monthlyGrossIncome": 75000
+    },
+    "medicalInfo": {
+      "treatmentRequired": "Heart Surgery",
+      "medicalProvider": "City General Hospital",
+      "estimatedCost": 300000
+    },
+    "loanDetails": {
+      "requestedAmount": 250000,
+      "approvedAmount": 250000,
+      "preferredTerm": 24,
+      "interestRate": 12,
+      "hospitalName": "City General Hospital"
+    },
+    "creditScore": 750,
+    "applicationDate": "2024-01-15T00:00:00.000Z",
+    "approvalDate": "2024-01-20T00:00:00.000Z",
+    "monthlyPayment": 11800,
+    "remainingBalance": 200000,
+    "agreementSigned": true,
+    "nachMandateSigned": true,
+    "termsAccepted": true
   },
   {
-    "userEmail": "patient2@demo.com",
-    "amount": 100000,
-    "termMonths": 36,
-    "interestRate": 10,
-    "status": "pending",
-    "applicationDate": "2023-03-05T00:00:00.000Z"
-  },
-  {
-    "userEmail": "patient3@demo.com",
-    "amount": 50000,
-    "termMonths": 12,
-    "interestRate": 12,
-    "status": "pending",
-    "applicationDate": "2023-03-15T00:00:00.000Z"
+    "userEmail": "testpatient@demo.com",
+    "uhid": "UH12345002",
+    "applicationNumber": "ML20240002",
+    "status": "under_review",
+    "personalInfo": {
+      "fullName": "Test Patient",
+      "dateOfBirth": "1985-05-20T00:00:00.000Z",
+      "gender": "female",
+      "phoneNumber": "9876543215",
+      "email": "testpatient@demo.com",
+      "homeAddress": "456 Park Avenue",
+      "city": "Delhi",
+      "state": "Delhi",
+      "zipCode": "110001",
+      "nationalId": "FGHIJ5678K",
+      "maritalStatus": "married",
+      "dependents": "2"
+    },
+    "employmentInfo": {
+      "employerName": "Business Corp",
+      "occupation": "Manager",
+      "employmentStatus": "full-time",
+      "monthlyGrossIncome": 50000
+    },
+    "medicalInfo": {
+      "treatmentRequired": "Dental Treatment",
+      "medicalProvider": "Wellness Multispecialty Hospital",
+      "estimatedCost": 75000
+    },
+    "loanDetails": {
+      "requestedAmount": 60000,
+      "preferredTerm": 18,
+      "hospitalName": "Wellness Multispecialty Hospital"
+    },
+    "creditScore": 680,
+    "applicationDate": "2024-02-01T00:00:00.000Z",
+    "agreementSigned": false,
+    "nachMandateSigned": false,
+    "termsAccepted": false
   }
 ]

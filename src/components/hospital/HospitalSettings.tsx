@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -641,9 +641,7 @@ const HospitalSettings = () => {
                       onChange={(e) => setBranchInfo({ ...branchInfo, branchManagerEmail: e.target.value })}
                     />
                   </div>
-                  <div classNameыт
-
-                    className="space-y-2">
+                  <div className="space-y-2">
                     <Label htmlFor="branchCode">Branch Code</Label>
                     <Input
                       id="branchCode"

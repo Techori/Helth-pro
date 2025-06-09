@@ -125,27 +125,101 @@ exports.quickActionLoan = async (req, res) => {
       return res.status(400).json({ msg: 'Loan ID and amount are required.' });
     }
 
-    // Create the loan
-    const loan = new Loan({
-      loanId,
-      amount,
-      notes,
-      status: 'approved',
-    });
+    // Find the loan by loanId (treated as applicationNumber)
+    const loan = await Loan.findOne({ applicationNumber: loanId });
+
+    if (!loan) {
+      return res.status(404).json({ msg: 'Loan not found.' });
+    }
+
+    // Set default values if fields are missing
+    if (!loan.interestRate) {
+      loan.interestRate = 13; // Default interest rate
+    }
+    if (!loan.termMonths) {
+      loan.termMonths = 12; // Default term in months
+    }
+    if (!loan.amount) {
+      loan.amount = amount; // Use provided amount
+    }
+
+    // Update the loan status to approved
+    loan.status = 'approved';
+    loan.notes = notes; // Update notes if provided
 
     await loan.save();
 
-    res.status(200).json({ msg: 'Loan has been approved successfully.' });
+    res.status(200).json({ msg: 'Loan status has been updated to approved successfully.' });
   } catch (err) {
     console.error('Error processing loan quick action:', err.message);
-    if (err.code === 11000) {
-      return res.status(400).json({ msg: 'Loan ID already exists.' });
-    }
     res.status(500).json({ msg: 'Server error' });
   }
 };
 
+exports.quickActionUsercreation = async (req, res) => {
+  try {
+    const { name, email, notes } = req.body;
+    const userRole = req.body.role || 'patient'; // Set default role to 'patient' if not provided
+    // Validate required fields
+    if (!name || !email || !userRole) {
+      return res.status(400).json({ msg: 'Name, email, and role are required.' });
+    }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ msg: 'Invalid email format.' });
+    }
+
+    // Validate role against User model enum
+    const validRoles = ['patient', 'hospital', 'admin', 'sales', 'crm', 'agent', 'support', 'hospital staff', 'hospital admin'];
+    if (!validRoles.includes(userRole)) {
+      return res.status(400).json({ msg: 'Invalid role.' });
+    }
+
+    // Generate random password
+    const randomPassword = crypto.randomBytes(8).toString('hex');
+    const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+    // Create the user
+    const newUser = new User({
+      firstName: name.split(' ')[0] || 'User',
+      lastName: name.split(' ').slice(1).join(' ') || 'Name',
+      email,
+      password: hashedPassword,
+      role: userRole,
+      phone: '0000000000',
+      notes,
+    });
+
+    const savedUser = await newUser.save();
+
+    // Log response
+    const responseData = {
+      msg: 'User account has been created successfully.',
+      user: {
+        id: savedUser._id,
+        firstName: savedUser.firstName,
+        lastName: savedUser.lastName,
+        email: savedUser.email,
+        role: savedUser.role,
+        registeredOn: savedUser.date.toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        }).replace(/\//g, '/'),
+      },
+    };
+
+    res.status(200).json(responseData);
+  } catch (err) {
+    console.error('Error processing user quick action:', err.message);
+    if (err.code === 11000) {
+      return res.status(400).json({ msg: 'Email already in use.' });
+    }
+    res.status(500).json({ msg: 'Server error' });
+  }
+};
 
 exports.quickActionHealthCard = async (req, res) => {
   try {
@@ -157,16 +231,26 @@ exports.quickActionHealthCard = async (req, res) => {
     }
 
     // Validate patient exists
-    const patient = await Patient.findById(patientId);
+    const patient = await Patient.findOne({ patientId });
     if (!patient) {
       return res.status(404).json({ msg: 'Patient not found.' });
     }
 
+    // Set default values for missing fields
+    const defaultExpiryDate = new Date();
+    defaultExpiryDate.setFullYear(defaultExpiryDate.getFullYear() + 1); // Default expiry date is one year from now
+
+    // Generate a 10-digit random number for the card number
+    const randomTenDigitNumber = Math.floor(1000000000 + Math.random() * 9000000000);
+    const defaultCardNumber = `HC${randomTenDigitNumber}`; // Generate a card number like HC9262534613
+
     // Create the health card
     const healthCard = new HealthCard({
       cardType,
-      patient: patientId,
+      patientId,
       notes,
+      expiryDate: defaultExpiryDate,
+      cardNumber: defaultCardNumber,
     });
 
     await healthCard.save();
@@ -313,20 +397,7 @@ exports.addPlatformFee = async (req, res) => {
 exports.addSalesTarget = async (req, res) => {
   try {
     console.log('addSalesTarget: Request body:', req.body);
-    // const adminId = req.user; // User ID from middleware (string)
-    // console.log('addSalesTarget: adminId:', adminId);
-
-    // // Validate admin role
-    // const user = await User.findById(adminId).select('role');
-    // console.log('addSalesTarget: Fetched user:', user);
-    // if (!user) {
-    //   res.setHeader('Content-Type', 'application/json');
-    //   return res.status(401).json({ msg: 'User not found' });
-    // }
-    // if (user.role !== 'admin') {
-    //   res.setHeader('Content-Type', 'application/json');
-    //   return res.status(403).json({ msg: 'Not authorized. Admin access required.' });
-    // }
+    
 
     const { hospital, department, targetAmount, period, status } = req.body;
 

@@ -5,6 +5,7 @@ const {
   quickActionHospital,
   quickActionLoan,
   quickActionUser,
+  quickActionUsercreation,
   quickActionHealthCard,
   addPlatformFee,
   addSalesTarget,
@@ -32,6 +33,7 @@ router.post('/quick-action/health-card', auth, quickActionHealthCard);
 
 router.post('/quick-action-user', auth, quickActionUser);
 
+router.post('/quick-action-user-creation', auth, quickActionUsercreation);
 
 
 router.post('/add-fee', auth, addPlatformFee);

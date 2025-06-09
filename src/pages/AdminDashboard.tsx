@@ -180,7 +180,7 @@ const AdminDashboard = () => {
             });
             return;
           }
-          endpoint = "/api/admin/quick-action/user";
+          endpoint = "/api/admin/quick-action-user-creation";
           payload = {
             name: quickActionForm.userName,
             email: quickActionForm.userEmail,
@@ -254,13 +254,13 @@ const AdminDashboard = () => {
   return (
     <SidebarWrapper>
       <AdminSidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
-      
+
       <div className="flex-1 overflow-auto">
-        <AdminDashboardHeader 
+        <AdminDashboardHeader
           adminName={adminData.adminName}
           toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
         />
-        
+
         <main className="p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div>
@@ -288,7 +288,7 @@ const AdminDashboard = () => {
               </Button>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <Card className="p-4 cursor-pointer hover:bg-gray-50" onClick={() => handleTabChange("loans")}>
               <div className="flex flex-col items-center space-y-2">
@@ -301,7 +301,7 @@ const AdminDashboard = () => {
                 <div className="text-sm font-medium">Pending Loans</div>
               </div>
             </Card>
-            
+
             <Card className="p-4 cursor-pointer hover:bg-gray-50" onClick={() => handleTabChange("hospitals")}>
               <div className="flex flex-col items-center space-y-2">
                 <div className="rounded-full bg-green-100 p-3">
@@ -313,7 +313,7 @@ const AdminDashboard = () => {
                 <div className="text-sm font-medium">Hospital Registrations</div>
               </div>
             </Card>
-            
+
             <Card className="p-4 cursor-pointer hover:bg-gray-50" onClick={() => handleTabChange("users")}>
               <div className="flex flex-col items-center space-y-2">
                 <div className="rounded-full bg-purple-100 p-3">
@@ -325,7 +325,7 @@ const AdminDashboard = () => {
                 <div className="text-sm font-medium">Active Users</div>
               </div>
             </Card>
-            
+
             <Card className="p-4 cursor-pointer hover:bg-gray-50" onClick={() => handleTabChange("health-cards")}>
               <div className="flex flex-col items-center space-y-2">
                 <div className="rounded-full bg-amber-100 p-3">
@@ -338,7 +338,7 @@ const AdminDashboard = () => {
               </div>
             </Card>
           </div>
-          
+
           <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
             <TabsList className="bg-white border overflow-x-auto">
               <TabsTrigger value="overview">Overview</TabsTrigger>
@@ -353,72 +353,72 @@ const AdminDashboard = () => {
               <TabsTrigger value="reports">Reports & Analytics</TabsTrigger>
               <TabsTrigger value="settings">Settings</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="overview" className="mt-6">
               <AdminDashboardOverview />
             </TabsContent>
-            
+
             <TabsContent value="loans" className="mt-6">
               <LoanApproval />
             </TabsContent>
-            
+
             <TabsContent value="hospitals" className="mt-6">
               <HospitalManagement />
             </TabsContent>
-            
+
             <TabsContent value="health-cards" className="mt-6">
               <AdminHealthCardManagement />
             </TabsContent>
-            
+
             <TabsContent value="platform" className="mt-6">
               <AdminPlatformFeeManagement />
             </TabsContent>
-            
+
             <TabsContent value="users" className="mt-6">
               <AdminUserManagement />
             </TabsContent>
-            
+
             <TabsContent value="hospital-users" className="mt-6">
               <HospitalUserManagement />
             </TabsContent>
-            
+
             <TabsContent value="sales-targets" className="mt-6">
               <SalesTargetManagement />
             </TabsContent>
-            
+
             <TabsContent value="commissions" className="mt-6">
               <CommissionStructure />
             </TabsContent>
-            
+
             <TabsContent value="reports" className="mt-6">
               <AdminReports />
             </TabsContent>
-            
+
             <TabsContent value="settings" className="mt-6">
               <AdminSystemSettings />
             </TabsContent>
           </Tabs>
         </main>
       </div>
-      
+
       <Dialog open={isQuickActionOpen} onOpenChange={setIsQuickActionOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Quick Action</DialogTitle>
             <DialogDescription>
-              {quickActionType === "hospital" ? "Process a hospital registration quickly" : 
-               quickActionType === "loan" ? "Approve a loan application quickly" :
-               quickActionType === "user" ? "Create a new user account quickly" :
-               "Create a new health card quickly"}
+              {quickActionType === "hospital" ? "Process a hospital registration quickly" :
+                quickActionType === "loan" ? "Approve a loan application quickly" :
+                  quickActionType === "user" ? "Create a new user account quickly" :
+                    "Create a new health card quickly"}
             </DialogDescription>
           </DialogHeader>
-          
+
           <form onSubmit={handleQuickActionSubmit}>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="actionType" className="text-right">Action Type</Label>
-                <Select 
-                  value={quickActionType} 
+                <Select
+                  value={quickActionType}
                   onValueChange={(value) => setQuickActionType(value)}
                 >
                   <SelectTrigger id="actionType" className="col-span-3">
@@ -432,89 +432,91 @@ const AdminDashboard = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               {quickActionType === "hospital" && (
                 <>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="hospitalName" className="text-right">Hospital Name</Label>
-                    <Input 
-                      id="hospitalName" 
-                      placeholder="Enter hospital name" 
-                      className="col-span-3" 
+                    <Input
+                      id="hospitalName"
+                      placeholder="Enter hospital name"
+                      className="col-span-3"
                       value={quickActionForm.hospitalName}
                       onChange={(e) => handleQuickActionFormChange("hospitalName", e.target.value)}
                     />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="hospitalLocation" className="text-right">Location</Label>
-                    <Input 
-                      id="hospitalLocation" 
-                      placeholder="Enter location" 
-                      className="col-span-3" 
+                    <Input
+                      id="hospitalLocation"
+                      placeholder="Enter location"
+                      className="col-span-3"
                       value={quickActionForm.hospitalLocation}
                       onChange={(e) => handleQuickActionFormChange("hospitalLocation", e.target.value)}
                     />
                   </div>
                 </>
               )}
-              
+
               {quickActionType === "loan" && (
                 <>
                   <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="loanId" className="text-right">Loan ID</Label>
-                    <Input 
-                      id="loanId" 
-                      placeholder="Enter loan ID" 
-                      className="col-span-3" 
+                    <Label htmlFor="loanId" className="text-right">
+                      Application Number</Label>
+                    <Input
+                      id="loanId"
+                      placeholder="Enter 
+Application Number"
+                      className="col-span-3"
                       value={quickActionForm.loanId}
                       onChange={(e) => handleQuickActionFormChange("loanId", e.target.value)}
                     />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="loanAmount" className="text-right">Amount</Label>
-                    <Input 
-                      id="loanAmount" 
-                      type="number" 
-                      placeholder="Enter amount" 
-                      className="col-span-3" 
+                    <Input
+                      id="loanAmount"
+                      type="number"
+                      placeholder="Enter amount"
+                      className="col-span-3"
                       value={quickActionForm.loanAmount}
                       onChange={(e) => handleQuickActionFormChange("loanAmount", e.target.value)}
                     />
                   </div>
                 </>
               )}
-              
+
               {quickActionType === "user" && (
                 <>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="userName" className="text-right">Full Name</Label>
-                    <Input 
-                      id="userName" 
-                      placeholder="Enter user's name" 
-                      className="col-span-3" 
+                    <Input
+                      id="userName"
+                      placeholder="Enter user's name"
+                      className="col-span-3"
                       value={quickActionForm.userName}
                       onChange={(e) => handleQuickActionFormChange("userName", e.target.value)}
                     />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="userEmail" className="text-right">Email</Label>
-                    <Input 
-                      id="userEmail" 
-                      type="email" 
-                      placeholder="Enter email" 
-                      className="col-span-3" 
+                    <Input
+                      id="userEmail"
+                      type="email"
+                      placeholder="Enter email"
+                      className="col-span-3"
                       value={quickActionForm.userEmail}
                       onChange={(e) => handleQuickActionFormChange("userEmail", e.target.value)}
                     />
                   </div>
                 </>
               )}
-              
+
               {quickActionType === "healthcard" && (
                 <>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="cardType" className="text-right">Card Type</Label>
-                    <Select 
+                    <Select
                       value={quickActionForm.cardType}
                       onValueChange={(value) => handleQuickActionFormChange("cardType", value)}
                     >
@@ -523,43 +525,43 @@ const AdminDashboard = () => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="basic">Basic</SelectItem>
-                        <SelectItem value="premium">Premium</SelectItem>
+                        <SelectItem value="platinum">Platinum</SelectItem>
                         <SelectItem value="gold">Gold</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="patientId" className="text-right">Patient ID</Label>
-                    <Input 
-                      id="patientId" 
-                      placeholder="Enter patient ID" 
-                      className="col-span-3" 
+                    <Input
+                      id="patientId"
+                      placeholder="Enter patient ID"
+                      className="col-span-3"
                       value={quickActionForm.patientId}
                       onChange={(e) => handleQuickActionFormChange("patientId", e.target.value)}
                     />
                   </div>
                 </>
               )}
-              
+
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="notes" className="text-right">Notes</Label>
-                <Input 
-                  id="notes" 
-                  placeholder="Add any additional notes" 
-                  className="col-span-3" 
+                <Input
+                  id="notes"
+                  placeholder="Add any additional notes"
+                  className="col-span-3"
                   value={quickActionForm.notes}
                   onChange={(e) => handleQuickActionFormChange("notes", e.target.value)}
                 />
               </div>
             </div>
-            
+
             <DialogFooter>
               <Button type="submit">Process Action</Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
-      
+
       <Toaster />
     </SidebarWrapper>
   );

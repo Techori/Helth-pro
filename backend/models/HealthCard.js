@@ -4,7 +4,8 @@ const mongoose = require('mongoose');
 const HealthCardSchema = new mongoose.Schema({
   patientId: {
   type: String,
-  required: true
+  required: true,
+  unique: true
 },
   cardNumber: {
     type: String,
@@ -42,7 +43,10 @@ const HealthCardSchema = new mongoose.Schema({
   expiryDate: {
     type: Date,
     required: true
-  }
+  },
+  notes: {
+  type: String
+}
 });
 
 module.exports = mongoose.model('healthCard', HealthCardSchema);

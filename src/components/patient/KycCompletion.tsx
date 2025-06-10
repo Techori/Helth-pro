@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/components/ui/use-toast';
 import { Check, User, Loader2, Shield } from 'lucide-react';
 import { submitKYC, verifyKYCWithDigio, getKYCStatus } from '@/services/kycService';
+import io from 'socket.io-client';
 
 interface KycCompletionProps {
   onComplete: (uhid: string) => void;
@@ -35,8 +36,79 @@ const KycCompletion = ({ onComplete }: KycCompletionProps) => {
     lastName: '',
     accessToken: '',
     expiresInDays: '',
+    verificationId: '', // Add verificationId to formData
     verificationDetails: null
   });
+
+  // Initialize WebSocket connection
+  useEffect(() => {
+    const socket = io('http://localhost:4000/api/kyc/');
+    socket.on('kycStatusUpdate', (data: any) => {
+      if (data.kycStatus === 'completed') {
+        setStep('completed');
+        setFormData(prev => ({
+          ...prev,
+          verificationDetails: data.kycData.verificationDetails,
+          verificationId: data.kycData.verificationId
+        }));
+        onComplete(data.uhid);
+        toast({
+          title: 'KYC Completed Successfully',
+          description: `Your UHID is: ${data.uhid}. KYC verification approved.`
+        });
+      } else if (data.kycStatus === 'rejected') {
+        setStep('form');
+        toast({
+          title: 'KYC Verification Failed',
+          description: data.kycData.rejectionReason || 'Verification failed. Please try again.',
+          variant: 'destructive'
+        });
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [onComplete, toast]);
+
+  // Fetch existing KYC status on mount
+  useEffect(() => {
+    const fetchKycStatus = async () => {
+      try {
+        const response = await getKYCStatus();
+        if (response.kycData?.verificationId) {
+          setFormData(prev => ({
+            ...prev,
+            verificationId: response.kycData.verificationId,
+            panNumber: response.kycData.panNumber || '',
+            aadhaarNumber: response.kycData.aadhaarNumber || '',
+            dateOfBirth: response.kycData.dateOfBirth || '',
+            gender: response.kycData.gender || '',
+            address: response.kycData.address || '',
+            city: response.kycData.city || '',
+            state: response.kycData.state || '',
+            zipCode: response.kycData.zipCode || '',
+            maritalStatus: response.kycData.maritalStatus || '',
+            dependents: response.kycData.dependents || '',
+            email: response.kycData.email || '',
+            phone: response.kycData.phone || '',
+            firstName: response.kycData.firstName || '',
+            lastName: response.kycData.lastName || ''
+          }));
+          setVerificationId(response.kycData.verificationId);
+          if (response.kycStatus === 'completed') {
+            setStep('completed');
+            onComplete(response.uhid);
+          } else if (response.kycStatus === 'pending') {
+            setStep('pending');
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching KYC status:', error);
+      }
+    };
+    fetchKycStatus();
+  }, [onComplete]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -50,43 +122,6 @@ const KycCompletion = ({ onComplete }: KycCompletionProps) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // Poll for KYC status
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (step === 'pending' && verificationId) {
-      interval = setInterval(async () => {
-        try {
-          const response = await getKYCStatus();
-          if (response.kycStatus === 'completed') {
-            setStep('completed');
-            onComplete(response.uhid);
-            toast({
-              title: 'KYC Completed Successfully',
-              description: `Your UHID is: ${response.uhid}. KYC verification approved.`
-            });
-            // Update verificationDetails from the backend response
-            setFormData(prev => ({
-              ...prev,
-              verificationDetails: response.kycData.verificationDetails
-            }));
-            clearInterval(interval);
-          } else if (response.kycStatus === 'rejected') {
-            setStep('form');
-            toast({
-              title: 'KYC Verification Failed',
-              description: 'Verification failed. Please try again.',
-              variant: 'destructive'
-            });
-            clearInterval(interval);
-          }
-        } catch (error) {
-          console.error('Status check error:', error);
-        }
-      }, 5000); // Poll every 5 seconds
-    }
-    return () => clearInterval(interval);
-  }, [step, verificationId, onComplete, toast]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -96,9 +131,12 @@ const KycCompletion = ({ onComplete }: KycCompletionProps) => {
     try {
       const digioResponse = await verifyKYCWithDigio(formData);
       setVerificationId(digioResponse.verificationId);
-
-      const accessToken = digioResponse.accessToken;
-      const expiresInDays = digioResponse.expiresInDays;
+      setFormData(prev => ({
+        ...prev,
+        verificationId: digioResponse.verificationId,
+        accessToken: digioResponse.accessToken,
+        expiresInDays: digioResponse.expiresInDays
+      }));
 
       const response = await submitKYC(formData);
       setStep('pending');
@@ -106,25 +144,55 @@ const KycCompletion = ({ onComplete }: KycCompletionProps) => {
         title: 'KYC Verification Initiated',
         description: `Verification ID: ${digioResponse.verificationId}. Awaiting confirmation...`
       });
-
-      setFormData(prev => ({
-        ...prev,
-        accessToken,
-        expiresInDays
-      }));
     } catch (error: any) {
       console.error('KYC process failed:', error);
       setStep('form');
       setIsVerifying(false);
       toast({
         title: 'KYC Verification Failed',
-        description: error.message || 'Please verify your details and try again',
+        description: error.message || 'Please verify your details.',
         variant: 'destructive'
       });
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // Single status check as fallback
+  const checkStatusOnce = async () => {
+    try {
+      const response = await getKYCStatus();
+      if (response.kycStatus === 'completed') {
+        setStep('completed');
+        setFormData(prev => ({
+          ...prev,
+          verificationDetails: response.kycData.verificationDetails
+        }));
+        onComplete(response.uhid);
+        toast({
+          title: 'KYC Completed Successfully',
+          description: `Your KYC verification is approved!`
+        });
+      } else if (response.kycStatus === 'rejected') {
+        setStep('form');
+        toast({
+          title: 'KYC Verification Failed',
+          description: response.rejectionReason || 'Verification failed. Please try again.',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      console.error('Status check error:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (step === 'pending' && verificationId) {
+      // Perform a single status check after 30 seconds as a fallback
+      const timeout = setTimeout(checkStatusOnce, 30000);
+      return () => clearTimeout(timeout);
+    }
+  }, [step, verificationId]);
 
   if (step === 'verification') {
     return (

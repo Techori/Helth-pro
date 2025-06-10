@@ -33,7 +33,7 @@ export interface VerificationDetails {
 export interface KYCStatus {
   kycStatus: 'pending' | 'completed' | 'rejected';
   uhid?: string;
-  kycData?: Omit<KYCData, 'email' | 'phone' | 'firstName' | 'lastName'> & {
+  kycData?: KYCData & {
     verificationId?: string;
     verificationMethod?: string;
     verifiedAt?: string;

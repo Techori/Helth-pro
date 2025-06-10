@@ -1,88 +1,113 @@
+
 import { apiRequest } from "./api";
 import { AuthUser, UserRole } from "@/types/app.types";
 
 export const loginUser = async (email: string, password: string) => {
+  console.log('Attempting login with:', email);
+  
   try {
     // Login request to get token
+<<<<<<< HEAD
     const data = await apiRequest("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
+=======
+    const data = await apiRequest('/auth', {
+      method: 'POST',
+      body: JSON.stringify({ email, password })
+>>>>>>> 47dcb0b11a36dd18e16fb5c901d8d6ee3e9586e1
     });
-
+        
     if (!data.token) {
-      throw new Error("No authentication token received");
+      throw new Error('No authentication token received');
     }
-
-    // Store the token
-    localStorage.setItem("token", data.token);
-
+    
+    // Store the token with both keys for compatibility
+    localStorage.setItem('token', data.token);    
     // Get user data
     const userData = await getCurrentUser();
     return { user: userData, error: null };
   } catch (error: any) {
-    console.error("Login failed:", error);
+    console.error('Login failed:', error);
     return { user: null, error };
   }
 };
 
 export const registerUser = async (
-  email: string,
-  password: string,
-  firstName: string,
-  lastName: string,
-  role: UserRole = "patient"
+  email: string, 
+  password: string, 
+  firstName: string, 
+  lastName: string, 
+  phone: string,
+  role: UserRole = 'patient'
 ) => {
+  console.log('Registering new user:', { email, firstName, lastName, phone, role });
+  
   try {
     // Register request
-    const data = await apiRequest("/users/signup", {
-      method: "POST",
-      body: JSON.stringify({
-        email,
-        password,
-        firstName,
-        lastName,
-        role,
-      }),
+    const data = await apiRequest('/users', {
+      method: 'POST',
+      body: JSON.stringify({ 
+        email, 
+        password, 
+        firstName, 
+        lastName, 
+        phone,
+        role 
+      })
     });
-
+    
+    console.log('Registration response received:', data);
+    
     if (!data.token) {
-      throw new Error("No authentication token received");
+      throw new Error('No authentication token received');
     }
-
-    // Store the token
-    localStorage.setItem("token", data.token);
-
+    
+    localStorage.setItem('token', data.token);
+    
     // Get user data
     const userData = await getCurrentUser();
     return { user: userData, error: null };
   } catch (error: any) {
-    console.error("Registration failed:", error);
+    console.error('Registration failed:', error);
     return { user: null, error };
   }
 };
 
 export const getCurrentUser = async (): Promise<AuthUser | null> => {
   try {
-    const userData = await apiRequest("/auth");
-    return {
-      id: userData._id,
-      email: userData.email,
-      role: userData.role as UserRole,
-      firstName: userData.firstName,
-      lastName: userData.lastName,
-    };
-  } catch (error) {
-    console.error("Failed to get current user:", error);
+    console.log('Fetching current user data');
+    const data = await apiRequest('/auth');    
+    if (data && data._id) {
+      return {
+        id: data._id,
+        email: data.email,
+        role: data.role,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        phone:data.phone,
+        kycStatus: data.kycStatus || 'pending',
+        kycData: data.kycData || null,
+        uhid: data.uhid || '',
+      };
+    }
+    
+    return null;
+  } catch (error: any) {
+    console.error('Failed to get current user:', error);
+    // Clear invalid token
+    localStorage.removeItem('token');
     return null;
   }
 };
 
 export const logoutUser = () => {
-  localStorage.removeItem("token");
+  console.log('Logging out user');
+  localStorage.removeItem('token');
 };
 
 export const checkAuthToken = (): boolean => {
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem('token');
   return !!token;
 };
 

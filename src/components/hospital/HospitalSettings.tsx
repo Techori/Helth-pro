@@ -6,11 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/components/ui/use-toast";
-import { Check, Save, Upload, Building, Users, Shield, FileCheck, UserCheck } from "lucide-react";
+import { Check, Save, Upload, Building, Users, Shield, FileCheck, UserCheck, UploadCloud } from "lucide-react";
 
 const HospitalSettings = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("profile");
+  const [isLoading, setIsLoading] = useState(false); // Add loading state
 
   // Hospital profile state
   const [hospitalProfile, setHospitalProfile] = useState({
@@ -53,364 +54,316 @@ const HospitalSettings = () => {
     { name: "Biomedical Waste Authorization", status: "Pending", date: "15/02/2023" },
   ]);
 
-  const handleSaveProfile = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-      console.log('Token:', token);
+  const [selectedFileName, setSelectedFileName] = useState("");
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [documentType, setDocumentType] = useState("");
+  const [validUntil, setValidUntil] = useState("");
+  const [description, setDescription] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
-      // First, get the current hospital profile to check if it exists and get the ID
-      const getProfileResponse = await fetch("/api/hospitals/me", {
-        method: "GET",
-        headers: {
-          "x-auth-token": token
-        }
+  const handleFileChange = (event) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setSelectedFileName(file.name);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      toast({
+        title: "No File Selected",
+        description: "Please select a file to upload.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!documentType.trim() || !validUntil.trim() || !description.trim()) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill all document fields before uploading.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    formData.append("documentType", documentType);
+    formData.append("validUntil", validUntil);
+    formData.append("description", description);
+
+    try {
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
       });
 
-      console.log('Get Profile Response Status:', getProfileResponse.status);
-      
-      let hospitalId = null;
-      if (getProfileResponse.ok) {
-        const profileData = await getProfileResponse.json();
-        hospitalId = profileData._id;
-        console.log('Existing hospital ID:', hospitalId);
+      if (response.ok) {
+        toast({
+          title: "Document Uploaded",
+          description: "Your document has been uploaded successfully and is pending verification.",
+        });
+
+        // Clear fields
+        setSelectedFile(null);
+        setSelectedFileName("");
+        setDocumentType("");
+        setValidUntil("");
+        setDescription("");
+      } else {
+        toast({
+          title: "Upload Failed",
+          description: "There was an error uploading your document. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Upload Error",
+        description: "An unexpected error occurred. Please try again later.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    // Validate required fields
+    const requiredFields = ["name", "email", "phone"];
+    const missingFields = requiredFields.filter(
+      (field) => !hospitalProfile[field]?.trim()
+    );
+
+    if (missingFields.length > 0) {
+      toast({
+        variant: "destructive",
+        title: "Missing Information",
+        description: `Please fill in the following required fields: ${missingFields.join(", ")}.`,
+      });
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(hospitalProfile.email)) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Email",
+        description: "Please enter a valid email address.",
+      });
+      return;
+    }
+
+    // Validate phone format (basic check for digits and optional country code)
+    const phoneRegex = /^\+?\d{10,15}$/;
+    if (!phoneRegex.test(hospitalProfile.phone)) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Phone Number",
+        description: "Please enter a valid phone number (e.g., +919876543210).",
+      });
+      return;
+    }
+
+    setIsLoading(true); // Set loading state
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No authentication token found. Please log in again.");
       }
 
-      // Transform the data to match the backend schema
-      const hospitalData = {
-        name: hospitalProfile.name,
-        contactEmail: hospitalProfile.email,
-        contactPhone: hospitalProfile.phone,
-        address: hospitalProfile.address,
-        website: hospitalProfile.website,
-        licenseNumber: hospitalProfile.licenseNumber,
-        foundedYear: parseInt(hospitalProfile.foundedYear),
-        hospitalType: hospitalProfile.type,
-        bedCount: parseInt(hospitalProfile.bedCount),
-        status: 'active',
-        // Add required fields
-        city: 'Mumbai',
-        state: 'Maharashtra',
-        zipCode: '400001',
-        contactPerson: hospitalProfile.name
-      };
-
-      console.log('Sending hospital data:', JSON.stringify(hospitalData, null, 2));
-
-      // Determine the endpoint based on whether we have a hospital ID
-      const endpoint = hospitalId ? `/api/hospitals/${hospitalId}` : '/api/hospitals/me';
-      console.log('Using endpoint:', endpoint);
-
-      // Use PUT for both create and update
-      const response = await fetch(endpoint, {
+      const response = await fetch("/api/hospitals/profile", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          "x-auth-token": token
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(hospitalData),
+        body: JSON.stringify(hospitalProfile),
       });
 
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-
-      const result = await response.json();
-      console.log('Response data:', JSON.stringify(result, null, 2));
+      const data = await response.json();
 
       if (!response.ok) {
-        if (response.status === 403) {
-          throw new Error('You are not authorized to update hospital profiles');
-        } else if (response.status === 400) {
-          throw new Error(result.message || 'Invalid data provided');
-        } else if (response.status === 404) {
-          throw new Error('Hospital profile not found');
-        } else {
-          throw new Error(result.message || "Failed to update profile");
-        }
+        throw new Error(data.msg || "Failed to update profile");
       }
 
       toast({
         title: "Profile Updated",
-        description: "Hospital profile has been successfully updated.",
+        description: data.msg || "Hospital profile has been successfully updated.",
       });
-
-      // Refresh the page to show updated data
-      window.location.reload();
     } catch (error) {
-      console.error('Error updating profile:', error);
+      let errorMessage = "Something went wrong. Please try again.";
+      if (error.message.includes("token")) {
+        errorMessage = "Authentication failed. Please log in again.";
+      } else if (error.message.includes("Email already in use")) {
+        errorMessage = "This email is already in use by another hospital.";
+      } else if (error.message.includes("Hospital not found")) {
+        errorMessage = "Hospital profile not found. Please contact support.";
+      }
+
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Something went wrong while updating the profile",
+        description: errorMessage,
       });
+    } finally {
+      setIsLoading(false); // Reset loading state
     }
   };
 
-  const handleSaveBranch = async () => {
+  const handleSaveBranchInfo = async () => {
     try {
       const token = localStorage.getItem('token');
-      console.log('Token from localStorage:', token);
-      
       if (!token) {
-        toast({
-          title: "Error",
-          description: "Please login to save branch information",
-          variant: "destructive"
-        });
-        return;
+        throw new Error("No authentication token found");
       }
 
-      // First, check if hospital profile exists
-      const hospitalResponse = await fetch('/hospitals/me', {
+      const response = await fetch("/api/hospitals/branch", {
+        method: "PUT",
         headers: {
-          'x-auth-token': token
-        }
-      });
-
-      if (!hospitalResponse.ok) {
-        if (hospitalResponse.status === 404) {
-          // Create a new hospital profile if it doesn't exist
-          const createHospitalResponse = await fetch('/hospitals/me', {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-auth-token': token
-            },
-            body: JSON.stringify({
-              name: hospitalProfile.name,
-              contactEmail: hospitalProfile.email,
-              contactPhone: hospitalProfile.phone,
-              address: hospitalProfile.address,
-              website: hospitalProfile.website,
-              licenseNumber: hospitalProfile.licenseNumber,
-              foundedYear: parseInt(hospitalProfile.foundedYear),
-              hospitalType: hospitalProfile.type,
-              bedCount: parseInt(hospitalProfile.bedCount),
-              status: 'active',
-              city: 'Mumbai',
-              state: 'Maharashtra',
-              zipCode: '400001',
-              contactPerson: hospitalProfile.name
-            })
-          });
-
-          if (!createHospitalResponse.ok) {
-            const errorData = await createHospitalResponse.json();
-            throw new Error(errorData.message || 'Failed to create hospital profile');
-          }
-        } else {
-          const errorData = await hospitalResponse.json();
-          throw new Error(errorData.message || 'Failed to check hospital profile');
-        }
-      }
-
-      console.log('Saving branch information:', branchInfo);
-      console.log('Request headers:', {
-        'Content-Type': 'application/json',
-        'x-auth-token': token
-      });
-
-      const response = await fetch('/hospitals/branch', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
         },
-        body: JSON.stringify(branchInfo)
+        body: JSON.stringify(branchInfo),
       });
-
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-      
-      // Check if response has content before trying to parse JSON
-      const contentType = response.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
-        throw new Error('Server response was not JSON');
-      }
-
-      const responseText = await response.text();
-      console.log('Raw response:', responseText);
-
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (e) {
-        console.error('Failed to parse response as JSON:', e);
-        throw new Error('Invalid JSON response from server');
-      }
 
       if (!response.ok) {
-        if (response.status === 400) {
-          throw new Error(data.message || 'Invalid data provided');
-        } else if (response.status === 404) {
-          throw new Error('Hospital profile not found');
-        } else {
-          throw new Error(data.message || 'Failed to save branch information');
-        }
+        const error = await response.json();
+        throw new Error(error.msg || "Failed to update branch information");
       }
 
       toast({
-        title: "Success",
-        description: "Branch information saved successfully"
+        title: "Branch Information Updated",
+        description: "RI Medicare branch information has been successfully updated.",
       });
-      setBranchInfo(data.data || data);
     } catch (error) {
-      console.error('Error saving branch information:', error);
       toast({
+        variant: "destructive",
         title: "Error",
-        description: error instanceof Error ? error.message : 'Failed to save branch information',
-        variant: "destructive"
+        description: error.message || "Something went wrong",
       });
     }
   };
 
-  const handleSaveRM = async () => {
+  const handleSaveRmInfo = async () => {
     try {
       const token = localStorage.getItem('token');
-      console.log('Token from localStorage:', token);
-      
       if (!token) {
-        toast({
-          title: "Error",
-          description: "Please login to save RM information",
-          variant: "destructive"
-        });
-        return;
+        throw new Error("No authentication token found");
       }
 
-      // First, check if hospital profile exists
-      const hospitalResponse = await fetch('/api/hospitals/me', {
+      const response = await fetch("/api/hospitals/relationship-manager", {
+        method: "PUT",
         headers: {
-          'x-auth-token': token
-        }
-      });
-
-      if (!hospitalResponse.ok) {
-        if (hospitalResponse.status === 404) {
-          // Create a new hospital profile if it doesn't exist
-          const createHospitalResponse = await fetch('/api/hospitals/me', {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-auth-token': token
-            },
-            body: JSON.stringify({
-              name: hospitalProfile.name,
-              contactEmail: hospitalProfile.email,
-              contactPhone: hospitalProfile.phone,
-              address: hospitalProfile.address,
-              website: hospitalProfile.website,
-              licenseNumber: hospitalProfile.licenseNumber,
-              foundedYear: parseInt(hospitalProfile.foundedYear),
-              hospitalType: hospitalProfile.type,
-              bedCount: parseInt(hospitalProfile.bedCount),
-              status: 'active',
-              city: 'Mumbai',
-              state: 'Maharashtra',
-              zipCode: '400001',
-              contactPerson: hospitalProfile.name
-            })
-          });
-
-          if (!createHospitalResponse.ok) {
-            const errorData = await createHospitalResponse.json();
-            throw new Error(errorData.message || 'Failed to create hospital profile');
-          }
-        } else {
-          const errorData = await hospitalResponse.json();
-          throw new Error(errorData.message || 'Failed to check hospital profile');
-        }
-      }
-
-      console.log('Saving RM information:', rmInfo);
-      console.log('Request headers:', {
-        'Content-Type': 'application/json',
-        'x-auth-token': token
-      });
-
-      const response = await fetch('/api/hospitals/rm', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': token
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
         },
-        body: JSON.stringify(rmInfo)
+        body: JSON.stringify(rmInfo),
       });
-
-      console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-      
-      const data = await response.json();
-      console.log('RM save response:', data);
 
       if (!response.ok) {
-        if (response.status === 400) {
-          throw new Error(data.message || 'Invalid data provided');
-        } else if (response.status === 404) {
-          throw new Error('Hospital profile not found');
-        } else {
-          throw new Error(data.message || 'Failed to save RM information');
-        }
+        const error = await response.json();
+        throw new Error(error.msg || "Failed to update relationship manager information");
       }
 
       toast({
-        title: "Success",
-        description: "RM information saved successfully"
+        title: "RM Information Updated",
+        description: "Relationship manager information has been successfully updated.",
       });
-      setRmInfo(data.data);
     } catch (error) {
-      console.error('Error saving RM information:', error);
       toast({
+        variant: "destructive",
         title: "Error",
-        description: error instanceof Error ? error.message : 'Failed to save RM information',
-        variant: "destructive"
+        description: error.message || "Something went wrong",
       });
     }
   };
 
-  // Add useEffect to fetch branch and RM information on component mount
-  useEffect(() => {
-    const fetchBranchAndRMInfo = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) return;
+  const handleUpdatePassword = async () => {
+    // Validate inputs
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all password fields.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-        // Fetch branch information
-        const branchResponse = await fetch('/hospitals/branch', {
-          headers: {
-            'x-auth-token': token
-          }
-        });
-        const branchData = await branchResponse.json();
-        if (branchData && Object.keys(branchData).length > 0) {
-          setBranchInfo(branchData);
-        }
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Password Mismatch",
+        description: "New password and confirm password do not match.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-        // Fetch RM information
-        const rmResponse = await fetch('/hospitals/rm', {
-          headers: {
-            'x-auth-token': token
-          }
-        });
-        const rmData = await rmResponse.json();
-        if (rmData && Object.keys(rmData).length > 0) {
-          setRmInfo(rmData);
-        }
-      } catch (error) {
-        console.error('Error fetching branch and RM information:', error);
+    if (newPassword.length < 8) {
+      toast({
+        title: "Invalid Password",
+        description: "New password must be at least 8 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error("No authentication token found");
       }
-    };
 
-    fetchBranchAndRMInfo();
-  }, []);
+      // Step 1: Verify current password
+      const verifyResponse = await fetch("/api/users/verify-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ password: currentPassword }),
+      });
 
-  const handleUploadDocument = () => {
-    toast({
-      title: "Document Uploaded",
-      description: "Your document has been uploaded and is pending verification.",
-    });
+      if (!verifyResponse.ok) {
+        const error = await verifyResponse.json();
+        throw new Error(error.msg || "Current password is incorrect");
+      }
+
+      // Step 2: Update password
+      const updateResponse = await fetch("/api/users/update-password", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ newPassword }),
+      });
+
+      if (!updateResponse.ok) {
+        const error = await updateResponse.json();
+        throw new Error(error.msg || "Failed to update password");
+      }
+
+      toast({
+        title: "Password Updated",
+        description: "Your password has been successfully updated.",
+      });
+
+      // Clear password fields
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Something went wrong",
+      });
+    }
   };
 
   return (
@@ -435,83 +388,83 @@ const HospitalSettings = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="hospitalName">Hospital Name</Label>
-                  <Input 
-                    id="hospitalName" 
-                    value={hospitalProfile.name} 
-                    onChange={(e) => setHospitalProfile({...hospitalProfile, name: e.target.value})}
+                  <Input
+                    id="hospitalName"
+                    value={hospitalProfile.name}
+                    onChange={(e) => setHospitalProfile({ ...hospitalProfile, name: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="hospitalEmail">Email Address</Label>
-                  <Input 
-                    id="hospitalEmail" 
-                    type="email" 
-                    value={hospitalProfile.email} 
-                    onChange={(e) => setHospitalProfile({...hospitalProfile, email: e.target.value})}
+                  <Input
+                    id="hospitalEmail"
+                    type="email"
+                    value={hospitalProfile.email}
+                    onChange={(e) => setHospitalProfile({ ...hospitalProfile, email: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="hospitalPhone">Phone Number</Label>
-                  <Input 
-                    id="hospitalPhone" 
-                    value={hospitalProfile.phone} 
-                    onChange={(e) => setHospitalProfile({...hospitalProfile, phone: e.target.value})}
+                  <Input
+                    id="hospitalPhone"
+                    value={hospitalProfile.phone}
+                    onChange={(e) => setHospitalProfile({ ...hospitalProfile, phone: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="hospitalWebsite">Website</Label>
-                  <Input 
-                    id="hospitalWebsite" 
-                    value={hospitalProfile.website} 
-                    onChange={(e) => setHospitalProfile({...hospitalProfile, website: e.target.value})}
+                  <Input
+                    id="hospitalWebsite"
+                    value={hospitalProfile.website}
+                    onChange={(e) => setHospitalProfile({ ...hospitalProfile, website: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="hospitalAddress">Address</Label>
-                  <Input 
-                    id="hospitalAddress" 
-                    value={hospitalProfile.address} 
-                    onChange={(e) => setHospitalProfile({...hospitalProfile, address: e.target.value})}
+                  <Input
+                    id="hospitalAddress"
+                    value={hospitalProfile.address}
+                    onChange={(e) => setHospitalProfile({ ...hospitalProfile, address: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="licenseNumber">License Number</Label>
-                  <Input 
-                    id="licenseNumber" 
+                  <Input
+                    id="licenseNumber"
                     value={hospitalProfile.licenseNumber}
-                    onChange={(e) => setHospitalProfile({...hospitalProfile, licenseNumber: e.target.value})}
+                    onChange={(e) => setHospitalProfile({ ...hospitalProfile, licenseNumber: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="foundedYear">Founded Year</Label>
-                  <Input 
-                    id="foundedYear" 
+                  <Input
+                    id="foundedYear"
                     value={hospitalProfile.foundedYear}
-                    onChange={(e) => setHospitalProfile({...hospitalProfile, foundedYear: e.target.value})}
+                    onChange={(e) => setHospitalProfile({ ...hospitalProfile, foundedYear: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="hospitalType">Hospital Type</Label>
-                  <Input 
-                    id="hospitalType" 
+                  <Input
+                    id="hospitalType"
                     value={hospitalProfile.type}
-                    onChange={(e) => setHospitalProfile({...hospitalProfile, type: e.target.value})}
+                    onChange={(e) => setHospitalProfile({ ...hospitalProfile, type: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="bedCount">Bed Count</Label>
-                  <Input 
-                    id="bedCount" 
+                  <Input
+                    id="bedCount"
                     value={hospitalProfile.bedCount}
-                    onChange={(e) => setHospitalProfile({...hospitalProfile, bedCount: e.target.value})}
+                    onChange={(e) => setHospitalProfile({ ...hospitalProfile, bedCount: e.target.value })}
                   />
                 </div>
               </div>
             </CardContent>
             <CardFooter>
-              <Button onClick={handleSaveProfile}>
+              <Button onClick={handleSaveProfile} disabled={isLoading}>
                 <Save className="mr-2 h-4 w-4" />
-                Save Changes
+                {isLoading ? "Saving..." : "Save Changes"}
               </Button>
             </CardFooter>
           </Card>
@@ -527,7 +480,7 @@ const HospitalSettings = () => {
                     Manage compliance certifications and documents
                   </CardDescription>
                 </div>
-                <Button>
+                <Button onClick={() => document.getElementById('document-file')?.click()}>
                   <Upload className="mr-2 h-4 w-4" />
                   Upload New Document
                 </Button>
@@ -569,7 +522,7 @@ const HospitalSettings = () => {
                   <div>
                     <h4 className="font-medium">Compliance Status</h4>
                     <p className="text-sm text-muted-foreground mb-2">
-                      Your hospital is currently <span className="text-amber-600 font-medium">partially compliant</span>. 
+                      Your hospital is currently <span className="text-amber-600 font-medium">partially compliant</span>.
                       Please upload all required documents to achieve full compliance.
                     </p>
                     <div className="w-full bg-slate-200 rounded-full h-2.5">
@@ -581,6 +534,72 @@ const HospitalSettings = () => {
               </div>
             </CardFooter>
           </Card>
+
+          <div className="mt-6 p-6 border rounded-md bg-gray-50">
+            <h3 className="text-lg font-medium mb-4">Upload New Document</h3>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="document-type">Document Type</Label>
+                  <select
+                    id="document-type"
+                    className="w-full p-2 border rounded-md"
+                    value={documentType}
+                    onChange={(e) => setDocumentType(e.target.value)}
+                  >
+                    <option value="">Select Document Type</option>
+                    <option value="registration">Hospital Registration</option>
+                    <option value="license">Medical License</option>
+                    <option value="tax">Tax Compliance</option>
+                    <option value="safety">Safety Certificate</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="valid-until">Valid Until</Label>
+                  <Input
+                    id="valid-until"
+                    type="date"
+                    value={validUntil}
+                    onChange={(e) => setValidUntil(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="document-description">Description</Label>
+                <textarea
+                  id="document-description"
+                  placeholder="Enter additional details about this document"
+                  className="w-full p-2 border rounded-md"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="document-file">Upload File</Label>
+                <div className="border-2 border-dashed rounded-md p-8 text-center">
+                  <UploadCloud className="mx-auto h-10 w-10 text-gray-400" />
+                  <p className="mt-2 text-sm text-gray-600">Drag and drop your file here, or click to browse</p>
+                  <input
+                    id="document-file"
+                    type="file"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                  <Button
+                    variant="outline"
+                    className="mt-4"
+                    onClick={() => document.getElementById('document-file')?.click()}
+                  >
+                    Select File
+                  </Button>
+                  {selectedFileName && (
+                    <p className="mt-2 text-sm text-gray-600">Selected File: {selectedFileName}</p>
+                  )}
+                </div>
+              </div>
+              <Button onClick={handleUpload}>Upload Document</Button>
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="verification" className="space-y-6 mt-6">
@@ -600,54 +619,54 @@ const HospitalSettings = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="branchName">RI Medicare Branch</Label>
-                    <Input 
-                      id="branchName" 
+                    <Input
+                      id="branchName"
                       value={branchInfo.branchName}
-                      onChange={(e) => setBranchInfo({...branchInfo, branchName: e.target.value})}
+                      onChange={(e) => setBranchInfo({ ...branchInfo, branchName: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="branchManagerName">Branch Manager Name</Label>
-                    <Input 
-                      id="branchManagerName" 
+                    <Input
+                      id="branchManagerName"
                       value={branchInfo.branchManagerName}
-                      onChange={(e) => setBranchInfo({...branchInfo, branchManagerName: e.target.value})}
+                      onChange={(e) => setBranchInfo({ ...branchInfo, branchManagerName: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="branchManagerEmail">Branch Manager Email</Label>
-                    <Input 
-                      id="branchManagerEmail" 
+                    <Input
+                      id="branchManagerEmail"
                       value={branchInfo.branchManagerEmail}
-                      onChange={(e) => setBranchInfo({...branchInfo, branchManagerEmail: e.target.value})}
+                      onChange={(e) => setBranchInfo({ ...branchInfo, branchManagerEmail: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="branchCode">Branch Code</Label>
-                    <Input 
-                      id="branchCode" 
+                    <Input
+                      id="branchCode"
                       value={branchInfo.branchCode}
-                      onChange={(e) => setBranchInfo({...branchInfo, branchCode: e.target.value})}
+                      onChange={(e) => setBranchInfo({ ...branchInfo, branchCode: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="branchContact">Branch Contact Number</Label>
-                    <Input 
-                      id="branchContact" 
+                    <Input
+                      id="branchContact"
                       value={branchInfo.branchContact}
-                      onChange={(e) => setBranchInfo({...branchInfo, branchContact: e.target.value})}
+                      onChange={(e) => setBranchInfo({ ...branchInfo, branchContact: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="branchAddress">Branch Address</Label>
-                    <Input 
-                      id="branchAddress" 
+                    <Input
+                      id="branchAddress"
                       value={branchInfo.branchAddress}
-                      onChange={(e) => setBranchInfo({...branchInfo, branchAddress: e.target.value})}
+                      onChange={(e) => setBranchInfo({ ...branchInfo, branchAddress: e.target.value })}
                     />
                   </div>
                 </div>
-                <Button className="mt-4" onClick={handleSaveBranch}>
+                <Button className="mt-4" onClick={handleSaveBranchInfo}>
                   <Save className="mr-2 h-4 w-4" />
                   Save Branch Information
                 </Button>
@@ -663,46 +682,46 @@ const HospitalSettings = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="relationshipManager">Relationship Manager</Label>
-                    <Input 
-                      id="relationshipManager" 
+                    <Input
+                      id="relationshipManager"
                       value={rmInfo.relationshipManager}
-                      onChange={(e) => setRmInfo({...rmInfo, relationshipManager: e.target.value})}
+                      onChange={(e) => setRmInfo({ ...rmInfo, relationshipManager: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="rmContact">Relationship Manager Contact Number</Label>
-                    <Input 
-                      id="rmContact" 
+                    <Input
+                      id="rmContact"
                       value={rmInfo.rmContact}
-                      onChange={(e) => setRmInfo({...rmInfo, rmContact: e.target.value})}
+                      onChange={(e) => setRmInfo({ ...rmInfo, rmContact: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="rmEmail">Relationship Manager Email</Label>
-                    <Input 
-                      id="rmEmail" 
+                    <Input
+                      id="rmEmail"
                       value={rmInfo.rmEmail}
-                      onChange={(e) => setRmInfo({...rmInfo, rmEmail: e.target.value})}
+                      onChange={(e) => setRmInfo({ ...rmInfo, rmEmail: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="salesManager">Sales Manager Name</Label>
-                    <Input 
-                      id="salesManager" 
+                    <Input
+                      id="salesManager"
                       value={rmInfo.salesManager}
-                      onChange={(e) => setRmInfo({...rmInfo, salesManager: e.target.value})}
+                      onChange={(e) => setRmInfo({ ...rmInfo, salesManager: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="salesManagerEmail">Sales Manager Email</Label>
-                    <Input 
-                      id="salesManagerEmail" 
+                    <Input
+                      id="salesManagerEmail"
                       value={rmInfo.salesManagerEmail}
-                      onChange={(e) => setRmInfo({...rmInfo, salesManagerEmail: e.target.value})}
+                      onChange={(e) => setRmInfo({ ...rmInfo, salesManagerEmail: e.target.value })}
                     />
                   </div>
                 </div>
-                <Button className="mt-4" onClick={handleSaveRM}>
+                <Button className="mt-4" onClick={handleSaveRmInfo}>
                   <Save className="mr-2 h-4 w-4" />
                   Save RM Information
                 </Button>
@@ -735,19 +754,34 @@ const HospitalSettings = () => {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="current-password">Current Password</Label>
-                <Input id="current-password" type="password" />
+                <Input
+                  id="current-password"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="new-password">New Password</Label>
-                <Input id="new-password" type="password" />
+                <Input
+                  id="new-password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirm-password">Confirm New Password</Label>
-                <Input id="confirm-password" type="password" />
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
               </div>
-              
+
               <Separator className="my-4" />
-              
+
               <div>
                 <h3 className="font-medium mb-2">Two-Factor Authentication</h3>
                 <p className="text-sm text-muted-foreground mb-4">
@@ -757,9 +791,9 @@ const HospitalSettings = () => {
                   Enable Two-Factor Authentication
                 </Button>
               </div>
-              
+
               <Separator className="my-4" />
-              
+
               <div>
                 <h3 className="font-medium mb-2">Active Sessions</h3>
                 <p className="text-sm text-muted-foreground mb-4">
@@ -784,7 +818,7 @@ const HospitalSettings = () => {
               </div>
             </CardContent>
             <CardFooter>
-              <Button>Update Security Settings</Button>
+              <Button onClick={handleUpdatePassword}>Update Security Settings</Button>
             </CardFooter>
           </Card>
         </TabsContent>

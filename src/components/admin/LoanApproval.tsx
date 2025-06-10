@@ -1,10 +1,10 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { FileText, Check, X, Edit } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   Select,
   SelectContent,
@@ -23,130 +24,116 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { fetchAllLoans, updateLoanStatus, LoanData } from "@/services/loanService";
 
 const LoanApproval = () => {
-  // Mock data
-  const [pendingLoans, setPendingLoans] = useState([
-    {
-      id: "LOAN-P12345",
-      patientName: "Rahul Sharma",
-      patientId: "PAT-23456",
-      amount: 50000,
-      purpose: "Heart Surgery",
-      hospital: "City General Hospital",
-      requestDate: "22/11/2023",
-      status: "Pending"
-    },
-    {
-      id: "LOAN-P12346",
-      patientName: "Priya Patel",
-      patientId: "PAT-23457",
-      amount: 30000,
-      purpose: "Dental Treatment",
-      hospital: "Smile Dental Clinic",
-      requestDate: "21/11/2023",
-      status: "Pending"
-    },
-    {
-      id: "LOAN-P12347",
-      patientName: "Sameer Khan",
-      patientId: "PAT-23458",
-      amount: 75000,
-      purpose: "Knee Replacement",
-      hospital: "Orthopedic Specialty Hospital",
-      requestDate: "20/11/2023",
-      status: "Pending"
-    },
-  ]);
-
-  const [recentLoans, setRecentLoans] = useState([
-    {
-      id: "LOAN-P12340",
-      patientName: "Anita Desai",
-      patientId: "PAT-23450",
-      amount: 45000,
-      purpose: "Maternity Care",
-      hospital: "Mother & Child Hospital",
-      requestDate: "18/11/2023",
-      status: "Approved",
-      approvedDate: "19/11/2023",
-      approvedBy: "Admin User"
-    },
-    {
-      id: "LOAN-P12341",
-      patientName: "Vikram Singh",
-      patientId: "PAT-23451",
-      amount: 20000,
-      purpose: "Orthopedic Treatment",
-      hospital: "City General Hospital",
-      requestDate: "17/11/2023",
-      status: "Rejected",
-      rejectedDate: "18/11/2023",
-      rejectionReason: "Incomplete documentation"
-    },
-  ]);
-
-  const [selectedLoan, setSelectedLoan] = useState(null);
+  const { toast } = useToast();
+  const [allLoans, setAllLoans] = useState<LoanData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedLoan, setSelectedLoan] = useState<LoanData | null>(null);
   const [loanTerms, setLoanTerms] = useState({
     amount: 0,
     interestRate: "12",
     tenure: "24",
   });
+  const [rejectionReason, setRejectionReason] = useState("");
 
-  const handleViewLoan = (loan) => {
+  useEffect(() => {
+    loadLoans();
+  }, []);
+
+  const loadLoans = async () => {
+    try {
+      setLoading(true);
+      const loans = await fetchAllLoans();
+      setAllLoans(loans);
+    } catch (error) {
+      console.error('Failed to load loans:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load loans. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const pendingLoans = allLoans.filter(loan => 
+    loan.status === 'submitted' || loan.status === 'under_review'
+  );
+
+  const recentLoans = allLoans.filter(loan => 
+    loan.status === 'approved' || loan.status === 'rejected'
+  ).slice(0, 10);
+
+  const handleViewLoan = (loan: LoanData) => {
     setSelectedLoan(loan);
     setLoanTerms({
-      amount: loan.amount,
-      interestRate: "12",
-      tenure: "24",
+      amount: loan.loanDetails.requestedAmount,
+      interestRate: loan.loanDetails.interestRate?.toString() || "12",
+      tenure: loan.loanDetails.preferredTerm?.toString() || "24",
     });
   };
 
-  const handleApproveLoan = () => {
-    toast({
-      title: "Loan Approved",
-      description: `Loan ${selectedLoan.id} has been approved successfully.`,
-    });
-    
-    // Update the pending loans list
-    setPendingLoans(pendingLoans.filter(loan => loan.id !== selectedLoan.id));
-    
-    // Add to recent loans
-    setRecentLoans([
-      {
-        ...selectedLoan,
-        status: "Approved",
-        approvedDate: new Date().toLocaleDateString('en-GB'),
-        approvedBy: "Admin User"
-      },
-      ...recentLoans
-    ]);
-    
-    setSelectedLoan(null);
+  const handleApproveLoan = async () => {
+    if (!selectedLoan) return;
+
+    try {
+      await updateLoanStatus(selectedLoan._id, 'approved', {
+        approvedAmount: loanTerms.amount,
+        interestRate: Number(loanTerms.interestRate),
+        term: Number(loanTerms.tenure)
+      });
+
+      toast({
+        title: "Loan Approved",
+        description: `Loan ${selectedLoan.applicationNumber} has been approved successfully.`,
+      });
+
+      await loadLoans();
+      setSelectedLoan(null);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to approve loan. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleRejectLoan = () => {
-    toast({
-      title: "Loan Rejected",
-      description: `Loan ${selectedLoan.id} has been rejected.`,
-    });
-    
-    // Update the pending loans list
-    setPendingLoans(pendingLoans.filter(loan => loan.id !== selectedLoan.id));
-    
-    // Add to recent loans
-    setRecentLoans([
-      {
-        ...selectedLoan,
-        status: "Rejected",
-        rejectedDate: new Date().toLocaleDateString('en-GB'),
-        rejectionReason: "Not eligible"
-      },
-      ...recentLoans
-    ]);
-    
-    setSelectedLoan(null);
+  const handleRejectLoan = async () => {
+    if (!selectedLoan) return;
+
+    try {
+      await updateLoanStatus(selectedLoan._id, 'rejected', {
+        rejectionReason
+      });
+
+      toast({
+        title: "Loan Rejected",
+        description: `Loan ${selectedLoan.applicationNumber} has been rejected.`,
+      });
+
+      await loadLoans();
+      setSelectedLoan(null);
+      setRejectionReason("");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to reject loan. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -165,26 +152,28 @@ const LoanApproval = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Loan ID</TableHead>
-                  <TableHead>Patient Name</TableHead>
-                  <TableHead>Patient ID</TableHead>
+                  <TableHead>Application #</TableHead>
+                  <TableHead>UHID</TableHead>
+                  <TableHead>Treatment</TableHead>
                   <TableHead>Amount</TableHead>
-                  <TableHead>Purpose</TableHead>
-                  <TableHead>Hospital</TableHead>
                   <TableHead>Request Date</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {pendingLoans.map((loan) => (
-                  <TableRow key={loan.id}>
-                    <TableCell className="font-medium">{loan.id}</TableCell>
-                    <TableCell>{loan.patientName}</TableCell>
-                    <TableCell>{loan.patientId}</TableCell>
-                    <TableCell>₹{loan.amount.toLocaleString()}</TableCell>
-                    <TableCell>{loan.purpose}</TableCell>
-                    <TableCell>{loan.hospital}</TableCell>
-                    <TableCell>{loan.requestDate}</TableCell>
+                  <TableRow key={loan._id}>
+                    <TableCell className="font-medium">{loan.applicationNumber}</TableCell>
+                    <TableCell>{loan.uhid}</TableCell>
+                    <TableCell>{loan.medicalInfo?.treatmentRequired || 'N/A'}</TableCell>
+                    <TableCell>₹{loan.loanDetails?.requestedAmount?.toLocaleString() || 0}</TableCell>
+                    <TableCell>{new Date(loan.applicationDate).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        {loan.status.replace('_', ' ').toUpperCase()}
+                      </span>
+                    </TableCell>
                     <TableCell>
                       <Dialog>
                         <DialogTrigger asChild>
@@ -197,8 +186,8 @@ const LoanApproval = () => {
                           </Button>
                         </DialogTrigger>
                         
-                        {selectedLoan && (
-                          <DialogContent className="sm:max-w-[500px]">
+                        {selectedLoan && selectedLoan._id === loan._id && (
+                          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                             <DialogHeader>
                               <DialogTitle>Loan Application Review</DialogTitle>
                               <DialogDescription>
@@ -209,43 +198,27 @@ const LoanApproval = () => {
                             <div className="grid gap-4 py-4">
                               <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                  <Label htmlFor="patientName">Patient Name</Label>
-                                  <Input 
-                                    id="patientName" 
-                                    value={selectedLoan.patientName} 
-                                    readOnly 
-                                  />
+                                  <Label>Application Number</Label>
+                                  <Input value={selectedLoan.applicationNumber} readOnly />
                                 </div>
                                 <div>
-                                  <Label htmlFor="patientId">Patient ID</Label>
-                                  <Input 
-                                    id="patientId" 
-                                    value={selectedLoan.patientId} 
-                                    readOnly 
-                                  />
+                                  <Label>UHID</Label>
+                                  <Input value={selectedLoan.uhid} readOnly />
                                 </div>
                               </div>
                               
                               <div>
-                                <Label htmlFor="purpose">Purpose</Label>
-                                <Input 
-                                  id="purpose" 
-                                  value={selectedLoan.purpose} 
-                                  readOnly 
-                                />
+                                <Label>Treatment Required</Label>
+                                <Input value={selectedLoan.medicalInfo?.treatmentRequired || 'N/A'} readOnly />
                               </div>
                               
                               <div>
-                                <Label htmlFor="hospital">Hospital</Label>
-                                <Input 
-                                  id="hospital" 
-                                  value={selectedLoan.hospital} 
-                                  readOnly 
-                                />
+                                <Label>Requested Amount</Label>
+                                <Input value={`₹${selectedLoan.loanDetails?.requestedAmount?.toLocaleString() || 0}`} readOnly />
                               </div>
                               
                               <div>
-                                <Label htmlFor="amount">Loan Amount</Label>
+                                <Label htmlFor="amount">Approved Amount</Label>
                                 <Input 
                                   id="amount" 
                                   value={loanTerms.amount} 
@@ -300,6 +273,16 @@ const LoanApproval = () => {
                                   ₹{Math.round((loanTerms.amount * (1 + (Number(loanTerms.interestRate) / 100) * Number(loanTerms.tenure) / 12)) / Number(loanTerms.tenure)).toLocaleString()}
                                 </div>
                               </div>
+
+                              <div>
+                                <Label htmlFor="rejectionReason">Rejection Reason (if rejecting)</Label>
+                                <Textarea
+                                  id="rejectionReason"
+                                  value={rejectionReason}
+                                  onChange={(e) => setRejectionReason(e.target.value)}
+                                  placeholder="Enter reason for rejection (optional)"
+                                />
+                              </div>
                             </div>
                             
                             <DialogFooter>
@@ -340,10 +323,10 @@ const LoanApproval = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Loan ID</TableHead>
-                  <TableHead>Patient Name</TableHead>
+                  <TableHead>Application #</TableHead>
+                  <TableHead>UHID</TableHead>
+                  <TableHead>Treatment</TableHead>
                   <TableHead>Amount</TableHead>
-                  <TableHead>Hospital</TableHead>
                   <TableHead>Request Date</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Action Date</TableHead>
@@ -351,20 +334,20 @@ const LoanApproval = () => {
               </TableHeader>
               <TableBody>
                 {recentLoans.map((loan) => (
-                  <TableRow key={loan.id}>
-                    <TableCell className="font-medium">{loan.id}</TableCell>
-                    <TableCell>{loan.patientName}</TableCell>
-                    <TableCell>₹{loan.amount.toLocaleString()}</TableCell>
-                    <TableCell>{loan.hospital}</TableCell>
-                    <TableCell>{loan.requestDate}</TableCell>
+                  <TableRow key={loan._id}>
+                    <TableCell className="font-medium">{loan.applicationNumber}</TableCell>
+                    <TableCell>{loan.uhid}</TableCell>
+                    <TableCell>{loan.medicalInfo?.treatmentRequired || 'N/A'}</TableCell>
+                    <TableCell>₹{loan.loanDetails?.requestedAmount?.toLocaleString() || 0}</TableCell>
+                    <TableCell>{new Date(loan.applicationDate).toLocaleDateString()}</TableCell>
                     <TableCell>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        loan.status === 'Approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        loan.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}>
-                        {loan.status}
+                        {loan.status.toUpperCase()}
                       </span>
                     </TableCell>
-                    <TableCell>{loan.status === 'Approved' ? loan.approvedDate : loan.rejectedDate}</TableCell>
+                    <TableCell>{loan.approvalDate ? new Date(loan.approvalDate).toLocaleDateString() : 'N/A'}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -376,7 +359,9 @@ const LoanApproval = () => {
           )}
         </CardContent>
         <CardFooter>
-          <Button variant="outline" className="ml-auto">View All Loan Applications</Button>
+          <Button variant="outline" className="ml-auto" onClick={loadLoans}>
+            Refresh Data
+          </Button>
         </CardFooter>
       </Card>
     </div>

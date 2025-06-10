@@ -1,9 +1,26 @@
-
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { User, Mail, Phone, Shield, Edit, Save, X, Bell } from "lucide-react";
+import {
+  User,
+  Mail,
+  Phone,
+  Shield,
+  Edit,
+  Save,
+  X,
+  Bell,
+  Fingerprint,
+} from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import FaceAuthComponent from "./FaceAuthComponent";
 
 interface ProfileSettingsProps {
   patientData: {
@@ -16,6 +33,7 @@ interface ProfileSettingsProps {
 
 const ProfileSettings = ({ patientData }: ProfileSettingsProps) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [faceAuthRegistered, setFaceAuthRegistered] = useState(false);
   const [formData, setFormData] = useState({
     fullName: patientData.patientName,
     email: patientData.email,
@@ -27,9 +45,9 @@ const ProfileSettings = ({ patientData }: ProfileSettingsProps) => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -52,6 +70,10 @@ const ProfileSettings = ({ patientData }: ProfileSettingsProps) => {
       emergencyContact: "+91 9876543211",
     });
     setIsEditing(false);
+  };
+
+  const handleFaceRegistered = (success: boolean) => {
+    setFaceAuthRegistered(success);
   };
 
   return (
@@ -77,11 +99,19 @@ const ProfileSettings = ({ patientData }: ProfileSettingsProps) => {
                 />
               </div>
               <div>
-                <h3 className="text-xl font-semibold">{patientData.patientName}</h3>
-                <p className="text-sm text-muted-foreground">Patient ID: {patientData.patientId}</p>
-                <p className="text-sm text-muted-foreground">Health Card: {patientData.healthCardId}</p>
+                <h3 className="text-xl font-semibold">
+                  {patientData.patientName}
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Patient ID: {patientData.patientId}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Health Card: {patientData.healthCardId}
+                </p>
                 <div className="mt-2">
-                  <Button size="sm" variant="outline">Change Photo</Button>
+                  <Button size="sm" variant="outline">
+                    Change Photo
+                  </Button>
                 </div>
               </div>
             </div>
@@ -98,7 +128,9 @@ const ProfileSettings = ({ patientData }: ProfileSettingsProps) => {
                       <input
                         id="fullName"
                         name="fullName"
-                        className={`w-full p-2 border rounded-md ${isEditing ? '' : 'bg-gray-50'}`}
+                        className={`w-full p-2 border rounded-md ${
+                          isEditing ? "" : "bg-gray-50"
+                        }`}
                         value={formData.fullName}
                         onChange={handleInputChange}
                         readOnly={!isEditing}
@@ -115,7 +147,9 @@ const ProfileSettings = ({ patientData }: ProfileSettingsProps) => {
                         id="email"
                         name="email"
                         type="email"
-                        className={`w-full p-2 border rounded-md ${isEditing ? '' : 'bg-gray-50'}`}
+                        className={`w-full p-2 border rounded-md ${
+                          isEditing ? "" : "bg-gray-50"
+                        }`}
                         value={formData.email}
                         onChange={handleInputChange}
                         readOnly={!isEditing}
@@ -131,7 +165,9 @@ const ProfileSettings = ({ patientData }: ProfileSettingsProps) => {
                       <input
                         id="phone"
                         name="phone"
-                        className={`w-full p-2 border rounded-md ${isEditing ? '' : 'bg-gray-50'}`}
+                        className={`w-full p-2 border rounded-md ${
+                          isEditing ? "" : "bg-gray-50"
+                        }`}
                         value={formData.phone}
                         onChange={handleInputChange}
                         readOnly={!isEditing}
@@ -147,7 +183,9 @@ const ProfileSettings = ({ patientData }: ProfileSettingsProps) => {
                       <input
                         id="address"
                         name="address"
-                        className={`w-full p-2 border rounded-md ${isEditing ? '' : 'bg-gray-50'}`}
+                        className={`w-full p-2 border rounded-md ${
+                          isEditing ? "" : "bg-gray-50"
+                        }`}
                         value={formData.address}
                         onChange={handleInputChange}
                         readOnly={!isEditing}
@@ -155,7 +193,10 @@ const ProfileSettings = ({ patientData }: ProfileSettingsProps) => {
                     </div>
                   </div>
                   <div>
-                    <label htmlFor="preferredHospital" className="text-sm font-medium">
+                    <label
+                      htmlFor="preferredHospital"
+                      className="text-sm font-medium"
+                    >
                       Preferred Hospital
                     </label>
                     <div className="flex items-center mt-1">
@@ -163,7 +204,9 @@ const ProfileSettings = ({ patientData }: ProfileSettingsProps) => {
                       <input
                         id="preferredHospital"
                         name="preferredHospital"
-                        className={`w-full p-2 border rounded-md ${isEditing ? '' : 'bg-gray-50'}`}
+                        className={`w-full p-2 border rounded-md ${
+                          isEditing ? "" : "bg-gray-50"
+                        }`}
                         value={formData.preferredHospital}
                         onChange={handleInputChange}
                         readOnly={!isEditing}
@@ -171,7 +214,10 @@ const ProfileSettings = ({ patientData }: ProfileSettingsProps) => {
                     </div>
                   </div>
                   <div>
-                    <label htmlFor="emergencyContact" className="text-sm font-medium">
+                    <label
+                      htmlFor="emergencyContact"
+                      className="text-sm font-medium"
+                    >
                       Emergency Contact
                     </label>
                     <div className="flex items-center mt-1">
@@ -179,7 +225,9 @@ const ProfileSettings = ({ patientData }: ProfileSettingsProps) => {
                       <input
                         id="emergencyContact"
                         name="emergencyContact"
-                        className={`w-full p-2 border rounded-md ${isEditing ? '' : 'bg-gray-50'}`}
+                        className={`w-full p-2 border rounded-md ${
+                          isEditing ? "" : "bg-gray-50"
+                        }`}
                         value={formData.emergencyContact}
                         onChange={handleInputChange}
                         readOnly={!isEditing}
@@ -217,7 +265,9 @@ const ProfileSettings = ({ patientData }: ProfileSettingsProps) => {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Security Settings</CardTitle>
-              <CardDescription>Manage your security preferences</CardDescription>
+              <CardDescription>
+                Manage your security preferences
+              </CardDescription>
             </div>
             <Shield className="h-8 w-8 text-primary" />
           </div>
@@ -228,9 +278,11 @@ const ProfileSettings = ({ patientData }: ProfileSettingsProps) => {
               <h3 className="text-sm font-medium mb-2">Password</h3>
               <Button variant="outline">Change Password</Button>
             </div>
-            
+
             <div className="pt-4 border-t">
-              <h3 className="text-sm font-medium mb-2">Two-Factor Authentication</h3>
+              <h3 className="text-sm font-medium mb-2">
+                Two-Factor Authentication
+              </h3>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">
@@ -240,21 +292,46 @@ const ProfileSettings = ({ patientData }: ProfileSettingsProps) => {
                 <Button variant="outline">Enable 2FA</Button>
               </div>
             </div>
-            
+
             <div className="pt-4 border-t">
               <h3 className="text-sm font-medium mb-2">Login Devices</h3>
               <Button variant="outline">View Active Sessions</Button>
             </div>
+
+            <div className="pt-4 border-t">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-sm font-medium">Face Authentication</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Set up face authentication for payments
+                  </p>
+                </div>
+                {faceAuthRegistered && (
+                  <div className="flex items-center text-green-600">
+                    <Fingerprint className="h-4 w-4 mr-1" />
+                    <span className="text-sm">Registered</span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Face Authentication Component */}
+      <FaceAuthComponent
+        emailId={patientData.email}
+        onFaceRegistered={handleFaceRegistered}
+      />
 
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Notifications</CardTitle>
-              <CardDescription>Manage your notification preferences</CardDescription>
+              <CardDescription>
+                Manage your notification preferences
+              </CardDescription>
             </div>
             <Bell className="h-8 w-8 text-primary" />
           </div>
@@ -269,16 +346,18 @@ const ProfileSettings = ({ patientData }: ProfileSettingsProps) => {
                 </p>
               </div>
               <div className="flex items-center">
-                <input 
-                  type="checkbox" 
-                  id="emiReminders" 
+                <input
+                  type="checkbox"
+                  id="emiReminders"
                   className="mr-2 h-4 w-4"
-                  defaultChecked 
+                  defaultChecked
                 />
-                <label htmlFor="emiReminders" className="text-sm">Enable</label>
+                <label htmlFor="emiReminders" className="text-sm">
+                  Enable
+                </label>
               </div>
             </div>
-            
+
             <div className="flex items-center justify-between py-2 border-t">
               <div>
                 <h3 className="text-sm font-medium">Appointment Reminders</h3>
@@ -287,34 +366,40 @@ const ProfileSettings = ({ patientData }: ProfileSettingsProps) => {
                 </p>
               </div>
               <div className="flex items-center">
-                <input 
-                  type="checkbox" 
-                  id="appointmentReminders" 
+                <input
+                  type="checkbox"
+                  id="appointmentReminders"
                   className="mr-2 h-4 w-4"
-                  defaultChecked 
+                  defaultChecked
                 />
-                <label htmlFor="appointmentReminders" className="text-sm">Enable</label>
+                <label htmlFor="appointmentReminders" className="text-sm">
+                  Enable
+                </label>
               </div>
             </div>
-            
+
             <div className="flex items-center justify-between py-2 border-t">
               <div>
-                <h3 className="text-sm font-medium">Health Card Balance Alerts</h3>
+                <h3 className="text-sm font-medium">
+                  Health Card Balance Alerts
+                </h3>
                 <p className="text-xs text-muted-foreground">
                   Receive alerts when your health card balance is low
                 </p>
               </div>
               <div className="flex items-center">
-                <input 
-                  type="checkbox" 
-                  id="balanceAlerts" 
+                <input
+                  type="checkbox"
+                  id="balanceAlerts"
                   className="mr-2 h-4 w-4"
-                  defaultChecked 
+                  defaultChecked
                 />
-                <label htmlFor="balanceAlerts" className="text-sm">Enable</label>
+                <label htmlFor="balanceAlerts" className="text-sm">
+                  Enable
+                </label>
               </div>
             </div>
-            
+
             <div className="flex items-center justify-between py-2 border-t">
               <div>
                 <h3 className="text-sm font-medium">Promotional Offers</h3>
@@ -323,12 +408,14 @@ const ProfileSettings = ({ patientData }: ProfileSettingsProps) => {
                 </p>
               </div>
               <div className="flex items-center">
-                <input 
-                  type="checkbox" 
-                  id="promotionalOffers" 
-                  className="mr-2 h-4 w-4" 
+                <input
+                  type="checkbox"
+                  id="promotionalOffers"
+                  className="mr-2 h-4 w-4"
                 />
-                <label htmlFor="promotionalOffers" className="text-sm">Enable</label>
+                <label htmlFor="promotionalOffers" className="text-sm">
+                  Enable
+                </label>
               </div>
             </div>
           </div>

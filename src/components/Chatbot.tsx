@@ -9,20 +9,19 @@ import { Message, getHealthResponse } from "@/lib/chatbot";
 const mainOptions = [
   {
     title: "Our Services",
-    description: "Healthcare Financing, Pharmacy, Ambulance, Retail Stores, Pathology, Pharma",
+    description: "Healthcare Financing, Pharmacy, Ambulance, Retail Stores, Pathology",
     keywords: ["services", "offerings", "what we offer"],
     subOptions: [
       "Healthcare Financing",
-      "Pharmacy Services",
-      "Ambulance Services",
-      "Retail Stores",
-      "Pathology Services",
-      "Pharma Services"
+      "RI Medicare Pharma",
+      "Quick Ambulance Service",
+      "Pharmacy Retail Stores",
+      "RI Medicare Pathology"
     ]
   },
   {
     title: "Loan Process",
-    description: "7 simple steps to get your medical loan",
+    description: "Steps to get your medical loan",
     keywords: ["loan", "loan process", "how to get loan"],
     subOptions: [
       "Personal Details",
@@ -35,27 +34,14 @@ const mainOptions = [
     ]
   },
   {
-    title: "Contact Us",
-    description: "Address, Email, Phone number",
-    keywords: ["contact", "address", "phone", "email"],
+    title: "My Information",
+    description: "About us and contact details",
+    keywords: ["information", "about", "contact"],
     subOptions: [
-      "Office Address",
-      "Email Contact",
-      "Phone Number",
-      "Emergency Contact"
+      "About Us",
+      "Contact Us"
     ]
   },
-  {
-    title: "KYC Process",
-    description: "Complete your KYC verification",
-    keywords: ["kyc", "verification"],
-    subOptions: [
-      "Start KYC",
-      "Required Documents",
-      "KYC Steps",
-      "KYC Status Check"
-    ]
-  }
 ];
 
 export function Chatbot() {
@@ -153,7 +139,7 @@ export function Chatbot() {
             <MessageCircle className="h-5 w-5" />
           </div>
           <div>
-            <h3 className="font-semibold">Rimedicare</h3>
+            <h3 className="font-semibold">Anany</h3>
             <p className="text-xs text-white/80">Online</p>
           </div>
         </div>

@@ -4,7 +4,7 @@ import { AuthUser, UserRole } from "@/types/app.types";
 export const loginUser = async (email: string, password: string) => {
   try {
     // Login request to get token
-    const data = await apiRequest("/auth", {
+    const data = await apiRequest("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     });

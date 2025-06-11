@@ -31,15 +31,15 @@ export const healthResponses: HealthResponse[] = [
   {
     keywords: ['hi', 'hello', 'hey', 'namaste', 'namaskar', 'नमस्ते', 'नमस्कार', 'हैलो'],
     response: {
-      en: "Hello! I'm Rimedicare. How can I help you today? You can ask me about appointments, emergency services, pharmacy, insurance, doctor consultations, or lab tests.",
-      hi: "नमस्ते! मैं Rimedicare हूं। मैं आपकी कैसे मदद कर सकती हूं? आप मुझसे अपॉइंटमेंट, इमरजेंसी सर्विसेज, फार्मेसी, इंश्योरेंस, डॉक्टर कंसल्टेशन, या लैब टेस्ट के बारे में पूछ सकते हैं।"
+      en: "Hello! I'm Anany. How can I help you today? You can ask me about appointments, emergency services, pharmacy, insurance, doctor consultations, or lab tests.",
+      hi: "नमस्ते! मैं Anany हूं। मैं आपकी कैसे मदद कर सकती हूं? आप मुझसे अपॉइंटमेंट, इमरजेंसी सर्विसेज, फार्मेसी, इंश्योरेंस, डॉक्टर कंसल्टेशन, या लैब टेस्ट के बारे में पूछ सकते हैं।"
     }
   },
   {
     keywords: ['how are you', 'how r u', 'how do you do', 'कैसे हो', 'कैसा चल रहा है', 'कैसे हैं आप'],
     response: {
-      en: "I'm doing well, thank you for asking! I'm Rimedicare, here to help you with your health-related queries. What would you like to know about?",
-      hi: "मैं ठीक हूं, पूछने के लिए धन्यवाद! मैं Rimedicare हूं, आपकी स्वास्थ्य संबंधित जानकारी में मदद करने के लिए यहां हूं। आप क्या जानना चाहेंगे?"
+      en: "I'm doing well, thank you for asking! I'm Anany, here to help you with your health-related queries. What would you like to know about?",
+      hi: "मैं ठीक हूं, पूछने के लिए धन्यवाद! मैं Anany हूं, आपकी स्वास्थ्य संबंधित जानकारी में मदद करने के लिए यहां हूं। आप क्या जानना चाहेंगे?"
     }
   },
   {
@@ -138,8 +138,8 @@ export const getHealthResponse = (userMessage: string): string => {
   
   // Default response based on selected language
   const defaultResponses = {
-    en: "I'm Rimedicare. I can help you with appointments, emergency services, pharmacy, insurance, doctor consultations, and lab tests. How can I assist you today?",
-    hi: "मैं Rimedicare हूं। मैं आपकी अपॉइंटमेंट, इमरजेंसी सर्विसेज, फार्मेसी, इंश्योरेंस, डॉक्टर कंसल्टेशन, और लैब टेस्ट में मदद कर सकती हूं। मैं आपकी कैसे सहायता कर सकती हूं?"
+    en: "I'm Anany. I can help you with appointments, emergency services, pharmacy, insurance, doctor consultations, and lab tests. How can I assist you today?",
+    hi: "मैं Anany हूं। मैं आपकी अपॉइंटमेंट, इमरजेंसी सर्विसेज, फार्मेसी, इंश्योरेंस, डॉक्टर कंसल्टेशन, और लैब टेस्ट में मदद कर सकती हूं। मैं आपकी कैसे सहायता कर सकती हूं?"
   };
   
   return defaultResponses[selectedLanguage];

@@ -40,7 +40,20 @@ const AdminDashboard = () => {
   const [isQuickActionOpen, setIsQuickActionOpen] = useState(false);
   const [quickActionType, setQuickActionType] = useState("hospital");
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
+
+  // State for quick action form fields
+  const [quickActionForm, setQuickActionForm] = useState({
+    hospitalName: "",
+    hospitalLocation: "",
+    loanId: "",
+    loanAmount: "",
+    userName: "",
+    userEmail: "",
+    cardType: "basic",
+    patientId: "",
+    notes: "",
+  });
+
   const query = new URLSearchParams(location.search);
   const activeTab = query.get("tab") || "overview";
 
@@ -67,6 +80,18 @@ const AdminDashboard = () => {
 
   const handleQuickAction = (actionType: string) => {
     setQuickActionType(actionType);
+    // Reset form fields when opening the dialog
+    setQuickActionForm({
+      hospitalName: "",
+      hospitalLocation: "",
+      loanId: "",
+      loanAmount: "",
+      userName: "",
+      userEmail: "",
+      cardType: "basic",
+      patientId: "",
+      notes: "",
+    });
     setIsQuickActionOpen(true);
   };
 
@@ -94,31 +119,136 @@ const AdminDashboard = () => {
     }, 1500);
   };
 
-  const handleQuickActionSubmit = (e: React.FormEvent) => {
+  const handleQuickActionSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    let endpoint = "";
+    let payload = {};
     let actionMessage = "";
-    
-    switch(quickActionType) {
-      case "hospital":
-        actionMessage = "Hospital registration request has been processed";
-        break;
-      case "loan":
-        actionMessage = "Loan has been approved successfully";
-        break;
-      case "user":
-        actionMessage = "User account has been created successfully";
-        break;
-      case "healthcard":
-        actionMessage = "Health card has been created successfully";
-        break;
+    let errorMessage = "Something went wrong. Please try again.";
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No authentication token found. Please log in again.");
+      }
+
+      switch (quickActionType) {
+        case "hospital":
+          if (!quickActionForm.hospitalName || !quickActionForm.hospitalLocation) {
+            toast({
+              variant: "destructive",
+              title: "Missing Information",
+              description: "Hospital name and location are required.",
+            });
+            return;
+          }
+          endpoint = "/api/admin/quick-action/hospital";
+          payload = {
+            name: quickActionForm.hospitalName,
+            location: quickActionForm.hospitalLocation,
+            notes: quickActionForm.notes,
+          };
+          actionMessage = "Hospital registration request has been processed.";
+          errorMessage = "Failed to process hospital registration.";
+          break;
+
+        case "loan":
+          if (!quickActionForm.loanId || !quickActionForm.loanAmount) {
+            toast({
+              variant: "destructive",
+              title: "Missing Information",
+              description: "Loan ID and amount are required.",
+            });
+            return;
+          }
+          endpoint = "/api/admin/quick-action/loan";
+          payload = {
+            loanId: quickActionForm.loanId,
+            amount: parseFloat(quickActionForm.loanAmount),
+            notes: quickActionForm.notes,
+          };
+          actionMessage = "Loan has been approved successfully.";
+          errorMessage = "Failed to approve loan.";
+          break;
+
+        case "user":
+          if (!quickActionForm.userName || !quickActionForm.userEmail) {
+            toast({
+              variant: "destructive",
+              title: "Missing Information",
+              description: "User name and email are required.",
+            });
+            return;
+          }
+          endpoint = "/api/admin/quick-action/user";
+          payload = {
+            name: quickActionForm.userName,
+            email: quickActionForm.userEmail,
+            notes: quickActionForm.notes,
+          };
+          actionMessage = "User account has been created successfully.";
+          errorMessage = "Failed to create user account.";
+          break;
+
+        case "healthcard":
+          if (!quickActionForm.patientId) {
+            toast({
+              variant: "destructive",
+              title: "Missing Information",
+              description: "Patient ID is required.",
+            });
+            return;
+          }
+          endpoint = "/api/admin/quick-action/health-card";
+          payload = {
+            cardType: quickActionForm.cardType,
+            patientId: quickActionForm.patientId,
+            notes: quickActionForm.notes,
+          };
+          actionMessage = "Health card has been created successfully.";
+          errorMessage = "Failed to create health card.";
+          break;
+
+        default:
+          throw new Error("Invalid action type.");
+      }
+
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.msg || errorMessage);
+      }
+
+      toast({
+        title: "Action Completed",
+        description: actionMessage,
+      });
+
+      setIsQuickActionOpen(false);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || errorMessage,
+      });
     }
-    
-    toast({
-      title: "Action Completed",
-      description: actionMessage,
-    });
-    
-    setIsQuickActionOpen(false);
+  };
+
+  // Handle form field changes
+  const handleQuickActionFormChange = (field: string, value: string) => {
+    setQuickActionForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
   };
 
   return (
@@ -289,7 +419,7 @@ const AdminDashboard = () => {
                 <Label htmlFor="actionType" className="text-right">Action Type</Label>
                 <Select 
                   value={quickActionType} 
-                  onValueChange={setQuickActionType}
+                  onValueChange={(value) => setQuickActionType(value)}
                 >
                   <SelectTrigger id="actionType" className="col-span-3">
                     <SelectValue placeholder="Select action type" />
@@ -307,11 +437,23 @@ const AdminDashboard = () => {
                 <>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="hospitalName" className="text-right">Hospital Name</Label>
-                    <Input id="hospitalName" placeholder="Enter hospital name" className="col-span-3" />
+                    <Input 
+                      id="hospitalName" 
+                      placeholder="Enter hospital name" 
+                      className="col-span-3" 
+                      value={quickActionForm.hospitalName}
+                      onChange={(e) => handleQuickActionFormChange("hospitalName", e.target.value)}
+                    />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="hospitalLocation" className="text-right">Location</Label>
-                    <Input id="hospitalLocation" placeholder="Enter location" className="col-span-3" />
+                    <Input 
+                      id="hospitalLocation" 
+                      placeholder="Enter location" 
+                      className="col-span-3" 
+                      value={quickActionForm.hospitalLocation}
+                      onChange={(e) => handleQuickActionFormChange("hospitalLocation", e.target.value)}
+                    />
                   </div>
                 </>
               )}
@@ -320,11 +462,24 @@ const AdminDashboard = () => {
                 <>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="loanId" className="text-right">Loan ID</Label>
-                    <Input id="loanId" placeholder="Enter loan ID" className="col-span-3" />
+                    <Input 
+                      id="loanId" 
+                      placeholder="Enter loan ID" 
+                      className="col-span-3" 
+                      value={quickActionForm.loanId}
+                      onChange={(e) => handleQuickActionFormChange("loanId", e.target.value)}
+                    />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="loanAmount" className="text-right">Amount</Label>
-                    <Input id="loanAmount" type="number" placeholder="Enter amount" className="col-span-3" />
+                    <Input 
+                      id="loanAmount" 
+                      type="number" 
+                      placeholder="Enter amount" 
+                      className="col-span-3" 
+                      value={quickActionForm.loanAmount}
+                      onChange={(e) => handleQuickActionFormChange("loanAmount", e.target.value)}
+                    />
                   </div>
                 </>
               )}
@@ -333,11 +488,24 @@ const AdminDashboard = () => {
                 <>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="userName" className="text-right">Full Name</Label>
-                    <Input id="userName" placeholder="Enter user's name" className="col-span-3" />
+                    <Input 
+                      id="userName" 
+                      placeholder="Enter user's name" 
+                      className="col-span-3" 
+                      value={quickActionForm.userName}
+                      onChange={(e) => handleQuickActionFormChange("userName", e.target.value)}
+                    />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="userEmail" className="text-right">Email</Label>
-                    <Input id="userEmail" type="email" placeholder="Enter email" className="col-span-3" />
+                    <Input 
+                      id="userEmail" 
+                      type="email" 
+                      placeholder="Enter email" 
+                      className="col-span-3" 
+                      value={quickActionForm.userEmail}
+                      onChange={(e) => handleQuickActionFormChange("userEmail", e.target.value)}
+                    />
                   </div>
                 </>
               )}
@@ -346,7 +514,10 @@ const AdminDashboard = () => {
                 <>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="cardType" className="text-right">Card Type</Label>
-                    <Select defaultValue="basic">
+                    <Select 
+                      value={quickActionForm.cardType}
+                      onValueChange={(value) => handleQuickActionFormChange("cardType", value)}
+                    >
                       <SelectTrigger id="cardType" className="col-span-3">
                         <SelectValue placeholder="Select card type" />
                       </SelectTrigger>
@@ -359,14 +530,26 @@ const AdminDashboard = () => {
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="patientId" className="text-right">Patient ID</Label>
-                    <Input id="patientId" placeholder="Enter patient ID" className="col-span-3" />
+                    <Input 
+                      id="patientId" 
+                      placeholder="Enter patient ID" 
+                      className="col-span-3" 
+                      value={quickActionForm.patientId}
+                      onChange={(e) => handleQuickActionFormChange("patientId", e.target.value)}
+                    />
                   </div>
                 </>
               )}
               
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="notes" className="text-right">Notes</Label>
-                <Input id="notes" placeholder="Add any additional notes" className="col-span-3" />
+                <Input 
+                  id="notes" 
+                  placeholder="Add any additional notes" 
+                  className="col-span-3" 
+                  value={quickActionForm.notes}
+                  onChange={(e) => handleQuickActionFormChange("notes", e.target.value)}
+                />
               </div>
             </div>
             

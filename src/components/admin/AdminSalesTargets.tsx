@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { Search, Plus, TrendingUp, TrendingDown, Target, Calendar } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -27,9 +27,10 @@ const AdminSalesTargets = () => {
     department: "",
     targetAmount: "",
     period: "",
-    status: "Active",
+    status: "Active"
   });
 
+  // Convert to state variable
   const [salesTargets, setSalesTargets] = useState([
     {
       id: "ST-001",
@@ -40,7 +41,7 @@ const AdminSalesTargets = () => {
       period: "Q1 2025",
       status: "Active",
       progress: 70,
-      lastUpdated: "01/04/2025",
+      lastUpdated: "01/04/2025"
     },
     {
       id: "ST-002",
@@ -51,7 +52,7 @@ const AdminSalesTargets = () => {
       period: "Q1 2025",
       status: "Active",
       progress: 80,
-      lastUpdated: "01/04/2025",
+      lastUpdated: "01/04/2025"
     },
     {
       id: "ST-003",
@@ -62,25 +63,21 @@ const AdminSalesTargets = () => {
       period: "Q1 2025",
       status: "Active",
       progress: 45,
-      lastUpdated: "01/04/2025",
-    },
+      lastUpdated: "01/04/2025"
+    }
   ]);
 
+  // Filter targets based on search term
   const filteredTargets = salesTargets.filter(
-    (target) =>
+    target => 
       target.hospital.toLowerCase().includes(searchTerm.toLowerCase()) ||
       target.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
       target.period.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleAddTarget = async () => {
+  const handleAddTarget = () => {
     // Validate form data
-    if (
-      !newTarget.hospital ||
-      !newTarget.department ||
-      !newTarget.targetAmount ||
-      !newTarget.period
-    ) {
+    if (!newTarget.hospital || !newTarget.department || !newTarget.targetAmount || !newTarget.period) {
       toast({
         variant: "destructive",
         title: "Invalid form",
@@ -89,128 +86,50 @@ const AdminSalesTargets = () => {
       return;
     }
 
-    const targetAmount = Number(newTarget.targetAmount);
-    if (isNaN(targetAmount) || targetAmount <= 0) {
-      toast({
-        variant: "destructive",
-        title: "Invalid amount",
-        description: "Target amount must be a positive number.",
-      });
-      return;
-    }
-
-    // Generate a temporary target ID
-    const tempTargetId = `ST-${String(salesTargets.length + 1).padStart(3, "0")}`;
+    // Generate a new target ID
+    const newTargetId = `ST-${String(salesTargets.length + 1).padStart(3, '0')}`;
 
     // Create new target object
     const targetToAdd = {
-      id: tempTargetId,
+      id: newTargetId,
       hospital: newTarget.hospital,
       department: newTarget.department,
-      targetAmount,
+      targetAmount: Number(newTarget.targetAmount),
       currentAmount: 0,
       period: newTarget.period,
       status: newTarget.status,
       progress: 0,
-      lastUpdated: new Date().toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      }).replace(/\//g, "/"),
+      lastUpdated: new Date().toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      }).replace(/\//g, '/')
     };
 
-    try {
-      // Get JWT token
-      const token = localStorage.getItem("token");
-      if (!token) {
-        toast({
-          variant: "destructive",
-          title: "Authentication Error",
-          description: "Please log in to add a sales target.",
-        });
-        return;
-      }
+    // Add target to the list using setState
+    setSalesTargets(prevTargets => [...prevTargets, targetToAdd]);
 
-      // Optimistic update
-      setSalesTargets((prevTargets) => [...prevTargets, targetToAdd]);
+    // Reset form and close dialog
+    setNewTarget({
+      hospital: "",
+      department: "",
+      targetAmount: "",
+      period: "",
+      status: "Active"
+    });
+    setIsAddingTarget(false);
 
-      // Send request to backend
-      const response = await fetch("api/admin/add-sales-target", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          hospital: newTarget.hospital,
-          department: newTarget.department,
-          targetAmount,
-          period: newTarget.period,
-          status: newTarget.status,
-        }),
-      });
-
-      // Log raw response for debugging
-      const responseText = await response.text();
-      console.log("Raw response:", responseText);
-
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (err) {
-        console.error("JSON parse error:", err.message);
-        throw new Error("Invalid JSON response from server");
-      }
-
-      if (!response.ok) {
-        // Rollback optimistic update
-        setSalesTargets((prevTargets) =>
-          prevTargets.filter((target) => target.id !== tempTargetId)
-        );
-        throw new Error(data.msg || "Failed to add sales target");
-      }
-
-      // Update state with backend ID
-      setSalesTargets((prevTargets) =>
-        prevTargets.map((target) =>
-          target.id === tempTargetId ? { ...target, id: data.salesTarget._id } : target
-        )
-      );
-
-      // Reset form and close dialog
-      setNewTarget({
-        hospital: "",
-        department: "",
-        targetAmount: "",
-        period: "",
-        status: "Active",
-      });
-      setIsAddingTarget(false);
-
-      toast({
-        title: "Target Added",
-        description: `Sales target for ${newTarget.hospital} - ${newTarget.department} has been added successfully.`,
-      });
-    } catch (error) {
-      console.error("handleAddTarget error:", error.message);
-      // Rollback optimistic update
-      setSalesTargets((prevTargets) =>
-        prevTargets.filter((target) => target.id !== tempTargetId)
-      );
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to add sales target. Please try again.",
-      });
-    }
+    // Show success toast
+    toast({
+      title: "Target Added",
+      description: `Sales target for ${targetToAdd.hospital} - ${targetToAdd.department} has been added successfully.`,
+    });
   };
 
   // Calculate total targets and progress
   const totalTargetAmount = salesTargets.reduce((sum, target) => sum + target.targetAmount, 0);
   const totalCurrentAmount = salesTargets.reduce((sum, target) => sum + target.currentAmount, 0);
-  const overallProgress = totalTargetAmount
-    ? Math.round((totalCurrentAmount / totalTargetAmount) * 100)
-    : 0;
+  const overallProgress = Math.round((totalCurrentAmount / totalTargetAmount) * 100);
 
   return (
     <div className="space-y-6">
@@ -219,9 +138,7 @@ const AdminSalesTargets = () => {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <CardTitle>Sales Targets</CardTitle>
-              <CardDescription>
-                Set and monitor sales targets for partner hospitals
-              </CardDescription>
+              <CardDescription>Set and monitor sales targets for partner hospitals</CardDescription>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
               <div className="relative">
@@ -234,7 +151,10 @@ const AdminSalesTargets = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <Button onClick={() => setIsAddingTarget(true)}>
+              <Button 
+                onClick={() => setIsAddingTarget(true)}
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 New Target
               </Button>
@@ -245,17 +165,13 @@ const AdminSalesTargets = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <Card className="p-4">
               <div className="text-center space-y-2">
-                <div className="text-4xl font-bold text-primary">
-                  ₹{totalTargetAmount.toLocaleString()}
-                </div>
+                <div className="text-4xl font-bold text-primary">₹{totalTargetAmount.toLocaleString()}</div>
                 <div className="text-sm font-medium">Total Target</div>
               </div>
             </Card>
             <Card className="p-4">
               <div className="text-center space-y-2">
-                <div className="text-4xl font-bold text-emerald-500">
-                  ₹{totalCurrentAmount.toLocaleString()}
-                </div>
+                <div className="text-4xl font-bold text-emerald-500">₹{totalCurrentAmount.toLocaleString()}</div>
                 <div className="text-sm font-medium">Current Amount</div>
               </div>
             </Card>
@@ -266,7 +182,7 @@ const AdminSalesTargets = () => {
               </div>
             </Card>
           </div>
-
+          
           {filteredTargets.length > 0 ? (
             <div className="rounded-md border overflow-x-auto">
               <Table>
@@ -302,7 +218,7 @@ const AdminSalesTargets = () => {
                       </TableCell>
                       <TableCell>{target.period}</TableCell>
                       <TableCell>
-                        <Badge
+                        <Badge 
                           variant={target.status === "Active" ? "default" : "outline"}
                           className={target.status === "Active" ? "bg-green-500" : ""}
                         >
@@ -334,6 +250,7 @@ const AdminSalesTargets = () => {
         </CardFooter>
       </Card>
 
+      {/* Add Target Dialog */}
       <Dialog open={isAddingTarget} onOpenChange={setIsAddingTarget}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -345,10 +262,7 @@ const AdminSalesTargets = () => {
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="hospital">Hospital</Label>
-              <Select
-                value={newTarget.hospital}
-                onValueChange={(value) => setNewTarget({ ...newTarget, hospital: value })}
-              >
+              <Select value={newTarget.hospital} onValueChange={(value) => setNewTarget({ ...newTarget, hospital: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select hospital" />
                 </SelectTrigger>
@@ -361,10 +275,7 @@ const AdminSalesTargets = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="department">Department</Label>
-              <Select
-                value={newTarget.department}
-                onValueChange={(value) => setNewTarget({ ...newTarget, department: value })}
-              >
+              <Select value={newTarget.department} onValueChange={(value) => setNewTarget({ ...newTarget, department: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select department" />
                 </SelectTrigger>
@@ -389,10 +300,7 @@ const AdminSalesTargets = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="period">Period</Label>
-              <Select
-                value={newTarget.period}
-                onValueChange={(value) => setNewTarget({ ...newTarget, period: value })}
-              >
+              <Select value={newTarget.period} onValueChange={(value) => setNewTarget({ ...newTarget, period: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select period" />
                 </SelectTrigger>
@@ -409,7 +317,12 @@ const AdminSalesTargets = () => {
             <Button variant="outline" onClick={() => setIsAddingTarget(false)}>
               Cancel
             </Button>
-            <Button onClick={handleAddTarget}>Add Target</Button>
+            <Button 
+              onClick={handleAddTarget}
+              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+            >
+              Add Target
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -417,4 +330,4 @@ const AdminSalesTargets = () => {
   );
 };
 
-export default AdminSalesTargets;
+export default AdminSalesTargets; 

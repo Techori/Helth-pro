@@ -1,3 +1,4 @@
+
 const express = require('express');
 const router = express.Router();
 const { check, validationResult } = require('express-validator');
@@ -8,9 +9,13 @@ const User = require('../models/User');
 const Patient = require('../models/Patient');
 const { addPatient } = require("../controllers/hospital/patientController");
 const { addHealthCard } = require("../controllers/hospital/patientController");
+const { updateHospitalProfile } = require("../controllers/hospital/hospitalController");
 
-const {getPaymentUser} = require("../controllers/hospital/getPaymentUser")
-router.get('/get-user',auth, getPaymentUser);
+// @route   PUT api/hospitals/profile
+// @desc    Update hospital profile
+// @access  Private
+router.put('/profile', auth, updateHospitalProfile);
+
 
 router.get('/patients', async (req, res) => {
   try {
@@ -21,10 +26,21 @@ router.get('/patients', async (req, res) => {
     res.status(500).send('Server Error');
   }
 });
+const Loan = require('../models/Loan');
 
+// @route   GET api/hospitals
+// @desc    Get all hospitals (admin) or user's hospital (hospital user)
+// @access  Private
 router.get('/', auth, async (req, res) => {
   try {
-    const hospitals = await Hospital.find().sort({ date: -1 });
+    let hospitals;
+    if (req.user.role === 'admin') {
+      hospitals = await Hospital.find().populate('user', 'firstName lastName email').sort({ date: -1 });
+    } else if (req.user.role === 'hospital') {
+      hospitals = await Hospital.find({ user: req.user.id }).sort({ date: -1 });
+    } else {
+      hospitals = await Hospital.find({ status: 'active' }).sort({ date: -1 });
+    }
     res.json(hospitals);
   } catch (err) {
     console.error(err.message);
@@ -32,15 +48,13 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-router.post("/patients", addPatient);
-router.post('/health-card', addHealthCard);
 // @route   POST api/hospitals
-// @desc    Add new hospital
+// @desc    Register new hospital
 // @access  Private
 router.post(
   '/',
   [
-    //auth,
+    auth,
     [
       check('name', 'Name is required').not().isEmpty(),
       check('address', 'Address is required').not().isEmpty(),
@@ -57,6 +71,7 @@ router.post(
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
+
     const {
       name,
       address,
@@ -66,10 +81,29 @@ router.post(
       contactPerson,
       contactEmail,
       contactPhone,
-      status
+      specialties,
+      services,
+      hospitalType,
+      bedCount,
+      registrationNumber,
+      website
     } = req.body;
 
     try {
+      // Check if hospital already exists
+      let existingHospital = await Hospital.findOne({ 
+        $or: [
+          { contactEmail },
+          { registrationNumber: registrationNumber || '' }
+        ]
+      });
+
+      if (existingHospital) {
+        return res.status(400).json({ 
+          msg: 'Hospital with this email or registration number already exists' 
+        });
+      }
+
       const newHospital = new Hospital({
         name,
         address,
@@ -79,11 +113,18 @@ router.post(
         contactPerson,
         contactEmail,
         contactPhone,
-        status: status || 'pending',
-        user: "660f5f8ae5b8c5f11a2c8d4b" // req.user.id
+        specialties: specialties || [],
+        services: services || [],
+        hospitalType: hospitalType || 'private',
+        bedCount: bedCount || 0,
+        registrationNumber,
+        website,
+        status: 'pending',
+        user: req.user.id
       });
 
       const hospital = await newHospital.save();
+      await hospital.populate('user', 'firstName lastName email');
 
       res.json(hospital);
     } catch (err) {
@@ -93,28 +134,31 @@ router.post(
   }
 );
 
-// @route   GET api/hospitals/:hospitalId
-// @desc    Get hospital by Hospital ID
+// @route   GET api/hospitals/:id
+// @desc    Get hospital by ID
 // @access  Private
-router.get('/:hospitalId', auth, async (req, res) => {
+router.get('/:id', auth, async (req, res) => {
   try {
-    const hospital = await Hospital.findOne({ hospitalId: req.params.hospitalId });
+    const hospital = await Hospital.findById(req.params.id).populate('user', 'firstName lastName email');
 
     if (!hospital) {
-      return res.status(404).json({ msg: 'Hospital not found' });
+      return res.status(404).json({ msg: 'Hospital was not found 1' });
     }
 
     res.json(hospital);
   } catch (err) {
     console.error(err.message);
+    if (err.kind === 'ObjectId') {
+      return res.status(404).json({ msg: 'Hospital not found' });
+    }
     res.status(500).send('Server Error');
   }
 });
 
-// @route   PUT api/hospitals/:hospitalId
-// @desc    Update hospital by Hospital ID
+// @route   PUT api/hospitals/:id
+// @desc    Update hospital
 // @access  Private
-router.put('/:hospitalId', auth, async (req, res) => {
+router.put('/:id', auth, async (req, res) => {
   const {
     name,
     address,
@@ -124,6 +168,12 @@ router.put('/:hospitalId', auth, async (req, res) => {
     contactPerson,
     contactEmail,
     contactPhone,
+    specialties,
+    services,
+    hospitalType,
+    bedCount,
+    registrationNumber,
+    website,
     status
   } = req.body;
 
@@ -137,23 +187,29 @@ router.put('/:hospitalId', auth, async (req, res) => {
   if (contactPerson) hospitalFields.contactPerson = contactPerson;
   if (contactEmail) hospitalFields.contactEmail = contactEmail;
   if (contactPhone) hospitalFields.contactPhone = contactPhone;
-  if (status) hospitalFields.status = status;
+  if (specialties) hospitalFields.specialties = specialties;
+  if (services) hospitalFields.services = services;
+  if (hospitalType) hospitalFields.hospitalType = hospitalType;
+  if (bedCount !== undefined) hospitalFields.bedCount = bedCount;
+  if (registrationNumber) hospitalFields.registrationNumber = registrationNumber;
+  if (website) hospitalFields.website = website;
+  if (status && req.user.role === 'admin') hospitalFields.status = status;
 
   try {
-    let hospital = await Hospital.findOne({ hospitalId: req.params.hospitalId });
+    let hospital = await Hospital.findById(req.params.id);
 
-    if (!hospital) return res.status(404).json({ msg: 'Hospital not found' });
+    if (!hospital) return res.status(404).json({ msg: 'Hospital  was not found 2' });
 
     // Make sure user is admin or the hospital owner
     if (req.user.role !== 'admin' && hospital.user.toString() !== req.user.id) {
       return res.status(401).json({ msg: 'Not authorized' });
     }
 
-    hospital = await Hospital.findOneAndUpdate(
-      { hospitalId: req.params.hospitalId },
+    hospital = await Hospital.findByIdAndUpdate(
+      req.params.id,
       { $set: hospitalFields },
       { new: true }
-    );
+    ).populate('user', 'firstName lastName email');
 
     res.json(hospital);
   } catch (err) {
@@ -163,29 +219,154 @@ router.put('/:hospitalId', auth, async (req, res) => {
 });
 
 // Update hospital profile
-router.put('/profile', auth, async (req, res) => {
+// router.put('/profile', auth, async (req, res) => {
+//   try {
+//     const { name, email, phone, address, website, licenseNumber, foundedYear, type, bedCount } = req.body;
+
+//     // Validate input
+//     if (!name || !email || !phone || !address || !licenseNumber) {
+//       return res.status(400).json({ message: "Required fields are missing." });
+//     }
+
+//     // Find and update the hospital profile
+//     const updatedHospital = await Hospital.findOneAndUpdate(
+//       { email }, // Assuming email is unique and used to identify the hospital
+//       { name, phone, address, website, licenseNumber, foundedYear, type, bedCount },
+//       { new: true, runValidators: true }
+//     );
+
+//     if (!updatedHospital) {
+//       return res.status(404).json({ message: "Hospital not found." });
+//     }
+
+//     res.status(200).json({ message: "Profile updated successfully", data: updatedHospital });
+//   } catch (error) {
+//     res.status(500).json({ message: "Server error", error });
+//   }
+// });
+
+
+
+// @route   GET api/hospitals/:id/patients
+// @desc    Get patients for a hospital
+// @access  Private
+router.get('/:id/patients', auth, async (req, res) => {
   try {
-    const { name, email, phone, address, website, licenseNumber, foundedYear, type, bedCount } = req.body;
-
-    // Validate input
-    if (!name || !email || !phone || !address || !licenseNumber) {
-      return res.status(400).json({ message: "Required fields are missing." });
+    const hospital = await Hospital.findById(req.params.id);
+    
+    if (!hospital) {
+      return res.status(404).json({ msg: 'Hospital not found' });
     }
 
-    // Find and update the hospital profile
-    const updatedHospital = await Hospital.findOneAndUpdate(
-      { email }, // Assuming email is unique and used to identify the hospital
-      { name, phone, address, website, licenseNumber, foundedYear, type, bedCount },
-      { new: true, runValidators: true }
-    );
-
-    if (!updatedHospital) {
-      return res.status(404).json({ message: "Hospital not found." });
+    // Check authorization
+    if (req.user.role !== 'admin' && hospital.user.toString() !== req.user.id) {
+      return res.status(401).json({ msg: 'Not authorized' });
     }
 
-    res.status(200).json({ message: "Profile updated successfully", data: updatedHospital });
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error });
+    // Get patients who have loans with this hospital
+    const loans = await Loan.find({ 
+      'loanDetails.hospitalName': hospital.name 
+    }).populate('user', 'firstName lastName email phone uhid kycData');
+
+    const patients = loans.map(loan => ({
+      id: loan.user._id,
+      uhid: loan.user.uhid,
+      name: `${loan.user.firstName} ${loan.user.lastName}`,
+      email: loan.user.email,
+      phone: loan.user.phone,
+      loanId: loan._id,
+      applicationNumber: loan.applicationNumber,
+      loanAmount: loan.loanDetails.approvedAmount || loan.loanDetails.requestedAmount,
+      status: loan.status,
+      kycStatus: loan.user.kycStatus || 'pending',
+      lastVisit: loan.submissionDate || loan.applicationDate
+    }));
+
+    res.json(patients);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/hospitals/:id/analytics
+// @desc    Get hospital analytics
+// @access  Private
+router.get('/:id/analytics', auth, async (req, res) => {
+  try {
+    const hospital = await Hospital.findById(req.params.id);
+    
+    if (!hospital) {
+      return res.status(404).json({ msg: 'Hospital not found' });
+    }
+
+    // Check authorization
+    if (req.user.role !== 'admin' && hospital.user.toString() !== req.user.id) {
+      return res.status(401).json({ msg: 'Not authorized' });
+    }
+
+    // Get analytics data
+    const loans = await Loan.find({ 'loanDetails.hospitalName': hospital.name });
+    
+    const totalLoans = loans.length;
+    const approvedLoans = loans.filter(loan => loan.status === 'approved' || loan.status === 'completed').length;
+    const pendingLoans = loans.filter(loan => loan.status === 'submitted' || loan.status === 'under_review').length;
+    const rejectedLoans = loans.filter(loan => loan.status === 'rejected').length;
+    
+    const totalAmount = loans.reduce((sum, loan) => {
+      return sum + (loan.loanDetails.approvedAmount || loan.loanDetails.requestedAmount || 0);
+    }, 0);
+    
+    const disbursedAmount = loans
+      .filter(loan => loan.status === 'approved' || loan.status === 'completed')
+      .reduce((sum, loan) => sum + (loan.loanDetails.approvedAmount || 0), 0);
+
+    const analytics = {
+      totalLoans,
+      approvedLoans,
+      pendingLoans,
+      rejectedLoans,
+      totalAmount,
+      disbursedAmount,
+      approvalRate: totalLoans > 0 ? ((approvedLoans / totalLoans) * 100).toFixed(1) : 0
+    };
+
+    res.json(analytics);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   PUT api/hospitals/:id/status
+// @desc    Update hospital status (admin only)
+// @access  Private
+router.put('/:id/status', auth, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(401).json({ msg: 'Not authorized' });
+    }
+
+    const { status } = req.body;
+    
+    if (!['active', 'pending', 'inactive'].includes(status)) {
+      return res.status(400).json({ msg: 'Invalid status' });
+    }
+
+    const hospital = await Hospital.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    ).populate('user', 'firstName lastName email');
+
+    if (!hospital) {
+      return res.status(404).json({ msg: 'Hospital not found' });
+    }
+
+    res.json(hospital);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
   }
 });
 

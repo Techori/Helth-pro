@@ -143,12 +143,19 @@ setupRoute('/api/loans', require('./routes/loans'));
 setupRoute('/api/kyc', require('./routes/kyc')); // Uses updated kyc.js
 setupRoute('/api/transactions', require('./routes/transactions'));
 setupRoute('/api/notifications', require('./routes/notifications'));
+setupRoute('/api/staff', require('./routes/staffRoutes'));
 setupRoute('/api/patient', patientRoutes);
 setupRoute('/api/face-auth', require('./routes/face-verification'));
 setupRoute('/api/hospitalusers', require('./routes/HospitalUser'));
 setupRoute('/api/support/tickets', require('./routes/supportTickets'));
-setupRoute('/api/upload', require('./routes/upload'));
-setupRoute('/api/files', require('./routes/files'));
+
+setupRoute('/api', require('./routes/upload')); // Upload route
+setupRoute('/api', require('./routes/files')); 
+
+setupRoute('/api', require('./routes/hospitals'));
+
+setupRoute('/api/admin', require('./routes/admin'));
+
 
 // Serve static assets in production
 if (process.env.NODE_ENV === "production") {

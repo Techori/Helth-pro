@@ -125,12 +125,12 @@ const AdminSidebar = ({ isOpen, setIsOpen }: AdminSidebarProps) => {
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={activeTab === "commissions"}>
+              {/* <SidebarMenuButton asChild isActive={activeTab === "commissions"}>
                 <Link to="/admin-dashboard?tab=commissions">
                   <DollarSign />
                   <span>Commission Structure</span>
                 </Link>
-              </SidebarMenuButton>
+              </SidebarMenuButton> */}
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
@@ -147,12 +147,12 @@ const AdminSidebar = ({ isOpen, setIsOpen }: AdminSidebarProps) => {
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>
-              <SidebarMenuButton asChild isActive={activeTab === "hospital-users"}>
+              {/* <SidebarMenuButton asChild isActive={activeTab === "hospital-users"}>
                 <Link to="/admin-dashboard?tab=hospital-users">
                   <Briefcase />
                   <span>Hospital Staff</span>
                 </Link>
-              </SidebarMenuButton>
+              </SidebarMenuButton> */}
             </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>

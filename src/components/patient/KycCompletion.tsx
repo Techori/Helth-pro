@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { Check, User, Loader2, Shield } from 'lucide-react';
-import { submitKYC, verifyKYCWithDigio } from '@/services/kycService';
+import { submitKYC, verifyKYCWithDigio, getKYCStatus } from '@/services/kycService';
+import io from 'socket.io-client';
 
 interface KycCompletionProps {
   onComplete: (uhid: string) => void;
@@ -16,7 +17,8 @@ const KycCompletion = ({ onComplete }: KycCompletionProps) => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [step, setStep] = useState<'form' | 'verification' | 'completed'>('form');
+  const [step, setStep] = useState<'form' | 'verification' | 'pending' | 'completed'>('form');
+  const [verificationId, setVerificationId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     panNumber: '',
     aadhaarNumber: '',
@@ -27,14 +29,92 @@ const KycCompletion = ({ onComplete }: KycCompletionProps) => {
     state: '',
     zipCode: '',
     maritalStatus: '',
-    dependents: ''
+    dependents: '',
+    email: '',
+    phone: '',
+    firstName: '',
+    lastName: '',
+    accessToken: '',
+    expiresInDays: '',
+    verificationId: '', // Add verificationId to formData
+    verificationDetails: null
   });
+
+  // Initialize WebSocket connection
+  useEffect(() => {
+    const socket = io('http://localhost:4000/api/kyc/');
+    socket.on('kycStatusUpdate', (data: any) => {
+      if (data.kycStatus === 'completed') {
+        setStep('completed');
+        setFormData(prev => ({
+          ...prev,
+          verificationDetails: data.kycData.verificationDetails,
+          verificationId: data.kycData.verificationId
+        }));
+        onComplete(data.uhid);
+        toast({
+          title: 'KYC Completed Successfully',
+          description: `Your UHID is: ${data.uhid}. KYC verification approved.`
+        });
+      } else if (data.kycStatus === 'rejected') {
+        setStep('form');
+        toast({
+          title: 'KYC Verification Failed',
+          description: data.kycData.rejectionReason || 'Verification failed. Please try again.',
+          variant: 'destructive'
+        });
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [onComplete, toast]);
+
+  // Fetch existing KYC status on mount
+  useEffect(() => {
+    const fetchKycStatus = async () => {
+      try {
+        const response = await getKYCStatus();
+        if (response.kycData?.verificationId) {
+          setFormData(prev => ({
+            ...prev,
+            verificationId: response.kycData.verificationId,
+            panNumber: response.kycData.panNumber || '',
+            aadhaarNumber: response.kycData.aadhaarNumber || '',
+            dateOfBirth: response.kycData.dateOfBirth || '',
+            gender: response.kycData.gender || '',
+            address: response.kycData.address || '',
+            city: response.kycData.city || '',
+            state: response.kycData.state || '',
+            zipCode: response.kycData.zipCode || '',
+            maritalStatus: response.kycData.maritalStatus || '',
+            dependents: response.kycData.dependents || '',
+            email: response.kycData.email || '',
+            phone: response.kycData.phone || '',
+            firstName: response.kycData.firstName || '',
+            lastName: response.kycData.lastName || ''
+          }));
+          setVerificationId(response.kycData.verificationId);
+          if (response.kycStatus === 'completed') {
+            setStep('completed');
+            onComplete(response.uhid);
+          } else if (response.kycStatus === 'pending') {
+            setStep('pending');
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching KYC status:', error);
+      }
+    };
+    fetchKycStatus();
+  }, [onComplete]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ 
-      ...prev, 
-      [name]: name === 'panNumber' ? value.toUpperCase() : value 
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'panNumber' ? value.toUpperCase() : value
     }));
   };
 
@@ -45,39 +125,74 @@ const KycCompletion = ({ onComplete }: KycCompletionProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setIsVerifying(true);
     setStep('verification');
 
     try {
-      // First verify with Digio API
-      setIsVerifying(true);
-      console.log('Starting Digio verification...');
-      
-      // Simulate Digio verification process
-      await verifyKYCWithDigio(formData);
-      
-      // If Digio verification passes, submit to backend
+      const digioResponse = await verifyKYCWithDigio(formData);
+      setVerificationId(digioResponse.verificationId);
+      setFormData(prev => ({
+        ...prev,
+        verificationId: digioResponse.verificationId,
+        accessToken: digioResponse.accessToken,
+        expiresInDays: digioResponse.expiresInDays
+      }));
+
       const response = await submitKYC(formData);
-
+      setStep('pending');
       toast({
-        title: "KYC Completed Successfully",
-        description: `Your UHID is: ${response.uhid}. KYC verification approved.`,
+        title: 'KYC Verification Initiated',
+        description: `Verification ID: ${digioResponse.verificationId}. Awaiting confirmation...`
       });
-
-      setStep('completed');
-      onComplete(response.uhid);
     } catch (error: any) {
       console.error('KYC process failed:', error);
       setStep('form');
+      setIsVerifying(false);
       toast({
-        title: "KYC Verification Failed",
-        description: error.message || "Please verify your details and try again",
-        variant: "destructive"
+        title: 'KYC Verification Failed',
+        description: error.message || 'Please verify your details.',
+        variant: 'destructive'
       });
     } finally {
       setIsSubmitting(false);
-      setIsVerifying(false);
     }
   };
+
+  // Single status check as fallback
+  const checkStatusOnce = async () => {
+    try {
+      const response = await getKYCStatus();
+      if (response.kycStatus === 'completed') {
+        setStep('completed');
+        setFormData(prev => ({
+          ...prev,
+          verificationDetails: response.kycData.verificationDetails
+        }));
+        onComplete(response.uhid);
+        toast({
+          title: 'KYC Completed Successfully',
+          description: `Your KYC verification is approved!`
+        });
+      } else if (response.kycStatus === 'rejected') {
+        setStep('form');
+        toast({
+          title: 'KYC Verification Failed',
+          description: response.rejectionReason || 'Verification failed. Please try again.',
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      console.error('Status check error:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (step === 'pending' && verificationId) {
+      // Perform a single status check after 30 seconds as a fallback
+      const timeout = setTimeout(checkStatusOnce, 30000);
+      return () => clearTimeout(timeout);
+    }
+  }, [step, verificationId]);
 
   if (step === 'verification') {
     return (
@@ -97,15 +212,50 @@ const KycCompletion = ({ onComplete }: KycCompletionProps) => {
             <div className="space-y-2">
               <p className="text-lg font-medium">Processing KYC Verification</p>
               <p className="text-sm text-gray-600">
-                {isVerifying ? 
-                  'Verifying documents with Digio API...' : 
-                  'Finalizing verification process...'
-                }
+                {isVerifying ? 'Verifying documents with Digio API...' : 'Initiating verification...'}
               </p>
             </div>
             <div className="w-full max-w-md bg-gray-200 rounded-full h-2">
               <div className="bg-blue-600 h-2 rounded-full w-3/4 transition-all duration-1000"></div>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (step === 'pending') {
+    return (
+      <Card className="max-w-2xl mx-auto">
+        <CardHeader className="text-center">
+          <CardTitle className="flex items-center justify-center gap-2">
+            <Loader2 className="h-6 w-6 text-blue-600 animate-spin" />
+            KYC Verification Pending
+          </CardTitle>
+          <CardDescription>
+            Awaiting verification results from Digio
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="text-center py-8">
+          <div className="flex flex-col items-center space-y-4">
+            <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+            <p className="text-lg font-medium">Verification in Progress</p>
+            <p className="text-sm text-gray-600">
+              Verification ID: {verificationId}
+            </p>
+            {formData.accessToken && (
+              <p className="text-sm text-gray-600">
+                Access Token: {formData.accessToken}
+              </p>
+            )}
+            {formData.expiresInDays && (
+              <p className="text-sm text-gray-600">
+                Expires in: {formData.expiresInDays} days
+              </p>
+            )}
+            <p className="text-sm text-gray-600">
+              We will notify you once verification is complete.
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -133,6 +283,20 @@ const KycCompletion = ({ onComplete }: KycCompletionProps) => {
             <p className="text-sm text-gray-600">
               You can now apply for health cards and loans
             </p>
+            {formData.verificationDetails && (
+              <div className="text-sm text-gray-600">
+                <p><strong>Verification Details:</strong></p>
+                {formData.verificationDetails.aadhaar && (
+                  <div>
+                    <p>Aadhaar: {formData.verificationDetails.aadhaar.idNumber} (Gender: {formData.verificationDetails.aadhaar.gender})</p>
+                    <p>Proof Type: {formData.verificationDetails.aadhaar.idProofType}</p>
+                  </div>
+                )}
+                {formData.verificationDetails.pan && (
+                  <p>PAN: {formData.verificationDetails.pan.idNumber}</p>
+                )}
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -178,6 +342,60 @@ const KycCompletion = ({ onComplete }: KycCompletionProps) => {
                 placeholder="1234 5678 9012"
                 required
                 maxLength={12}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="email">Email *</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                placeholder="example@domain.com"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="phone">Phone Number *</Label>
+              <Input
+                id="phone"
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
+                placeholder="1234567890"
+                required
+                maxLength={10}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="firstName">First Name *</Label>
+              <Input
+                id="firstName"
+                name="firstName"
+                value={formData.firstName}
+                onChange={handleInputChange}
+                placeholder="First Name"
+                required
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="lastName">Last Name *</Label>
+              <Input
+                id="lastName"
+                name="lastName"
+                value={formData.lastName}
+                onChange={handleInputChange}
+                placeholder="Last Name"
+                required
               />
             </div>
           </div>

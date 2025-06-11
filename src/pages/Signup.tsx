@@ -25,13 +25,16 @@ const Signup = () => {
   const { authState, signUp } = useAuth();
   const [loaded, setLoaded] = useState(true);
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    firstName: '',
-    lastName: '',
-    phone: '',
-    role: 'patient' as UserRole
+    email: "",
+    password: "",
+    confirmPassword: "",
+    firstName: "",
+    lastName: "",
+    role: "patient" as UserRole,
+    hospitalName: "",
+    location: "",
+    phone: "",
+    services: ""
   });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,7 +61,24 @@ const Signup = () => {
       setError('All fields are required');
       return false;
     }
-    
+
+    if (formData.role === "hospital") {
+      if (!formData.hospitalName || !formData.location || !formData.phone) {
+        setError("All hospital details are required");
+        return false;
+      }
+    }
+
+    if (!/^[A-Za-z\s]+$/.test(formData.firstName)) {
+      setError("First name should only contain letters");
+      return false;
+    }
+
+    if (!/^[A-Za-z\s]+$/.test(formData.lastName)) {
+      setError("Last name should only contain letters");
+      return false;
+    }
+
     if (!/\S+@\S+\.\S+/.test(formData.email)) {
       setError('Please enter a valid email address');
       return false;
@@ -91,42 +111,51 @@ const Signup = () => {
     setError(null);
     
     try {
-      console.log('Attempting to register with:', formData);
-      const { data, error } = await signUp(
-        formData.email,
-        formData.password,
-        formData.firstName,
-        formData.lastName,
-        formData.phone,
-        formData.role
-      );
-      
-      if (error) {
-        console.error('Registration error:', error);
-        setError(error.message || 'Registration failed');
-        toast({
-          title: "Registration Failed",
-          description: error.message || "Please try again",
-          variant: "destructive"
-        });
-      } else if (data?.user) {
-        console.log('Registration successful:', data);
-        toast({
-          title: "Registration Successful",
-          description: "Your account has been created successfully",
-        });
-        
-        const redirectPath = `/${data.user.role}-dashboard`;
-        console.log('Redirecting to:', redirectPath);
-        navigate(redirectPath, { replace: true });
+      // Prepare the data for the API
+      const signupData = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+        role: formData.role,
+        ...(formData.role === "hospital" && {
+          hospitalName: formData.hospitalName,
+          location: formData.location,
+          phone: formData.phone,
+          services: formData.services
+        })
+      };
+
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(signupData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.msg || 'Registration failed');
       }
+
+      toast({
+        title: "Registration Successful",
+        description: "Your account has been created successfully",
+      });
+
+      // Redirect based on role
+      const redirectPath = `/${formData.role}-dashboard`;
+      navigate(redirectPath, { replace: true });
+
     } catch (err: any) {
-      console.error('Unexpected registration error:', err);
-      setError(err.message || 'An unexpected error occurred');
+      console.error("Registration error:", err);
+      setError(err.message || "Registration failed. Please try again.");
       toast({
         title: "Registration Failed",
-        description: err.message || "An unexpected error occurred",
-        variant: "destructive"
+        description: err.message || "Please try again",
+        variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
@@ -264,10 +293,60 @@ const Signup = () => {
                         <option value="support">Support</option>
                       </select>
                     </div>
-                    
-                    <Button 
-                      type="submit" 
-                      className="w-full bg-brand-600 hover:bg-brand-700" 
+
+                    {formData.role === "hospital" && (
+                      <>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            name="hospitalName"
+                            placeholder="Hospital Name"
+                            value={formData.hospitalName}
+                            onChange={handleInputChange}
+                            className="w-full pl-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
+                            required
+                          />
+                        </div>
+
+                        <div className="relative">
+                          <input
+                            type="text"
+                            name="location"
+                            placeholder="Hospital Location"
+                            value={formData.location}
+                            onChange={handleInputChange}
+                            className="w-full pl-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
+                            required
+                          />
+                        </div>
+
+                        <div className="relative">
+                          <input
+                            type="tel"
+                            name="phone"
+                            placeholder="Hospital Phone"
+                            value={formData.phone}
+                            onChange={handleInputChange}
+                            className="w-full pl-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
+                            required
+                          />
+                        </div>
+
+                        <div className="relative">
+                          <input
+                            type="text"
+                            name="services"
+                            placeholder="Services (comma-separated)e.g., General, Cardiology, Orthopedics"
+                            value={formData.services}
+                            onChange={handleInputChange}
+                            className="w-full pl-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"                          />
+                        </div>
+                      </>
+                    )}
+
+                    <Button
+                      type="submit"
+                      className="w-full bg-brand-600 hover:bg-brand-700"
                       disabled={isSubmitting}
                     >
                       {isSubmitting ? 'Creating account...' : 'Create Account'}

@@ -2,6 +2,8 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { validationResult } = require("express-validator");
 const User = require("../../models/User");
+const Hospital = require("../../models/Hospital");
+const mongoose = require("mongoose");
 
 // Helper to generate UHID
 async function generateUHID(User) {
@@ -26,12 +28,13 @@ async function generateHospitalId(User) {
 }
 
 module.exports = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
 
-  const { firstName, lastName, email, password, role } = req.body;
+  const { firstName, lastName, email, password, role, stateCode, rtoCode, hospitalShort } = req.body;
 
   try {
     let user = await User.findOne({ email });
@@ -39,10 +42,19 @@ module.exports = async (req, res) => {
       return res.status(400).json({ msg: "User already exists" });
     }
 
+    // Check if hospital with same email exists
+    if (role === "hospital") {
+      const existingHospital = await Hospital.findOne({ email: email.toLowerCase() });
+      if (existingHospital) {
+        return res.status(400).json({ msg: "Hospital with this email already exists" });
+      }
+    }
+
+    // Create user
     user = new User({
       firstName,
       lastName,
-      email,
+      email: email.toLowerCase(),
       password,
       role: role || "patient",
     });
@@ -62,6 +74,38 @@ module.exports = async (req, res) => {
 
     await user.save();
 
+    // If user is registering as a hospital, create a hospital entry
+    if (role === "hospital") {
+      try {
+        const hospitalId = `HSP${Date.now().toString().slice(-6)}`;
+        const hospital = new Hospital({
+          _id: hospitalId,
+          name: hospitalName,
+          location: location,
+          contactPerson: `${firstName} ${lastName}`,
+          phone: phone,
+          email: email.toLowerCase(),
+          services: services ? services.split(',').map(s => s.trim()) : ["General"],
+          registrationDate: new Date(),
+          status: "Pending",
+          totalPatients: 0,
+          totalTransactions: 0,
+          currentBalance: 0
+        });
+
+        await hospital.save();
+        console.log('Hospital created successfully:', hospitalId);
+      } catch (hospitalError) {
+        // If hospital creation fails, delete the user
+        await User.findByIdAndDelete(user._id);
+        console.error("Hospital creation error:", hospitalError);
+        return res.status(500).json({ 
+          msg: "Failed to create hospital profile",
+          error: hospitalError.message 
+        });
+      }
+    }
+
     const payload = {
       user: {
         id: user.id,
@@ -80,6 +124,18 @@ module.exports = async (req, res) => {
     );
   } catch (err) {
     console.error(err.message);
-    res.status(500).send("Server Error");
+    res.status(500).send("Server Error01");
   }
 };
+
+mongoose.connection.on('connected', async () => {
+  try {
+    await mongoose.connection.db.collection('hospitals').dropIndex('contactEmail_1');
+    // ...
+  } catch (err) {
+    // Ignore error if index doesn't exist
+    if (err.code !== 26) {
+      console.error('Error dropping indexes:', err);
+    }
+  }
+});

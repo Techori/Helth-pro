@@ -67,3 +67,32 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
     }
   }
 };
+
+export const updateUserProfile = async (userData: {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  address: string;
+  preferredHospital: string;
+  emergencyContact: string;
+}) => {
+  try {
+    const response = await fetch('/api/users/me', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token')}`
+      },
+      body: JSON.stringify(userData)
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update profile');
+    }
+
+    return await response.json();
+  } catch (error) {
+    throw error;
+  }
+};

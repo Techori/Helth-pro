@@ -1,6 +1,6 @@
-import { Bell, Menu, User, CreditCard, LogOut, Settings } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Bell, Menu, User, CreditCard, LogOut, Settings, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +24,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { fetchNotifications, markNotificationsAsRead, deleteNotification, Notification } from "@/services/notificationService";
 
 interface PatientDashboardHeaderProps {
   patientName: string;
@@ -37,58 +38,84 @@ const PatientDashboardHeader = ({
   onLogout
 }: PatientDashboardHeaderProps) => {
   const { toast } = useToast();
-  const { signOut } = useAuth();
+  const { signOut, authState } = useAuth();
   const navigate = useNavigate();
-  const [notificationCount, setNotificationCount] = useState(3);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showNotifications, setShowNotifications] = useState(false);
-  
-  // Mock notifications data
-  const notifications = [
-    {
-      id: 1,
-      title: "EMI Payment Due",
-      description: "Your EMI payment of ₹5,000 is due on 30th Nov 2023",
-      date: "25 Nov 2023",
-      read: false,
-      type: "emi",
-    },
-    {
-      id: 2,
-      title: "Health Card Balance Low",
-      description: "Your health card balance is below ₹1,000. Consider topping up.",
-      date: "24 Nov 2023",
-      read: false,
-      type: "balance",
-    },
-    {
-      id: 3,
-      title: "Hospital Visit Scheduled",
-      description: "Reminder: Your appointment at City General Hospital is tomorrow at 10:00 AM",
-      date: "23 Nov 2023",
-      read: false,
-      type: "appointment",
-    },
-    {
-      id: 4,
-      title: "Medical Report Available",
-      description: "Your latest blood test report is now available for download",
-      date: "20 Nov 2023",
-      read: true,
-      type: "report",
-    },
-  ];
-  
-  const handleNotificationClick = () => {
-    setShowNotifications(true);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  useEffect(() => {
+    loadNotifications();
+  }, []);
+
+  const loadNotifications = async () => {
+    try {
+      setLoading(true);
+      const data = await fetchNotifications();
+      setNotifications(data);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load notifications",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleReadNotifications = () => {
-    setNotificationCount(0);
+  const handleReadNotifications = async () => {
+    try {
+      const unreadIds = notifications
+        .filter(n => !n.read)
+        .map(n => n._id);
+
+      if (unreadIds.length === 0) return;
+
+      await markNotificationsAsRead(unreadIds);
+      
+      setNotifications(prevNotifications =>
+        prevNotifications.map(notification => ({
+          ...notification,
+          read: true
+        }))
+      );
+
+      toast({
+        title: "Notifications Updated",
+        description: "All notifications have been marked as read.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update notifications",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteNotification = async (id: string) => {
+    try {
+      await deleteNotification(id);
+      setNotifications(prev => prev.filter(n => n._id !== id));
+      toast({
+        title: "Notification Deleted",
+        description: "The notification has been removed.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete notification",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleProfileClick = (path: string) => {
+    navigate(path);
     setShowNotifications(false);
-    toast({
-      title: "Notifications Cleared",
-      description: "All notifications have been marked as read.",
-    });
   };
 
   const handleLogout = () => {
@@ -118,10 +145,16 @@ const PatientDashboardHeader = ({
       <div className="flex items-center gap-4">
         <Popover open={showNotifications} onOpenChange={setShowNotifications}>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative" onClick={handleNotificationClick}>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="relative"
+            >
               <Bell className="h-5 w-5" />
-              {notificationCount > 0 && (
-                <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">{notificationCount}</span>
+              {unreadCount > 0 && (
+                <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
+                  {unreadCount}
+                </span>
               )}
               <span className="sr-only">Notifications</span>
             </Button>
@@ -130,36 +163,60 @@ const PatientDashboardHeader = ({
             <div className="p-4 border-b">
               <div className="flex items-center justify-between">
                 <h4 className="text-sm font-medium">Notifications</h4>
-                <Button variant="ghost" size="sm" onClick={handleReadNotifications}>
-                  Mark all as read
-                </Button>
+                {unreadCount > 0 && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleReadNotifications}
+                  >
+                    Mark all as read
+                  </Button>
+                )}
               </div>
             </div>
             <div className="max-h-80 overflow-auto">
-              {notifications.map(notification => (
-                <div 
-                  key={notification.id} 
-                  className={`p-4 border-b last:border-0 ${notification.read ? 'bg-background' : 'bg-accent/20'}`}
-                >
-                  <div className="flex justify-between gap-2">
-                    <h5 className="text-sm font-medium">{notification.title}</h5>
-                    <span className="text-xs text-muted-foreground">{notification.date}</span>
-                  </div>
-                  <p className="text-xs mt-1 text-muted-foreground">{notification.description}</p>
+              {loading ? (
+                <div className="p-4 text-center">
+                  <div className="animate-spin h-6 w-6 border-2 border-primary rounded-full border-t-transparent mx-auto" />
                 </div>
-              ))}
-              {notifications.length === 0 && (
+              ) : notifications.length > 0 ? (
+                notifications.map(notification => (
+                  <div 
+                    key={notification._id} 
+                    className={`p-4 border-b last:border-0 ${
+                      notification.read ? 'bg-background' : 'bg-accent/20'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start gap-2">
+                      <div>
+                        <h5 className="text-sm font-medium">{notification.title}</h5>
+                        <p className="text-xs mt-1 text-muted-foreground">
+                          {notification.description}
+                        </p>
+                        <span className="text-xs text-muted-foreground mt-2 block">
+                          {new Date(notification.date).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteNotification(notification._id)}
+                        className="h-8 w-8"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              ) : (
                 <div className="p-4 text-center text-sm text-muted-foreground">
-                  No new notifications
+                  No notifications
                 </div>
               )}
             </div>
-            <div className="p-2 border-t">
-              <Button variant="outline" size="sm" className="w-full">View all notifications</Button>
-            </div>
           </PopoverContent>
         </Popover>
-        
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative">
@@ -170,14 +227,17 @@ const PatientDashboardHeader = ({
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer">
+            <DropdownMenuItem onClick={() => handleProfileClick('/health-card')} className="cursor-pointer">
               <CreditCard className="mr-2 h-4 w-4" /> Health Card
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer">
+            <DropdownMenuItem onClick={() => handleProfileClick('/profile')} className="cursor-pointer">
               <Settings className="mr-2 h-4 w-4" /> Profile Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer text-red-500" onClick={handleLogout}>
+            <DropdownMenuItem 
+              className="cursor-pointer text-red-500" 
+              onClick={handleLogout}
+            >
               <LogOut className="mr-2 h-4 w-4" /> Log Out
             </DropdownMenuItem>
           </DropdownMenuContent>

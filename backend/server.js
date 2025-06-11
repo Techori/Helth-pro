@@ -3,23 +3,20 @@ const connectDB = require('./config/db');
 const cors = require('cors');
 const path = require('path');
 const mongoose = require('mongoose');
-<<<<<<< HEAD
 const authRoutes = require('./routes/authRoutes');
-=======
 const patientRoutes = require('./routes/patient');
-
->>>>>>> 47dcb0b11a36dd18e16fb5c901d8d6ee3e9586e1
+const http = require('http');
+const { Server } = require('socket.io');
 
 console.log('Starting server initialization...');
 
-// Request logger middleware - MOVED UP
+// Request logger middleware
 const requestLogger = (req, res, next) => {
   const start = Date.now();
   console.log(`=== ${req.method} ${req.originalUrl} ===`);
   console.log("Request Body:", req.body);
   console.log("Query Params:", req.query);
 
-  // Capture response
   const oldSend = res.send;
   res.send = function (data) {
     const duration = Date.now() - start;
@@ -59,19 +56,25 @@ connectDB()
   });
 
 const app = express();
-console.log("Express app instance created");
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  next();
-});
+const server = http.createServer(app);
 
-// Init Middleware
+// Initialize Socket.IO
+const io = new Server(server, {
+  cors: {
+    origin: process.env.REACT_APP_CLIENT_URL || "http://localhost:8080",
+    methods: ['GET', 'POST']
+  }
+});
+app.set('io', io);
+console.log("Socket.IO initialized");
+
+// Middleware
 try {
   console.log("Initializing middleware...");
   app.use(express.json({ extended: false }));
   app.use(cors());
-  app.use(requestLogger); // Now requestLogger is defined before use
-  console.log("Middleware initialized: JSON parser and CORS enabled");
+  app.use(requestLogger);
+  console.log("Middleware initialized: JSON parser, CORS, and request logger enabled");
 } catch (err) {
   console.error("Error initializing middleware:", err);
 }
@@ -85,8 +88,7 @@ const healthCheckHandler = (req, res) => {
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
       environment: process.env.NODE_ENV || "development",
-      database:
-        mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+      database: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
       version: process.env.npm_package_version || "1.0.0",
     };
 
@@ -104,17 +106,15 @@ const healthCheckHandler = (req, res) => {
   }
 };
 
-// Update health check registration
+// Register health check endpoints
 app.get("/health", healthCheckHandler);
-app.get("/api/health", healthCheckHandler); // Add additional path
-
+app.get("/api/health", healthCheckHandler);
 console.log("Health check endpoints registered at /health and /api/health");
 
 // Define Routes with error handling
 console.log("Setting up API routes...");
 const setupRoute = (path, router) => {
   try {
-    // Add route-specific logging middleware
     router.use((req, res, next) => {
       console.log(`[${path}] Handling ${req.method} request`);
       next();
@@ -123,16 +123,13 @@ const setupRoute = (path, router) => {
     app.use(path, router);
     console.log(`Route registered successfully: ${path}`);
 
-    // Log available methods for this route
     const methods = [];
     router.stack.forEach((layer) => {
       if (layer.route) {
         methods.push(...Object.keys(layer.route.methods));
       }
     });
-    console.log(
-      `Available methods for ${path}: [${methods.join(", ").toUpperCase()}]`
-    );
+    console.log(`Available methods for ${path}: [${methods.join(", ").toUpperCase()}]`);
   } catch (err) {
     console.error(`Error setting up route ${path}:`, err);
   }
@@ -141,25 +138,18 @@ const setupRoute = (path, router) => {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/hospitals', require('./routes/hospitalRoutes'));
-
-<<<<<<< HEAD
-=======
 setupRoute('/api/auth', require('./routes/auth'));
->>>>>>> 47dcb0b11a36dd18e16fb5c901d8d6ee3e9586e1
 setupRoute('/api/users', require('./routes/users'));
 setupRoute('/api/health-cards', require('./routes/healthCards'));
 setupRoute('/api/loans', require('./routes/loans'));
-setupRoute('/api/kyc', require('./routes/kyc'));
+setupRoute('/api/kyc', require('./routes/kyc')); // Uses updated kyc.js
 setupRoute('/api/transactions', require('./routes/transactions'));
 setupRoute('/api/notifications', require('./routes/notifications'));
 setupRoute('/api/staff', require('./routes/staffRoutes'));
 setupRoute('/api/patient', patientRoutes);
-setupRoute("/api/face-auth", require("./routes/face-verification"));
-
-// Assuming you have a users.js file in the routes directory
+setupRoute('/api/face-auth', require('./routes/face-verification'));
 setupRoute('/api/hospitalusers', require('./routes/HospitalUser'));
 setupRoute('/api/support/tickets', require('./routes/supportTickets'));
-
 
 setupRoute('/api', require('./routes/upload')); // Upload route
 setupRoute('/api', require('./routes/files')); 
@@ -167,7 +157,6 @@ setupRoute('/api', require('./routes/files'));
 setupRoute('/api', require('./routes/hospitals'));
 
 setupRoute('/api/admin', require('./routes/admin'));
-
 
 
 // Serve static assets in production
@@ -191,9 +180,7 @@ if (process.env.NODE_ENV === "production") {
 // Add global error handler
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000;
-
-// Add a function to get detailed route information
+// Get route information
 const getRouteInfo = (app) => {
   try {
     const routes = [];
@@ -215,7 +202,6 @@ const getRouteInfo = (app) => {
       }
     });
 
-    // Add health check route info
     routes.push({
       path: "/api/health",
       methods: ["get"],
@@ -228,29 +214,26 @@ const getRouteInfo = (app) => {
   }
 };
 
-// Start server with error handling
+// Start server
 try {
-  app
-    .listen(PORT, () => {
-      const routes = getRouteInfo(app);
-      console.log("=================================");
-      console.log(`Server configuration summary:`);
-      console.log(`- Environment: ${process.env.NODE_ENV || "development"}`);
-      console.log(`- Port: ${PORT}`);
-      console.log(`- Total API Routes: ${routes.length}`);
-      console.log("\nRegistered Routes:");
-      routes.forEach((route) => {
-        console.log(
-          `  ${route.path} [${route.methods.join(", ").toUpperCase()}]`
-        );
-      });
-      console.log("=================================");
-      console.log(`Server is now listening on port ${PORT}`);
-    })
-    .on("error", (err) => {
-      console.error("Error starting server:", err);
-      process.exit(1);
+  server.listen(process.env.PORT || 5000, () => {
+    const PORT = process.env.PORT || 5000;
+    const routes = getRouteInfo(app);
+    console.log("=================================");
+    console.log(`Server configuration summary:`);
+    console.log(`- Environment: ${process.env.NODE_ENV || "development"}`);
+    console.log(`- Port: ${PORT}`);
+    console.log(`- Total API Routes: ${routes.length}`);
+    console.log("\nRegistered Routes:");
+    routes.forEach((route) => {
+      console.log(`  ${route.path} [${route.methods.join(", ").toUpperCase()}]`);
     });
+    console.log("=================================");
+    console.log(`Server is now listening on port ${PORT}`);
+  }).on("error", (err) => {
+    console.error("Error starting server:", err);
+    process.exit(1);
+  });
 } catch (err) {
   console.error("Critical server error:", err);
   process.exit(1);

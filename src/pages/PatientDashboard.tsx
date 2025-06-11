@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PatientSidebar from "@/components/patient/PatientSidebar";
 import PatientDashboardHeader from "@/components/patient/PatientDashboardHeader";
 import PatientDashboardOverview from "@/components/patient/PatientDashboardOverview";
+import PatientNotifications from "@/components/patient/PatientNotifications";
 import HealthCardManagement from "@/components/patient/HealthCardManagement";
 import LoanManagement from "@/components/patient/LoanManagement";
 import HospitalVisits from "@/components/patient/HospitalVisits";
@@ -72,7 +73,7 @@ const PatientDashboard = () => {
 
   return (
     <SidebarWrapper>
-      <div className="flex h-screen bg-gray-50">
+      <div className="flex h-screen w-screen bg-gray-50">
         <PatientSidebar 
           isOpen={sidebarOpen} 
           setIsOpen={setSidebarOpen} 
@@ -94,7 +95,8 @@ const PatientDashboard = () => {
                 <TabsTrigger value="health-card">Health Card</TabsTrigger>
                 <TabsTrigger value="loans">Loans & EMIs</TabsTrigger>
                 <TabsTrigger value="hospital-visits">Hospital Visits</TabsTrigger>
-                <TabsTrigger value="profile">Profile</TabsTrigger>
+                <TabsTrigger value="notifications">Notifications</TabsTrigger>
+                <TabsTrigger value="settings">Settings</TabsTrigger>
               </TabsList>
               
               <TabsContent value="overview" className="mt-6">
@@ -112,8 +114,12 @@ const PatientDashboard = () => {
               <TabsContent value="hospital-visits" className="mt-6">
                 <HospitalVisits />
               </TabsContent>
+              <TabsContent value="notifications" className="mt-6">
+                <PatientNotifications />
+              </TabsContent>
+
               
-              <TabsContent value="profile" className="mt-6">
+              <TabsContent value="settings" className="mt-6">
                 <ProfileSettings patientData={patientData} />
               </TabsContent>
             </Tabs>

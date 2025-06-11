@@ -11,13 +11,34 @@ export interface KYCData {
   state: string;
   zipCode: string;
   maritalStatus: string;
+  email: string; // Added
+  phone: string; // Added
+  firstName: string; // Added
+  lastName: string; // Added
   dependents: string;
 }
+// Interface for verification details (returned by backend after KYC completion)
+export interface VerificationDetails {
+  aadhaar?: {
+    idNumber: string;
+    gender: string;
+    idProofType: string;
+  };
+  pan?: {
+    idNumber: string;
+  };
+}
 
+// Interface for KYC status response
 export interface KYCStatus {
   kycStatus: 'pending' | 'completed' | 'rejected';
   uhid?: string;
-  kycData?: KYCData;
+  kycData?: KYCData & {
+    verificationId?: string;
+    verificationMethod?: string;
+    verifiedAt?: string;
+    verificationDetails?: VerificationDetails;
+  };
   rejectionReason?: string;
 }
 

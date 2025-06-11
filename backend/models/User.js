@@ -45,7 +45,7 @@ const UserSchema = new mongoose.Schema({
     enum: ['pending', 'completed', 'rejected'],
     default: 'pending'
   },
-  kycData: {
+kycData: {
     panNumber: String,
     aadhaarNumber: String,
     dateOfBirth: Date,
@@ -55,7 +55,20 @@ const UserSchema = new mongoose.Schema({
     state: String,
     zipCode: String,
     maritalStatus: String,
-    dependents: String
+    dependents: String,
+    verificationId: String,
+    verificationMethod: String,
+    verifiedAt: Date,
+    verificationDetails: {
+      aadhaar: {
+        idNumber: String,
+        gender: String,
+        idProofType: String
+      },
+      pan: {
+        idNumber: String
+      }
+    }
   },
   avatar: {
     type: String

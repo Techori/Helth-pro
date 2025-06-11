@@ -244,3 +244,14 @@ export const getEmiSchedule = async (loanId: string) => {
     throw error;
   }
 };
+
+export const fetchUserLoans = async (): Promise<any[]> => {
+  try {
+    console.log('Fetching user loans');
+    const response = await apiRequest('/loans/user');
+    return response || [];
+  } catch (error) {
+    console.error('Failed to fetch user loans:', error);
+    throw error;
+  }
+};

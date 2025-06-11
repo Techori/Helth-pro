@@ -86,15 +86,6 @@ const PatientSidebar = ({ isOpen, setIsOpen, activeTab, onTabChange }: PatientSi
                 <span>Hospital Visits</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton 
-                onClick={() => onTabChange("medical-records")}
-                isActive={activeTab === "medical-records"}
-              >
-                <FileText />
-                <span>Medical Records</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
 

@@ -114,6 +114,7 @@ export interface AuthUser {
   lastName?: string;
   hospitalId?: string;
   phone?: string;
+  avatarUrl?: string; // URL to the user's avatar image
   kycStatus?: 'pending' | 'completed' | 'rejected';
   uhid?: string; // Unique Health ID
   kycData?: any; // KYC data can be any type, adjust as needed

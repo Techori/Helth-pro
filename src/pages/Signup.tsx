@@ -25,9 +25,9 @@ const Signup = () => {
   const { authState, signUp } = useAuth();
   const [loaded, setLoaded] = useState(true);
   const [formData, setFormData] = useState({
-<<<<<<< HEAD
     email: "",
     password: "",
+    confirmPassword: "",
     firstName: "",
     lastName: "",
     role: "patient" as UserRole,
@@ -35,15 +35,6 @@ const Signup = () => {
     location: "",
     phone: "",
     services: ""
-=======
-    email: '',
-    password: '',
-    confirmPassword: '',
-    firstName: '',
-    lastName: '',
-    phone: '',
-    role: 'patient' as UserRole
->>>>>>> 47dcb0b11a36dd18e16fb5c901d8d6ee3e9586e1
   });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -70,7 +61,6 @@ const Signup = () => {
       setError('All fields are required');
       return false;
     }
-<<<<<<< HEAD
 
     if (formData.role === "hospital") {
       if (!formData.hospitalName || !formData.location || !formData.phone) {
@@ -89,9 +79,6 @@ const Signup = () => {
       return false;
     }
 
-=======
-    
->>>>>>> 47dcb0b11a36dd18e16fb5c901d8d6ee3e9586e1
     if (!/\S+@\S+\.\S+/.test(formData.email)) {
       setError('Please enter a valid email address');
       return false;
@@ -124,7 +111,6 @@ const Signup = () => {
     setError(null);
     
     try {
-<<<<<<< HEAD
       // Prepare the data for the API
       const signupData = {
         firstName: formData.firstName,
@@ -152,36 +138,6 @@ const Signup = () => {
 
       if (!response.ok) {
         throw new Error(data.msg || 'Registration failed');
-=======
-      console.log('Attempting to register with:', formData);
-      const { data, error } = await signUp(
-        formData.email,
-        formData.password,
-        formData.firstName,
-        formData.lastName,
-        formData.phone,
-        formData.role
-      );
-      
-      if (error) {
-        console.error('Registration error:', error);
-        setError(error.message || 'Registration failed');
-        toast({
-          title: "Registration Failed",
-          description: error.message || "Please try again",
-          variant: "destructive"
-        });
-      } else if (data?.user) {
-        console.log('Registration successful:', data);
-        toast({
-          title: "Registration Successful",
-          description: "Your account has been created successfully",
-        });
-        
-        const redirectPath = `/${data.user.role}-dashboard`;
-        console.log('Redirecting to:', redirectPath);
-        navigate(redirectPath, { replace: true });
->>>>>>> 47dcb0b11a36dd18e16fb5c901d8d6ee3e9586e1
       }
 
       toast({
@@ -194,21 +150,12 @@ const Signup = () => {
       navigate(redirectPath, { replace: true });
 
     } catch (err: any) {
-<<<<<<< HEAD
       console.error("Registration error:", err);
       setError(err.message || "Registration failed. Please try again.");
       toast({
         title: "Registration Failed",
         description: err.message || "Please try again",
         variant: "destructive",
-=======
-      console.error('Unexpected registration error:', err);
-      setError(err.message || 'An unexpected error occurred');
-      toast({
-        title: "Registration Failed",
-        description: err.message || "An unexpected error occurred",
-        variant: "destructive"
->>>>>>> 47dcb0b11a36dd18e16fb5c901d8d6ee3e9586e1
       });
     } finally {
       setIsSubmitting(false);
@@ -346,7 +293,6 @@ const Signup = () => {
                         <option value="support">Support</option>
                       </select>
                     </div>
-<<<<<<< HEAD
 
                     {formData.role === "hospital" && (
                       <>
@@ -390,12 +336,10 @@ const Signup = () => {
                           <input
                             type="text"
                             name="services"
-                            placeholder="Services (comma-separated)"
+                            placeholder="Services (comma-separated)e.g., General, Cardiology, Orthopedics"
                             value={formData.services}
                             onChange={handleInputChange}
-                            className="w-full pl-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"
-                            placeholder="e.g., General, Cardiology, Orthopedics"
-                          />
+                            className="w-full pl-10 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-brand-500"                          />
                         </div>
                       </>
                     )}
@@ -403,12 +347,6 @@ const Signup = () => {
                     <Button
                       type="submit"
                       className="w-full bg-brand-600 hover:bg-brand-700"
-=======
-                    
-                    <Button 
-                      type="submit" 
-                      className="w-full bg-brand-600 hover:bg-brand-700" 
->>>>>>> 47dcb0b11a36dd18e16fb5c901d8d6ee3e9586e1
                       disabled={isSubmitting}
                     >
                       {isSubmitting ? 'Creating account...' : 'Create Account'}

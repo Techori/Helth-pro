@@ -7,15 +7,9 @@ export const loginUser = async (email: string, password: string) => {
   
   try {
     // Login request to get token
-<<<<<<< HEAD
     const data = await apiRequest("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
-=======
-    const data = await apiRequest('/auth', {
-      method: 'POST',
-      body: JSON.stringify({ email, password })
->>>>>>> 47dcb0b11a36dd18e16fb5c901d8d6ee3e9586e1
     });
         
     if (!data.token) {

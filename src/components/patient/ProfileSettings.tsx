@@ -149,7 +149,7 @@ const ProfileSettings = () => {
               <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4 mb-6">
                 <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
                   <img
-                    src={authState.user.avatar || "https://github.com/shadcn.png"}
+                    src={authState.user.avatarUrl || "https://github.com/shadcn.png"}
                     alt="Profile"
                     className="w-full h-full object-cover"
                   />

@@ -5,11 +5,24 @@ const auth = require('../middleware/auth');
 const User = require('../models/User');
 const axios = require('axios');
 
+// Add this helper function at the top
+const validateAadhaarLastDigits = (storedLastDigits, fullAadhaar) => {
+  if (!storedLastDigits || !fullAadhaar) return false;
+  return fullAadhaar.slice(-4) === storedLastDigits;
+};
+
 // Generate UHID
 const generateUHID = () => {
   const timestamp = Date.now().toString();
   const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
   return `UH${timestamp.slice(-8)}${random}`;
+};
+
+const parseDate = (dateStr) => {
+  if (!dateStr) return null;
+  // Convert DD/MM/YYYY to YYYY-MM-DD
+  const [day, month, year] = dateStr.split('/');
+  return new Date(`${year}-${month}-${day}`);
 };
 
 // Generate a new verification ID
@@ -31,10 +44,9 @@ const verifyWithDigio = async (kycData, retries = 3, backoff = 3000) => {
   if (!/^\d{12}$/.test(aadhaarNumber)) throw new Error('Invalid Aadhaar number format');
   if (!firstName || !lastName) throw new Error('First name and last name are required');
 
-  // Use existing verificationId if provided and valid, otherwise generate a new one
-  const refId = verificationId && /^REF_\d+_[a-z0-9]+$/.test(verificationId) 
-    ? verificationId 
-    : generateVerificationId();
+  // Store only last 4 digits in the reference
+  const aadhaarLastDigits = aadhaarNumber.slice(-4);
+  const refId = generateVerificationId();
 
   try {
     // Step 1: Initiate KYC request
@@ -42,7 +54,7 @@ const verifyWithDigio = async (kycData, retries = 3, backoff = 3000) => {
       customer_identifier: email || phone,
       identifier_type: email ? 'email' : 'mobile',
       customer_name: `${firstName} ${lastName}`,
-      reference_id: refId,
+      reference_id: `${refId}_${aadhaarLastDigits}`, // Append last 4 digits to reference
       documents: [
         { type: 'pan', value: panNumber },
         { type: 'aadhaar', value: aadhaarNumber }
@@ -51,6 +63,7 @@ const verifyWithDigio = async (kycData, retries = 3, backoff = 3000) => {
       notify_customer: true,
       generate_access_token: true,
       webhook: {
+        group_name:'Testing',
         url: process.env.WEBHOOK_URL,
         headers: { 'Content-Type': 'application/json' }
       }
@@ -74,10 +87,6 @@ const verifyWithDigio = async (kycData, retries = 3, backoff = 3000) => {
       referenceId: refId // Return the used reference_id for tracking
     };
   } catch (error) {
-    if (retries > 0 && error.response?.status >= 500) {
-      await new Promise(resolve => setTimeout(resolve, backoff));
-      return verifyWithDigio(kycData, retries - 1, backoff * 2);
-    }
     console.error('Digio API error:', error.response?.data);
     throw new Error('Document verification failed with Digio');
   }
@@ -86,96 +95,86 @@ const verifyWithDigio = async (kycData, retries = 3, backoff = 3000) => {
 // Webhook handler for Digio status updates
 router.post('/webhooks/digio', async (req, res) => {
   try {
-    const { kyc_id, status, details } = req.body;
-
-    if (!kyc_id || !status) {
-      return res.status(400).json({ msg: 'Invalid webhook payload' });
-    }
-
+    const { id, status, actions, reference_id } = req.body;
+    
+    // Extract stored last 4 digits from reference_id
+    const storedAadhaarLastDigits = reference_id.split('_').pop();
+    
     // Extract verification details
-    const aadhaarDetails = details?.aadhaar || {};
-    const panDetails = details?.pan || {};
+    const aadhaarDetails = actions?.[0]?.details?.aadhaar || {};
+    const panDetails = actions?.[0]?.details?.pan || {};
 
-    // Find user by kyc_id
-    const user = await User.findOne({ 'kycData.verificationId': kyc_id });
-    if (!user) {
-      return res.status(404).json({ msg: 'User not found for KYC ID' });
+    // Validate Aadhaar last 4 digits
+    if (aadhaarDetails.id_number) {
+      const receivedLastDigits = aadhaarDetails.id_number.slice(-4);
+      if (receivedLastDigits !== storedAadhaarLastDigits) {
+        console.error('Aadhaar number verification failed');
+        return res.status(400).json({ msg: 'Aadhaar verification failed' });
+      }
     }
 
-    // Compare webhook details with stored kycData
-    const currentKycData = user.kycData || {};
-    const updates = {};
+    const updates = {
+      // Do not store full Aadhaar number
+      'kycData.aadhaarLastDigits': storedAadhaarLastDigits,
+      'kycData.aadhaarVerified': true
+    };
 
-    // Compare and update fields if different or new
-    if (panDetails.id_number && panDetails.id_number !== currentKycData.panNumber) {
-      console.log(`Updating PAN: ${currentKycData.panNumber} -> ${panDetails.id_number}`);
-      updates['kycData.panNumber'] = panDetails.id_number;
+    if (aadhaarDetails.current_address_details) {
+      updates['kycData.address'] = aadhaarDetails.current_address;
+      updates['kycData.city'] = aadhaarDetails.current_address_details.district_or_city;
+      updates['kycData.state'] = aadhaarDetails.current_address_details.state;
+      updates['kycData.zipCode'] = aadhaarDetails.current_address_details.pincode;
     }
-    if (aadhaarDetails.id_number && aadhaarDetails.id_number !== currentKycData.aadhaarNumber) {
-      console.log(`Updating Aadhaar: ${currentKycData.aadhaarNumber} -> ${aadhaarDetails.id_number}`);
-      updates['kycData.aadhaarNumber'] = aadhaarDetails.id_number;
-    }
+
+    // Update other details
     if (aadhaarDetails.name) {
-      const [webhookFirstName, ...webhookLastNameParts] = aadhaarDetails.name.split(' ');
-      const webhookLastName = webhookLastNameParts.join(' ');
-      if (webhookFirstName && webhookFirstName !== currentKycData.firstName) {
-        console.log(`Updating First Name: ${currentKycData.firstName} -> ${webhookFirstName}`);
-        updates['kycData.firstName'] = webhookFirstName;
-      }
-      if (webhookLastName && webhookLastName !== currentKycData.lastName) {
-        console.log(`Updating Last Name: ${currentKycData.lastName} -> ${webhookLastName}`);
-        updates['kycData.lastName'] = webhookLastName;
-      }
+      const [firstName, ...lastNameParts] = aadhaarDetails.name.split(' ');
+      const lastName = lastNameParts.join(' ');
+      updates['kycData.firstName'] = firstName;
+      updates['kycData.lastName'] = lastName;
     }
-    if (aadhaarDetails.email && aadhaarDetails.email !== currentKycData.email) {
-      console.log(`Updating Email: ${currentKycData.email} -> ${aadhaarDetails.email}`);
-      updates['kycData.email'] = aadhaarDetails.email;
-    }
-    if (aadhaarDetails.phone && aadhaarDetails.phone !== currentKycData.phone) {
-      console.log(`Updating Phone: ${currentKycData.phone} -> ${aadhaarDetails.phone}`);
-      updates['kycData.phone'] = aadhaarDetails.phone;
-    }
-    if (aadhaarDetails.gender && aadhaarDetails.gender !== currentKycData.gender) {
-      console.log(`Updating Gender: ${currentKycData.gender} -> ${aadhaarDetails.gender}`);
-      updates['kycData.gender'] = aadhaarDetails.gender;
-    }
+    
+    updates['kycData.gender'] = aadhaarDetails.gender;
+    // Parse the date before saving
+    updates['kycData.dateOfBirth'] = parseDate(aadhaarDetails.dob);
+    updates['kycData.fatherName'] = aadhaarDetails.father_name;
 
-    // Update verification details and status
-    updates.kycStatus = status === 'completed' || status === 'approved' ? 'completed' : 'rejected';
+    // Update verification status
+    updates.kycStatus = status === 'approved' ? 'completed' : 'rejected';
     updates['kycData.verifiedAt'] = new Date();
     updates['kycData.verificationDetails'] = {
       aadhaar: {
-        idNumber: aadhaarDetails.id_number,
+        lastDigits: storedAadhaarLastDigits,
         gender: aadhaarDetails.gender,
-        idProofType: aadhaarDetails.id_proof_type
+        name: aadhaarDetails.name,
+        address: aadhaarDetails.current_address,
+        dob: parseDate(aadhaarDetails.dob) // Parse date here too
       },
-      pan: panDetails.id_number ? { idNumber: panDetails.id_number } : null
+      pan: {
+        idNumber: panDetails.id_number,
+        name: panDetails.name,
+        dob: parseDate(panDetails.dob) // Parse PAN DOB as well
+      }
     };
 
-    // Apply updates if any
-    if (Object.keys(updates).length > 0) {
-      const updatedUser = await User.findOneAndUpdate(
-        { 'kycData.verificationId': kyc_id },
-        { $set: updates },
-        { new: true }
-      );
+    // Apply updates
+    const updatedUser = await User.findOneAndUpdate(
+      { 'kycData.verificationId': id },
+      { $set: updates },
+      { new: true }
+    );
 
-      if (!updatedUser) {
-        return res.status(404).json({ msg: 'User not found for KYC ID after update' });
-      }
-
-      // Emit WebSocket event to notify frontend
-      const io = req.app.get('io');
-      io.to(updatedUser._id.toString()).emit('kycStatusUpdate', {
-        kycStatus: updatedUser.kycStatus,
-        uhid: updatedUser.uhid,
-        kycData: updatedUser.kycData
-      });
-
-      console.log(`KYC data updated for user ${updatedUser._id}`);
-    } else {
-      console.log(`No KYC data changes for user ${user._id}`);
+    if (!updatedUser) {
+      return res.status(404).json({ msg: 'User not found after update' });
     }
+
+    // Emit WebSocket event
+    const io = req.app.get('io');
+    io.to(updatedUser._id.toString()).emit('kycStatusUpdate', {
+      kycStatus: updatedUser.kycStatus,
+      uhid: updatedUser.uhid,
+      kycData: updatedUser.kycData
+    });
 
     res.json({ success: true, message: 'Webhook processed successfully' });
   } catch (error) {
@@ -303,12 +302,12 @@ router.post('/complete', [
       expiresInDays: digioResult.expiresInDays,
       referenceId: digioResult.referenceId
     });
-  } catch (err) {
-    console.error('KYC completion error:', err.message);
-    res.status(500).send('Server Error');
-  }
-});
-
+    } catch (error) {
+      console.error('KYC completion failed:', error.message);
+      res.status(500).json({ msg: 'KYC completion failed', error: error.message });
+    }
+  });
+  
 // @route   GET api/kyc/status
 // @desc    Get KYC status
 // @access  Private
@@ -329,5 +328,4 @@ router.get('/status', auth, async (req, res) => {
     res.status(500).send('Server Error');
   }
 });
-
-module.exports = router;
+  module.exports = router;

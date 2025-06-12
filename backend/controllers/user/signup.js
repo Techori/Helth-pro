@@ -126,6 +126,10 @@ module.exports = async (req, res) => {
     console.error(err.message);
     res.status(500).send("Server Error01");
   }
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server Error");
+  }
 };
 
 mongoose.connection.on('connected', async () => {

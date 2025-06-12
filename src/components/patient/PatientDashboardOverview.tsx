@@ -217,9 +217,9 @@ const PatientDashboardOverview = () => {
               <TableBody>
                 {loans.map((loan) => (
                   <TableRow key={loan._id}>
-                    <TableCell className="font-medium">{loan._id.slice(-8)}</TableCell>
-                    <TableCell>₹{loan.remainingBalance}</TableCell>
-                    <TableCell>₹{loan.monthlyPayment}</TableCell>
+                    <TableCell className="font-medium">{loan.applicationNumber}</TableCell>
+                    <TableCell>₹{(loan.remainingBalance || 0).toLocaleString()}</TableCell>
+                    <TableCell>₹{(loan.monthlyPayment || 0).toLocaleString()}</TableCell>
                     <TableCell>{new Date(loan.nextEmiDate).toLocaleDateString()}</TableCell>
                     <TableCell>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${

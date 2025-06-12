@@ -1,4 +1,3 @@
-
 import {
   Sidebar,
   SidebarContent,
@@ -11,6 +10,7 @@ import {
   SidebarFooter,
 } from "@/components/ui/sidebar";
 import { User, CreditCard, FileText, Activity, Calendar, Bell, Settings, LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 type PatientSidebarProps = {
   isOpen: boolean;
@@ -20,6 +20,14 @@ type PatientSidebarProps = {
 };
 
 const PatientSidebar = ({ isOpen, setIsOpen, activeTab, onTabChange }: PatientSidebarProps) => {
+  const { signOut,authState } = useAuth();
+  
+  
+  // Get user data from authState
+  const user = authState?.user;
+  const fullName = user ? `${user.firstName} ${user.lastName}` : 'Guest User';
+  const userRole = user?.role || 'Patient';
+  
   // Updated to prevent default behavior and use tab change directly
   const handleItemClick = (tab: string) => (e: React.MouseEvent) => {
     e.preventDefault();
@@ -120,17 +128,21 @@ const PatientSidebar = ({ isOpen, setIsOpen, activeTab, onTabChange }: PatientSi
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-full bg-gray-200">
                 <img
-                  src="https://github.com/shadcn.png"
-                  alt="Patient Avatar"
+                  src={user?.profileImage || "https://github.com/shadcn.png"}
+                  alt={`${fullName}'s Avatar`}
                   className="h-full w-full rounded-full object-cover"
                 />
               </div>
               <div>
-                <div className="text-sm font-medium">John Doe</div>
-                <div className="text-xs text-sidebar-foreground/70">Patient</div>
+                <div className="text-sm font-medium">{fullName}</div>
+                <div className="text-xs text-sidebar-foreground/70">{userRole}</div>
               </div>
             </div>
-            <button className="text-gray-500 hover:text-red-500">
+            <button 
+              className="text-gray-500 hover:text-red-500"
+              onClick={() => signOut()}
+              aria-label="Logout"
+            >
               <LogOut size={18} />
             </button>
           </div>

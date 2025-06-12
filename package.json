@@ -54,6 +54,7 @@
     "cmdk": "^1.0.0",
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.3.0",
+    "eslint": "^9.28.0",
     "face-api.js": "^0.20.0",
     "input-otp": "^1.2.4",
     "jspdf": "^3.0.1",
@@ -76,6 +77,7 @@
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "three": "^0.154.0",
+    "typescript-eslint": "^8.34.0",
     "vaul": "^0.9.3",
     "zod": "^3.23.8"
   },
@@ -87,14 +89,12 @@
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react-swc": "^3.5.0",
     "autoprefixer": "^10.4.21",
-    "eslint": "^9.9.0",
     "eslint-plugin-react-hooks": "^5.1.0-rc.0",
     "eslint-plugin-react-refresh": "^0.4.9",
     "globals": "^15.9.0",
     "postcss": "^8.5.4",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.5.3",
-    "typescript-eslint": "^7.3.1",
     "vite": "^6.3.5"
   }
 }

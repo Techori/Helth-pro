@@ -2,14 +2,11 @@
 const mongoose = require('mongoose');
 
 const HealthCardSchema = new mongoose.Schema({
-<<<<<<< HEAD
   patientId: {
   type: String,
   required: true,
   unique: true
 },
-=======
->>>>>>> e893cb6c5468d3646fe80dd0bad2dbdda9d26ea7
   cardNumber: {
     type: String,
     required: true,

@@ -127,6 +127,9 @@ const PatientDashboardHeader = ({
     });
   };
 
+  // Get health card ID from authState
+  const healthId = authState?.user?.uhid || 'Not Available';
+
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-6">
       <Button
@@ -140,7 +143,9 @@ const PatientDashboardHeader = ({
       </Button>
       <div className="flex-1">
         <h1 className="text-lg font-semibold">Welcome, {patientName}</h1>
-        <p className="text-sm text-muted-foreground">Health Card ID: HC-78901-23456</p>
+        <p className="text-sm text-muted-foreground">
+          Health ID: {healthId}
+        </p>
       </div>
       <div className="flex items-center gap-4">
         <Popover open={showNotifications} onOpenChange={setShowNotifications}>
@@ -227,10 +232,10 @@ const PatientDashboardHeader = ({
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => handleProfileClick('/health-card')} className="cursor-pointer">
+            <DropdownMenuItem onClick={() => handleProfileClick('/patient-dashboard?tab=health-card')} className="cursor-pointer">
               <CreditCard className="mr-2 h-4 w-4" /> Health Card
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleProfileClick('/profile')} className="cursor-pointer">
+            <DropdownMenuItem onClick={() => handleProfileClick('/patient-dashboard?tab=settings')} className="cursor-pointer">
               <Settings className="mr-2 h-4 w-4" /> Profile Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />

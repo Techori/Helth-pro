@@ -3,10 +3,12 @@ import { apiRequest } from './api';
 
 export interface Notification {
   _id: string;
+  description: string;
   user: string;
   title: string;
   message: string;
   read: boolean;
+  date: string;
   created_at: string;
   type?: 'info' | 'warning' | 'success' | 'error';
 }
@@ -47,7 +49,7 @@ export const markNotificationAsRead = async (notificationId: string): Promise<No
   }
 };
 
-export const markNotificationsAsRead = async (notificationId: string): Promise<Notification> => {
+export const markNotificationsAsRead = async (notificationId: string[]): Promise<Notification> => {
   try {
     console.log('Marking notification as read:', notificationId);
     const response = await apiRequest(`/notifications/${notificationId}/read`, {

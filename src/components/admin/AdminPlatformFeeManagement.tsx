@@ -87,10 +87,27 @@ const AdminPlatformFeeManagement = () => {
     });
   };
 
-  const handleSave = (index: number) => {
-    const updatedFeeStructures = [...feeStructures];
-    updatedFeeStructures[index] = {
-      ...updatedFeeStructures[index],
+    const handleSave = async (index: number) => {
+    // Validate form data
+    if (editingFee.fee < 0 || isNaN(editingFee.fee)) {
+      toast({
+        title: "Validation Error",
+        description: "Fee amount must be a valid non-negative number",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!editingFee.description) {
+      toast({
+        title: "Validation Error",
+        description: "Description is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const updatedFeeStructure = {
+      ...feeStructures[index],
       fee: editingFee.fee,
       description: editingFee.description,
       lastUpdated: new Date().toLocaleDateString("en-GB", {
@@ -100,13 +117,77 @@ const AdminPlatformFeeManagement = () => {
       }).replace(/\//g, "/"),
     };
 
-    setFeeStructures(updatedFeeStructures);
-    setEditingIndex(null);
+    try {
+      // Get JWT token
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast({
+          variant: "destructive",
+          title: "Authentication Error",
+          description: "Please log in to update a fee.",
+        });
+        return;
+      }
 
-    toast({
-      title: "Fee Updated",
-      description: `Fee for ${updatedFeeStructures[index].category} has been updated successfully.`,
-    });
+      // Optimistic update
+      const updatedFeeStructures = [...feeStructures];
+      updatedFeeStructures[index] = updatedFeeStructure;
+      setFeeStructures(updatedFeeStructures);
+
+      // Send request to backend
+      const response = await fetch(`api/admin/update-fee/${feeStructures[index].id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          fee: editingFee.fee,
+          description: editingFee.description,
+        }),
+      });
+
+      // Log raw response for debugging
+      const responseText = await response.text();
+      console.log("Raw response:", responseText);
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (err) {
+        console.error("JSON parse error:", err.message);
+        throw new Error("Invalid JSON response from server");
+      }
+
+      if (!response.ok) {
+        // Rollback optimistic update
+        setFeeStructures(feeStructures);
+        throw new Error(data.msg || "Failed to update fee");
+      }
+
+      // Update state with backend response
+      setFeeStructures((prevFees) =>
+        prevFees.map((fee, i) =>
+          i === index ? { ...fee, ...data.feeStructure } : fee
+        )
+      );
+
+      setEditingIndex(null);
+
+      toast({
+        title: "Fee Updated",
+        description: `Fee for ${updatedFeeStructure.category} has been updated successfully.`,
+      });
+    } catch (error) {
+      console.error("handleSave error:", error.message);
+      // Rollback optimistic update
+      setFeeStructures(feeStructures);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to update fee. Please try again.",
+      });
+    }
   };
 
   const handleCancel = () => {

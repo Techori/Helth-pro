@@ -284,12 +284,18 @@ exports.quickActionUser = async (req, res) => {
       return res.status(400).json({ msg: 'Invalid role.' });
     }
 
+    // Generate UHID for patients
+    let uhid = null;
+    if (userRole === 'patient') {
+      uhid = await generateUniqueUHID();
+    }
+
     // Generate random password
     const randomPassword = crypto.randomBytes(8).toString('hex');
     const hashedPassword = await bcrypt.hash(randomPassword, 10);
 
-    // Create the user
-    const newUser = new User({
+    // Create the user object
+    const userData = {
       firstName: name.split(' ')[0] || 'User',
       lastName: name.split(' ').slice(1).join(' ') || 'Name',
       email,
@@ -297,11 +303,22 @@ exports.quickActionUser = async (req, res) => {
       role: userRole,
       phone: '0000000000',
       notes,
-    });
+    };
+
+    // Add UHID field only if user is a patient
+    if (uhid) {
+      userData.uhid = uhid;
+    }
+
+    const newUser = new User(userData);
+
+    console.log('Attempting to save user:', newUser);
 
     const savedUser = await newUser.save();
 
-    // Log response
+    console.log('User saved successfully:', savedUser);
+
+    // Prepare response data
     const responseData = {
       msg: 'User account has been created successfully.',
       user: {
@@ -310,6 +327,7 @@ exports.quickActionUser = async (req, res) => {
         lastName: savedUser.lastName,
         email: savedUser.email,
         role: savedUser.role,
+        uhid: savedUser.uhid || null, // Include UHID in response
         registeredOn: savedUser.date.toLocaleDateString('en-GB', {
           day: '2-digit',
           month: '2-digit',
@@ -322,11 +340,44 @@ exports.quickActionUser = async (req, res) => {
   } catch (err) {
     console.error('Error processing user quick action:', err.message);
     if (err.code === 11000) {
+      // Check if the duplicate key error is for UHID
+      if (err.keyPattern && err.keyPattern.uhid) {
+        return res.status(400).json({ msg: 'UHID generation failed. Please try again.' });
+      }
       return res.status(400).json({ msg: 'Email already in use.' });
     }
     res.status(500).json({ msg: 'Server error' });
   }
 };
+
+// Function to generate unique UHID
+async function generateUniqueUHID() {
+  let uhid;
+  let isUnique = false;
+  let attempts = 0;
+  const maxAttempts = 10;
+
+  while (!isUnique && attempts < maxAttempts) {
+    // Generate 6-digit random number
+    const randomNumber = Math.floor(100000 + Math.random() * 900000);
+    uhid = `UHID${randomNumber}`;
+    
+    // Check if this UHID already exists
+    const existingUser = await User.findOne({ uhid: uhid });
+    
+    if (!existingUser) {
+      isUnique = true;
+    }
+    
+    attempts++;
+  }
+
+  if (!isUnique) {
+    throw new Error('Failed to generate unique UHID after multiple attempts');
+  }
+
+  return uhid;
+}
 
 
 exports.addPlatformFee = async (req, res) => {
@@ -462,6 +513,124 @@ exports.addSalesTarget = async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     if (err.code === 11000) {
       return res.status(400).json({ msg: 'Duplicate sales target entry.' });
+    }
+    res.status(500).json({ msg: 'Server error' });
+  }
+};
+
+
+exports.updatePlatformFee = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { fee, description } = req.body;
+
+    // Validate required fields
+    if (fee == null || !description) {
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(400).json({ msg: 'Fee and description are required.' });
+    }
+
+    // Validate fee
+    if (isNaN(fee) || fee < 0) {
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(400).json({ msg: 'Fee must be a valid non-negative number.' });
+    }
+
+    // Find and update fee structure
+    const updatedFeeStructure = await FeeStructure.findByIdAndUpdate(
+      id,
+      { fee, description, lastUpdated: new Date() },
+      { new: true }
+    );
+
+    if (!updatedFeeStructure) {
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(404).json({ msg: 'Fee structure not found.' });
+    }
+
+    // Log response
+    const responseData = {
+      msg: 'Fee structure updated successfully.',
+      feeStructure: {
+        _id: updatedFeeStructure._id,
+        category: updatedFeeStructure.category,
+        fee: updatedFeeStructure.fee,
+        type: updatedFeeStructure.type,
+        description: updatedFeeStructure.description,
+        lastUpdated: updatedFeeStructure.lastUpdated.toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        }).replace(/\//g, '/'),
+      },
+    };
+    console.log('updatePlatformFee: Response:', JSON.stringify(responseData, null, 2));
+
+    res.setHeader('Content-Type', 'application/json');
+    res.status(200).json(responseData);
+  } catch (err) {
+    console.error('Error updating platform fee:', err.message);
+    res.setHeader('Content-Type', 'application/json');
+    if (err.name === 'CastError') {
+      return res.status(400).json({ msg: 'Invalid fee structure ID.' });
+    }
+    res.status(500).json({ msg: 'Server error' });
+  }
+};
+
+
+exports.updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { firstName, email } = req.body;
+
+    if (!firstName || !email) {
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(400).json({ msg: 'First name and email are required.' });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      id,
+      { firstName, email },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedUser) {
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(404).json({ msg: 'User not found.' });
+    }
+
+    const responseData = {
+      msg: 'User updated successfully.',
+      user: {
+        _id: updatedUser._id,
+        firstName: updatedUser.firstName,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        status: updatedUser.status || 'Active',
+        lastLogin: updatedUser.lastLogin
+          ? updatedUser.lastLogin.toLocaleString('en-GB')
+          : 'Never',
+        registeredOn: updatedUser.createdAt
+          ? updatedUser.createdAt.toLocaleDateString('en-GB', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+            }).replace(/\//g, '/')
+          : 'Unknown',
+      },
+    };
+
+    res.setHeader('Content-Type', 'application/json');
+    res.status(200).json(responseData);
+  } catch (err) {
+    console.error('Error updating user:', err.message);
+    res.setHeader('Content-Type', 'application/json');
+    if (err.name === 'CastError') {
+      return res.status(400).json({ msg: 'Invalid user ID.' });
+    }
+    if (err.code === 11000) {
+      return res.status(400).json({ msg: 'Email already exists.' });
     }
     res.status(500).json({ msg: 'Server error' });
   }

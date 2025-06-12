@@ -5,9 +5,12 @@ const {
   quickActionHospital,
   quickActionLoan,
   quickActionUser,
+  quickActionUsercreation,
   quickActionHealthCard,
   addPlatformFee,
   addSalesTarget,
+  updatePlatformFee,
+  updateUser
 } = require('../controllers/admin/adminController');
 
 // @route   POST api/admin/quick-action/hospital
@@ -32,11 +35,16 @@ router.post('/quick-action/health-card', auth, quickActionHealthCard);
 
 router.post('/quick-action-user', auth, quickActionUser);
 
+router.post('/quick-action-user-creation', auth, quickActionUsercreation);
 
 
 router.post('/add-fee', auth, addPlatformFee);
 
 router.post('/add-sales-target', auth, addSalesTarget);
+
+router.put('/update-fee/:id', auth, updatePlatformFee);
+
+router.put('/update-user/:id', auth, updateUser)
 
 
 module.exports = router;

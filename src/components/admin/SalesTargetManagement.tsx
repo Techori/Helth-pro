@@ -6,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
-import { Search, Plus, TrendingUp, TrendingDown, Target, Calendar } from "lucide-react";
+import { Search, Plus, Calendar } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -17,8 +17,15 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
-const AdminSalesTargets = () => {
+// Extend jsPDF interface for TypeScript
+interface ExtendedJsPDF extends jsPDF {
+  lastAutoTable: { finalY: number };
+}
+
+const SalesTargetManagement = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddingTarget, setIsAddingTarget] = useState(false);
@@ -135,7 +142,7 @@ const AdminSalesTargets = () => {
       setSalesTargets((prevTargets) => [...prevTargets, targetToAdd]);
 
       // Send request to backend
-      const response = await fetch("api/admin/add-sales-target", {
+      const response = await fetch("http://localhost:3000/api/admin/add-sales-target", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -201,6 +208,87 @@ const AdminSalesTargets = () => {
         variant: "destructive",
         title: "Error",
         description: error.message || "Failed to add sales target. Please try again.",
+      });
+    }
+  };
+
+  const handleExportToPDF = () => {
+    try {
+      const doc = new jsPDF();
+
+      // Add title
+      doc.setFontSize(18);
+      doc.text("Sales Targets Report", 14, 22);
+
+      // Add generation date
+      doc.setFontSize(10);
+      doc.text(
+        `Generated on: ${new Date().toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        })}`,
+        14,
+        30
+      );
+
+      // Prepare table data
+      const tableData = filteredTargets.map((target) => [
+        target.hospital,
+        target.department,
+        `₹${target.targetAmount.toLocaleString()}`,
+        `₹${target.currentAmount.toLocaleString()}`,
+        `${target.progress}%`,
+        target.period,
+        target.status,
+        target.lastUpdated,
+      ]);
+
+      // Define table columns
+      const tableColumns = [
+        "Hospital",
+        "Department",
+        "Target Amount",
+        "Current Amount",
+        "Progress",
+        "Period",
+        "Status",
+        "Last Updated",
+      ];
+
+      // Add table using autoTable
+      autoTable(doc, {
+        head: [tableColumns],
+        body: tableData,
+        startY: 40,
+        theme: "grid",
+        headStyles: { fillColor: [59, 130, 246], textColor: [255, 255, 255] },
+        styles: { fontSize: 8, cellPadding: 2 },
+        columnStyles: {
+          0: { cellWidth: 30 },
+          1: { cellWidth: 25 },
+          2: { cellWidth: 25 },
+          3: { cellWidth: 25 },
+          4: { cellWidth: 20 },
+          5: { cellWidth: 20 },
+          6: { cellWidth: 20 },
+          7: { cellWidth: 25 },
+        },
+      });
+
+      // Add footer with total counts
+      const finalY = (doc as ExtendedJsPDF).lastAutoTable.finalY || 40;
+      doc.setFontSize(10);
+      doc.text(`Total Targets: ${filteredTargets.length}`, 14, finalY + 10);
+
+      // Save the PDF
+      doc.save(`Sales_Targets_${new Date().toISOString().split("T")[0]}.pdf`);
+    } catch (error) {
+      console.error("handleExportToPDF error:", error.message);
+      toast({
+        variant: "destructive",
+        title: "Export Error",
+        description: "Failed to export sales targets to PDF. Please try again.",
       });
     }
   };
@@ -329,7 +417,9 @@ const AdminSalesTargets = () => {
             <p className="text-sm text-muted-foreground">
               Showing {filteredTargets.length} of {salesTargets.length} targets
             </p>
-            <Button variant="outline">Export Targets</Button>
+            <Button variant="outline" onClick={handleExportToPDF}>
+              Export Targets
+            </Button>
           </div>
         </CardFooter>
       </Card>
@@ -417,4 +507,4 @@ const AdminSalesTargets = () => {
   );
 };
 
-export default AdminSalesTargets;
+export default SalesTargetManagement;

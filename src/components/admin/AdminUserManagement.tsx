@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
-import { Search, UserPlus, Eye, UserCog, Lock, MoreHorizontal } from "lucide-react";
+import { Search, UserPlus, Eye, UserCog, Lock, MoreHorizontal, Save, X } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
   Dialog,
@@ -18,10 +18,24 @@ import {
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+// Define the User type to ensure consistency
+interface User {
+  _id: string;
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  status: string;
+  lastLogin: string;
+  registeredOn: string;
+}
+
 const AdminUserManagement = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddingUser, setIsAddingUser] = useState(false);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
+  const [editingUser, setEditingUser] = useState({ name: "", email: "" });
   const [newUser, setNewUser] = useState({
     name: "",
     email: "",
@@ -29,10 +43,9 @@ const AdminUserManagement = () => {
     status: "Active",
   });
 
-  // Mock data for users (initial state, will be updated by API)
-
-  const [users, setUsers] = useState([
+  const [users, setUsers] = useState<User[]>([
     {
+      _id: "507f1f77bcf86cd799439011", // Example MongoDB _id
       id: "USR-001",
       name: "Rahul Sharma",
       email: "rahul.sharma@example.com",
@@ -41,11 +54,18 @@ const AdminUserManagement = () => {
       lastLogin: "06/04/2025 10:23 AM",
       registeredOn: "15/01/2025",
     },
-    // ... other users (omitted for brevity)
-
+    {
+      _id: "507f1f77bcf86cd799439012", // Example MongoDB _id
+      id: "USR-002",
+      name: "Priya Patel",
+      email: "priya.patel@example.com",
+      role: "Hospital Staff",
+      status: "Active",
+      lastLogin: "05/04/2025 02:15 PM",
+      registeredOn: "20/01/2025",
+    },
   ]);
 
-  // Filter users based on search term
   const filteredUsers = users.filter(
     (user) =>
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -54,10 +74,132 @@ const AdminUserManagement = () => {
       user.role.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+ const handleAddUser = async () => {
+  if (!newUser.name || !newUser.email || !newUser.role) {
+    toast({
+      variant: "destructive",
+      title: "Invalid form",
+      description: "Please fill in all required fields.",
+    });
+    return;
+  }
 
-  const handleAddUser = async () => {
-    // Validate form data
-    if (!newUser.name || !newUser.email || !newUser.role) {
+  const roleMap = {
+    "Patient": "patient",
+    "Hospital Staff": "hospital staff",
+    "Hospital Admin": "hospital admin",
+  };
+  const backendRole = roleMap[newUser.role] || newUser.role;
+
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Error",
+        description: "Please log in to add a user.",
+      });
+      return;
+    }
+
+    const newUserId = `USR-${String(users.length + 1).padStart(3, "0")}`;
+    // Generate a temporary _id for the optimistic update
+    const tempId = `temp-${Date.now()}`;
+
+    const userToAdd: User = {
+      _id: tempId, // Temporary _id for optimistic update
+      id: newUserId,
+      name: newUser.name,
+      email: newUser.email,
+      role: newUser.role,
+      status: newUser.status,
+      lastLogin: "Never",
+      registeredOn: new Date().toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      }).replace(/\//g, "/"),
+    };
+
+    // STEP 1: Optimistic update - Add user to the list with temp ID
+    setUsers([...users, userToAdd]);
+
+    // STEP 2: Make API call
+    const response = await fetch("api/admin/quick-action-user", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        name: newUser.name,
+        email: newUser.email,
+        role: backendRole,
+        notes: "",
+      }),
+    });
+
+    const data = await response.json();
+    console.log("Backend response:", data); // Debug log
+
+    if (!response.ok) {
+      // Rollback optimistic update on error
+      setUsers(users); // Remove the added user
+      throw new Error(data.msg || "Failed to add user");
+    }
+
+    // STEP 3: Update the user with the real MongoDB _id from backend response
+    const realMongoId = data.user?.id || data.user?._id || data.id || data._id;
+    console.log("Real MongoDB ID:", realMongoId); // Debug log
+
+    if (realMongoId) {
+      setUsers((prevUsers) =>
+        prevUsers.map((user) =>
+          user._id === tempId
+            ? { ...user, _id: realMongoId } // Replace temp ID with real MongoDB _id
+            : user
+        )
+      );
+    } else {
+      console.warn("No MongoDB ID found in response:", data);
+    }
+
+    // Reset form and close dialog
+    setNewUser({
+      name: "",
+      email: "",
+      role: "",
+      status: "Active",
+    });
+    setIsAddingUser(false);
+
+    toast({
+      title: "User Added",
+      description: `User ${newUser.name} has been added successfully.`,
+    });
+  } catch (error) {
+    // Rollback: Remove the optimistically added user
+    setUsers(users);
+    
+    toast({
+      variant: "destructive",
+      title: "Error",
+      description: error.message || "Failed to add user. Please try again.",
+    });
+  }
+};
+
+  const handleEditUser = async (userId: string) => {
+    const index = users.findIndex((user) => user.id === userId);
+    if (index === -1) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "User not found.",
+      });
+      return;
+    }
+    if (!editingUser.name || !editingUser.email) {
       toast({
         variant: "destructive",
         title: "Invalid form",
@@ -66,93 +208,92 @@ const AdminUserManagement = () => {
       return;
     }
 
-    // Map frontend role to backend role
-    const roleMap = {
-      "Patient": "patient",
-      "Hospital Staff": "hospital staff",
-      "Hospital Admin": "hospital admin",
-    };
-    const backendRole = roleMap[newUser.role] || newUser.role;
-
     try {
-      // Get JWT token (assume it's stored in localStorage or similar)
-      const token = localStorage.getItem("token"); // Adjust based on your auth setup
-
+      const token = localStorage.getItem("token");
       if (!token) {
         toast({
           variant: "destructive",
           title: "Authentication Error",
-          description: "Please log in to add a user.",
+          description: "Please log in to update a user.",
         });
         return;
       }
 
-      // Optimistic update: Add user to local state
-      const newUserId = `USR-${String(users.length + 1).padStart(3, "0")}`;
-      const userToAdd = {
-        id: newUserId,
-        name: newUser.name,
-        email: newUser.email,
-        role: newUser.role,
-        status: newUser.status,
-        lastLogin: "Never",
-        registeredOn: new Date().toLocaleDateString("en-GB", {
-          day: "2-digit",
-          month: "2-digit",
-          year: "numeric",
-        }).replace(/\//g, "/"),
+      // Use MongoDB _id for the API request
+      const mongoId = users[index]._id;
+      console.log("MongoDB ID for user:", mongoId, "User:", users[index]);
+
+      if (!mongoId || mongoId.startsWith('temp-')) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Cannot edit user: User not yet saved to database. Please wait and try again.",
+        });
+        return;
+      }
+
+      // Store original users for rollback
+      const originalUsers = [...users];
+
+      // Optimistic update
+      const updatedUsers = [...users];
+      updatedUsers[index] = {
+        ...updatedUsers[index],
+        name: editingUser.name,
+        email: editingUser.email,
       };
+      setUsers(updatedUsers);
 
-      setUsers([...users, userToAdd]);
-
-      // Send request to backend
-      const response = await fetch("api/admin/quick-action-user", {
-        method: "POST",
+      const response = await fetch(`api/admin/update-user/${mongoId}`, {
+        method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          name: newUser.name,
-          email: newUser.email,
-          role: backendRole,
-          notes: "", // Optional field
+          firstName: editingUser.name,
+          email: editingUser.email,
         }),
       });
 
-      const data = await response.json();
+      const responseText = await response.text();
+      console.log("Raw response:", responseText);
 
-      if (!response.ok) {
-        // Rollback optimistic update on failure
-        setUsers(users.filter((user) => user.id !== newUserId));
-        throw new Error(data.msg || "Failed to add user");
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (err) {
+        console.error("JSON parse error:", err.message);
+        throw new Error("Invalid JSON response from server");
       }
 
-      // Reset form and close dialog
-      setNewUser({
-        name: "",
-        email: "",
-        role: "",
-        status: "Active",
-      });
-      setIsAddingUser(false);
+      if (!response.ok) {
+        setUsers(originalUsers); // Rollback
+        throw new Error(data.msg || "Failed to update user");
+      }
 
-      // Show success toast
+      setEditingUserId(null);
+      setEditingUser({ name: "", email: "" });
       toast({
-        title: "User Added",
-        description: `User ${newUser.name} has been added successfully.`,
+        title: "User Updated",
+        description: `User ${editingUser.name} has been updated successfully.`,
       });
     } catch (error) {
-      // Show error toast
+      // Rollback is already handled in the catch block above
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to add user. Please try again.",
+        description: error.message || "Failed to update user. Please try again.",
       });
     }
   };
 
-  const handleUserAction = (action, userId, userName) => {
+  const handleCancelEdit = () => {
+    setEditingUserId(null);
+    setEditingUser({ name: "", email: "" });
+  };
+
+  const handleUserAction = (action: string, userId: string, userName: string) => {
     switch (action) {
       case "view":
         toast({
@@ -160,12 +301,17 @@ const AdminUserManagement = () => {
           description: `Viewing profile for ${userName} (${userId})`,
         });
         break;
-      case "edit":
-        toast({
-          title: "Edit User",
-          description: `Editing user ${userName} (${userId})`,
-        });
+      case "edit": {
+        const userToEdit = users.find((user) => user.id === userId);
+        if (userToEdit) {
+          setEditingUserId(userId);
+          setEditingUser({
+            name: userToEdit.name,
+            email: userToEdit.email,
+          });
+        }
         break;
+      }
       case "reset":
         toast({
           title: "Reset Password",
@@ -268,16 +414,37 @@ const AdminUserManagement = () => {
                   {filteredUsers.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">{user.id}</TableCell>
-                      <TableCell>{user.name}</TableCell>
-                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        {editingUserId === user.id ? (
+                          <Input
+                            value={editingUser.name}
+                            onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
+                            className="w-full"
+                          />
+                        ) : (
+                          user.name
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {editingUserId === user.id ? (
+                          <Input
+                            type="email"
+                            value={editingUser.email}
+                            onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
+                            className="w-full"
+                          />
+                        ) : (
+                          user.email
+                        )}
+                      </TableCell>
                       <TableCell>
                         <Badge
                           variant={
                             user.role === "Hospital Admin"
                               ? "default"
                               : user.role === "Hospital Staff"
-                              ? "secondary"
-                              : "outline"
+                                ? "secondary"
+                                : "outline"
                           }
                         >
                           {user.role}
@@ -289,8 +456,8 @@ const AdminUserManagement = () => {
                             user.status === "Active"
                               ? "default"
                               : user.status === "Inactive"
-                              ? "outline"
-                              : "destructive"
+                                ? "outline"
+                                : "destructive"
                           }
                           className={user.status === "Active" ? "bg-green-500" : ""}
                         >
@@ -299,39 +466,58 @@ const AdminUserManagement = () => {
                       </TableCell>
                       <TableCell>{user.lastLogin}</TableCell>
                       <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
+                        {editingUserId === user.id ? (
+                          <div className="flex space-x-2">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => handleEditUser(user.id)}
+                            >
+                              <Save className="h-4 w-4" />
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleUserAction("view", user.id, user.name)}>
-                              <Eye className="mr-2 h-4 w-4" />
-                              View Profile
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleUserAction("edit", user.id, user.name)}>
-                              <UserCog className="mr-2 h-4 w-4" />
-                              Edit User
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleUserAction("reset", user.id, user.name)}>
-                              <Lock className="mr-2 h-4 w-4" />
-                              Reset Password
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            {user.status === "Active" ? (
-                              <DropdownMenuItem onClick={() => handleUserAction("suspend", user.id, user.name)}>
-                                Suspend User
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={handleCancelEdit}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleUserAction("view", user.id, user.name)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Profile
                               </DropdownMenuItem>
-                            ) : (
-                              <DropdownMenuItem onClick={() => handleUserAction("activate", user.id, user.name)}>
-                                Activate User
+                              <DropdownMenuItem onClick={() => handleUserAction("edit", user.id, user.name)}>
+                                <UserCog className="mr-2 h-4 w-4" />
+                                Edit User
                               </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                              <DropdownMenuItem onClick={() => handleUserAction("reset", user.id, user.name)}>
+                                <Lock className="mr-2 h-4 w-4" />
+                                Reset Password
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              {user.status === "Active" ? (
+                                <DropdownMenuItem onClick={() => handleUserAction("suspend", user.id, user.name)}>
+                                  Suspend User
+                                </DropdownMenuItem>
+                              ) : (
+                                <DropdownMenuItem onClick={() => handleUserAction("activate", user.id, user.name)}>
+                                  Activate User
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}

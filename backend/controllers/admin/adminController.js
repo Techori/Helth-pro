@@ -125,64 +125,41 @@ exports.quickActionLoan = async (req, res) => {
       return res.status(400).json({ msg: 'Loan ID and amount are required.' });
     }
 
-    // Create the loan
-    const loan = new Loan({
-      loanId,
-      amount,
-      notes,
-      status: 'approved',
-    });
+    // Find the loan by loanId (treated as applicationNumber)
+    const loan = await Loan.findOne({ applicationNumber: loanId });
+
+    if (!loan) {
+      return res.status(404).json({ msg: 'Loan not found.' });
+    }
+
+    // Set default values if fields are missing
+    if (!loan.interestRate) {
+      loan.interestRate = 13; // Default interest rate
+    }
+    if (!loan.termMonths) {
+      loan.termMonths = 12; // Default term in months
+    }
+    if (!loan.amount) {
+      loan.amount = amount; // Use provided amount
+    }
+
+    // Update the loan status to approved
+    loan.status = 'approved';
+    loan.notes = notes; // Update notes if provided
 
     await loan.save();
 
-    res.status(200).json({ msg: 'Loan has been approved successfully.' });
+    res.status(200).json({ msg: 'Loan status has been updated to approved successfully.' });
   } catch (err) {
     console.error('Error processing loan quick action:', err.message);
-    if (err.code === 11000) {
-      return res.status(400).json({ msg: 'Loan ID already exists.' });
-    }
     res.status(500).json({ msg: 'Server error' });
   }
 };
 
-
-
-exports.quickActionHealthCard = async (req, res) => {
+exports.quickActionUsercreation = async (req, res) => {
   try {
-    const { cardType, patientId, notes } = req.body;
-
-    // Validate required fields
-    if (!cardType || !patientId) {
-      return res.status(400).json({ msg: 'Card type and patient ID are required.' });
-    }
-
-    // Validate patient exists
-    const patient = await Patient.findById(patientId);
-    if (!patient) {
-      return res.status(404).json({ msg: 'Patient not found.' });
-    }
-
-    // Create the health card
-    const healthCard = new HealthCard({
-      cardType,
-      patient: patientId,
-      notes,
-    });
-
-    await healthCard.save();
-
-    res.status(200).json({ msg: 'Health card has been created successfully.' });
-  } catch (err) {
-    console.error('Error processing health card quick action:', err.message);
-    res.status(500).json({ msg: 'Server error' });
-  }
-};
-
-
-exports.quickActionUser = async (req, res) => {
-  try {
-    const { name, email, role: userRole, notes } = req.body;
-
+    const { name, email, notes } = req.body;
+    const userRole = req.body.role || 'patient'; // Set default role to 'patient' if not provided
     // Validate required fields
     if (!name || !email || !userRole) {
       return res.status(400).json({ msg: 'Name, email, and role are required.' });
@@ -243,6 +220,164 @@ exports.quickActionUser = async (req, res) => {
     res.status(500).json({ msg: 'Server error' });
   }
 };
+
+exports.quickActionHealthCard = async (req, res) => {
+  try {
+    const { cardType, patientId, notes } = req.body;
+
+    // Validate required fields
+    if (!cardType || !patientId) {
+      return res.status(400).json({ msg: 'Card type and patient ID are required.' });
+    }
+
+    // Validate patient exists
+    const patient = await Patient.findOne({ patientId });
+    if (!patient) {
+      return res.status(404).json({ msg: 'Patient not found.' });
+    }
+
+    // Set default values for missing fields
+    const defaultExpiryDate = new Date();
+    defaultExpiryDate.setFullYear(defaultExpiryDate.getFullYear() + 1); // Default expiry date is one year from now
+
+    // Generate a 10-digit random number for the card number
+    const randomTenDigitNumber = Math.floor(1000000000 + Math.random() * 9000000000);
+    const defaultCardNumber = `HC${randomTenDigitNumber}`; // Generate a card number like HC9262534613
+
+    // Create the health card
+    const healthCard = new HealthCard({
+      cardType,
+      patientId,
+      notes,
+      expiryDate: defaultExpiryDate,
+      cardNumber: defaultCardNumber,
+    });
+
+    await healthCard.save();
+
+    res.status(200).json({ msg: 'Health card has been created successfully.' });
+  } catch (err) {
+    console.error('Error processing health card quick action:', err.message);
+    res.status(500).json({ msg: 'Server error' });
+  }
+};
+
+
+exports.quickActionUser = async (req, res) => {
+  try {
+    const { name, email, role: userRole, notes } = req.body;
+
+    // Validate required fields
+    if (!name || !email || !userRole) {
+      return res.status(400).json({ msg: 'Name, email, and role are required.' });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ msg: 'Invalid email format.' });
+    }
+
+    // Validate role against User model enum
+    const validRoles = ['patient', 'hospital', 'admin', 'sales', 'crm', 'agent', 'support', 'hospital staff', 'hospital admin'];
+    if (!validRoles.includes(userRole)) {
+      return res.status(400).json({ msg: 'Invalid role.' });
+    }
+
+    // Generate UHID for patients
+    let uhid = null;
+    if (userRole === 'patient') {
+      uhid = await generateUniqueUHID();
+    }
+
+    // Generate random password
+    const randomPassword = crypto.randomBytes(8).toString('hex');
+    const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+    // Create the user object
+    const userData = {
+      firstName: name.split(' ')[0] || 'User',
+      lastName: name.split(' ').slice(1).join(' ') || 'Name',
+      email,
+      password: hashedPassword,
+      role: userRole,
+      phone: '0000000000',
+      notes,
+    };
+
+    // Add UHID field only if user is a patient
+    if (uhid) {
+      userData.uhid = uhid;
+    }
+
+    const newUser = new User(userData);
+
+    console.log('Attempting to save user:', newUser);
+
+    const savedUser = await newUser.save();
+
+    console.log('User saved successfully:', savedUser);
+
+    // Prepare response data
+    const responseData = {
+      msg: 'User account has been created successfully.',
+      user: {
+        id: savedUser._id,
+        firstName: savedUser.firstName,
+        lastName: savedUser.lastName,
+        email: savedUser.email,
+        role: savedUser.role,
+        uhid: savedUser.uhid || null, // Include UHID in response
+        registeredOn: savedUser.date.toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        }).replace(/\//g, '/'),
+      },
+    };
+
+    res.status(200).json(responseData);
+  } catch (err) {
+    console.error('Error processing user quick action:', err.message);
+    if (err.code === 11000) {
+      // Check if the duplicate key error is for UHID
+      if (err.keyPattern && err.keyPattern.uhid) {
+        return res.status(400).json({ msg: 'UHID generation failed. Please try again.' });
+      }
+      return res.status(400).json({ msg: 'Email already in use.' });
+    }
+    res.status(500).json({ msg: 'Server error' });
+  }
+};
+
+// Function to generate unique UHID
+async function generateUniqueUHID() {
+  let uhid;
+  let isUnique = false;
+  let attempts = 0;
+  const maxAttempts = 10;
+
+  while (!isUnique && attempts < maxAttempts) {
+    // Generate 6-digit random number
+    const randomNumber = Math.floor(100000 + Math.random() * 900000);
+    uhid = `UHID${randomNumber}`;
+    
+    // Check if this UHID already exists
+    const existingUser = await User.findOne({ uhid: uhid });
+    
+    if (!existingUser) {
+      isUnique = true;
+    }
+    
+    attempts++;
+  }
+
+  if (!isUnique) {
+    throw new Error('Failed to generate unique UHID after multiple attempts');
+  }
+
+  return uhid;
+}
 
 
 exports.addPlatformFee = async (req, res) => {
@@ -313,20 +448,7 @@ exports.addPlatformFee = async (req, res) => {
 exports.addSalesTarget = async (req, res) => {
   try {
     console.log('addSalesTarget: Request body:', req.body);
-    // const adminId = req.user; // User ID from middleware (string)
-    // console.log('addSalesTarget: adminId:', adminId);
-
-    // // Validate admin role
-    // const user = await User.findById(adminId).select('role');
-    // console.log('addSalesTarget: Fetched user:', user);
-    // if (!user) {
-    //   res.setHeader('Content-Type', 'application/json');
-    //   return res.status(401).json({ msg: 'User not found' });
-    // }
-    // if (user.role !== 'admin') {
-    //   res.setHeader('Content-Type', 'application/json');
-    //   return res.status(403).json({ msg: 'Not authorized. Admin access required.' });
-    // }
+    
 
     const { hospital, department, targetAmount, period, status } = req.body;
 
@@ -391,6 +513,124 @@ exports.addSalesTarget = async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
     if (err.code === 11000) {
       return res.status(400).json({ msg: 'Duplicate sales target entry.' });
+    }
+    res.status(500).json({ msg: 'Server error' });
+  }
+};
+
+
+exports.updatePlatformFee = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { fee, description } = req.body;
+
+    // Validate required fields
+    if (fee == null || !description) {
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(400).json({ msg: 'Fee and description are required.' });
+    }
+
+    // Validate fee
+    if (isNaN(fee) || fee < 0) {
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(400).json({ msg: 'Fee must be a valid non-negative number.' });
+    }
+
+    // Find and update fee structure
+    const updatedFeeStructure = await FeeStructure.findByIdAndUpdate(
+      id,
+      { fee, description, lastUpdated: new Date() },
+      { new: true }
+    );
+
+    if (!updatedFeeStructure) {
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(404).json({ msg: 'Fee structure not found.' });
+    }
+
+    // Log response
+    const responseData = {
+      msg: 'Fee structure updated successfully.',
+      feeStructure: {
+        _id: updatedFeeStructure._id,
+        category: updatedFeeStructure.category,
+        fee: updatedFeeStructure.fee,
+        type: updatedFeeStructure.type,
+        description: updatedFeeStructure.description,
+        lastUpdated: updatedFeeStructure.lastUpdated.toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        }).replace(/\//g, '/'),
+      },
+    };
+    console.log('updatePlatformFee: Response:', JSON.stringify(responseData, null, 2));
+
+    res.setHeader('Content-Type', 'application/json');
+    res.status(200).json(responseData);
+  } catch (err) {
+    console.error('Error updating platform fee:', err.message);
+    res.setHeader('Content-Type', 'application/json');
+    if (err.name === 'CastError') {
+      return res.status(400).json({ msg: 'Invalid fee structure ID.' });
+    }
+    res.status(500).json({ msg: 'Server error' });
+  }
+};
+
+
+exports.updateUser = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { firstName, email } = req.body;
+
+    if (!firstName || !email) {
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(400).json({ msg: 'First name and email are required.' });
+    }
+
+    const updatedUser = await User.findByIdAndUpdate(
+      id,
+      { firstName, email },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedUser) {
+      res.setHeader('Content-Type', 'application/json');
+      return res.status(404).json({ msg: 'User not found.' });
+    }
+
+    const responseData = {
+      msg: 'User updated successfully.',
+      user: {
+        _id: updatedUser._id,
+        firstName: updatedUser.firstName,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        status: updatedUser.status || 'Active',
+        lastLogin: updatedUser.lastLogin
+          ? updatedUser.lastLogin.toLocaleString('en-GB')
+          : 'Never',
+        registeredOn: updatedUser.createdAt
+          ? updatedUser.createdAt.toLocaleDateString('en-GB', {
+              day: '2-digit',
+              month: '2-digit',
+              year: 'numeric',
+            }).replace(/\//g, '/')
+          : 'Unknown',
+      },
+    };
+
+    res.setHeader('Content-Type', 'application/json');
+    res.status(200).json(responseData);
+  } catch (err) {
+    console.error('Error updating user:', err.message);
+    res.setHeader('Content-Type', 'application/json');
+    if (err.name === 'CastError') {
+      return res.status(400).json({ msg: 'Invalid user ID.' });
+    }
+    if (err.code === 11000) {
+      return res.status(400).json({ msg: 'Email already exists.' });
     }
     res.status(500).json({ msg: 'Server error' });
   }

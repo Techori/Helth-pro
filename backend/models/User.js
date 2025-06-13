@@ -57,6 +57,7 @@ kycData: {
     maritalStatus: String,
     dependents: String,
     verificationId: String,
+    referenceId: String,
     verificationMethod: String,
     verifiedAt: Date,
     verificationDetails: {

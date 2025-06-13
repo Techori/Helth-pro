@@ -635,3 +635,41 @@ exports.updateUser = async (req, res) => {
     res.status(500).json({ msg: 'Server error' });
   }
 };
+
+exports.getUsers = async (req, res) => {
+  try {
+    console.log('Fetching users...');
+    const users = await User.find().sort({ createdAt: -1 });
+    console.log(`Found ${users.length} users`);
+    
+    const formattedUsers = users.map(user => ({
+      id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      role: user.role,
+      status: user.status || 'Active',
+      lastLogin: user.lastLogin ? user.lastLogin.toLocaleString('en-GB') : 'Never',
+      registeredOn: user.createdAt 
+        ? user.createdAt.toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+          }).replace(/\//g, '/')
+        : 'Unknown'
+    }));
+
+    console.log('Sending response with users:', formattedUsers);
+    res.status(200).json({
+      success: true,
+      users: formattedUsers
+    });
+  } catch (err) {
+    console.error('Error in getUsers:', err);
+    res.status(500).json({ 
+      success: false,
+      msg: 'Server error',
+      error: err.message 
+    });
+  }
+};

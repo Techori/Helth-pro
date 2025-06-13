@@ -7,6 +7,7 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const FeeStructure = require('../../models/FeeStructure');
 const SalesTarget = require('../../models/SalesTarget');
+const Staff = require('../../models/Staff'); // Import the Staff model
 
 const { v4: uuidv4 } = require('uuid'); // Import UUID for unique email generation
 
@@ -633,5 +634,135 @@ exports.updateUser = async (req, res) => {
       return res.status(400).json({ msg: 'Email already exists.' });
     }
     res.status(500).json({ msg: 'Server error' });
+  }
+};
+
+
+exports.updateHospital = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, location, contactPerson, phone, email, services } = req.body;
+
+    // Validate required fields
+    if (!name || !location || !contactPerson || !phone || !email) {
+      return res.status(400).json({ message: 'All required fields must be provided' });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: 'Invalid email address' });
+    }
+
+    // Validate phone format
+    const phoneRegex = /^\+?[\d\s-]{10,}$/;
+    if (!phoneRegex.test(phone)) {
+      return res.status(400).json({ message: 'Invalid phone number' });
+    }
+
+    // Find and update hospital
+    const hospital = await Hospital.findById(id);
+    if (!hospital) {
+      return res.status(404).json({ message: 'Hospital not found' });
+    }
+
+    // Update fields
+    hospital.name = name.trim();
+    hospital.location = location.trim();
+    hospital.contactPerson = contactPerson.trim();
+    hospital.phone = phone.trim();
+    hospital.email = email.trim();
+    hospital.services = services.map((service) => service.trim());
+
+    // Save updated hospital
+    await hospital.save();
+
+    res.status(200).json({
+      message: 'Hospital updated successfully',
+      hospital: {
+        _id: hospital._id,
+        name: hospital.name,
+        location: hospital.location,
+        contactPerson: hospital.contactPerson,
+        phone: hospital.phone,
+        email: hospital.email,
+        services: hospital.services,
+        registrationDate: hospital.registrationDate,
+        status: hospital.status,
+        totalPatients: hospital.totalPatients,
+        totalTransactions: hospital.totalTransactions,
+        currentBalance: hospital.currentBalance,
+      },
+    });
+  } catch (error) {
+    console.error('Error updating hospital:', error);
+    res.status(500).json({ message: 'Server error while updating hospital' });
+  }
+};
+
+
+exports.addStaff = async (req, res) => {
+  try {
+    const { name, email, phone, hospitalId, role, department } = req.body;
+
+    // Validate required fields
+    if (!name || !email || !hospitalId || !role) {
+      return res.status(400).json({ message: 'Name, email, hospital ID, and role are required' });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: 'Invalid email address' });
+    }
+
+    // Check if hospital exists
+    const hospital = await Hospital.findById(hospitalId);
+    if (!hospital) {
+      return res.status(404).json({ message: 'Hospital not found' });
+    }
+
+    // Check if staff email already exists
+    const existingStaff = await Staff.findOne({ email });
+    if (existingStaff) {
+      return res.status(400).json({ message: 'Staff with this email already exists' });
+    }
+
+    // Create new staff
+    const newStaff = new Staff({
+      name: name.trim(),
+      email: email.trim(),
+      phone: phone?.trim(),
+      hospital: hospitalId,
+      role: role.trim(),
+      department: department?.trim(),
+      joinDate: new Date(),
+      status: 'Active'
+    });
+
+    await newStaff.save();
+
+    // Add staff reference to hospital
+    // hospital.staff.push(newStaff._id);
+    // await hospital.save();
+
+    res.status(201).json({
+      message: 'Staff added successfully',
+      staff: {
+        _id: newStaff._id,
+        name: newStaff.name,
+        email: newStaff.email,
+        role: newStaff.role,
+        department: newStaff.department,
+        hospital: {
+          _id: hospital._id,
+          name: hospital.name
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error adding staff:', error);
+    res.status(500).json({ message: 'Server error while adding staff' });
   }
 };

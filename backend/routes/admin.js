@@ -10,7 +10,9 @@ const {
   addPlatformFee,
   addSalesTarget,
   updatePlatformFee,
-  updateUser
+  updateUser,
+  updateHospital,
+  addStaff
 } = require('../controllers/admin/adminController');
 
 // @route   POST api/admin/quick-action/hospital
@@ -46,5 +48,10 @@ router.put('/update-fee/:id', auth, updatePlatformFee);
 
 router.put('/update-user/:id', auth, updateUser)
 
+
+router.put('/update-hospital/:id', updateHospital);
+
+
+router.post('/add-staff', addStaff);
 
 module.exports = router;

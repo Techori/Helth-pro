@@ -11,6 +11,7 @@ const {
   addSalesTarget,
   updatePlatformFee,
   updateUser,
+  getUsers,
   getFeeStructures
 } = require('../controllers/admin/adminController');
 
@@ -47,5 +48,8 @@ router.post('/add-sales-target', auth, addSalesTarget);
 router.put('/update-fee/:id', auth, updatePlatformFee);
 
 router.put('/update-user/:id', auth, updateUser)
+
+// Get all users
+router.get('/users', auth, getUsers);
 
 module.exports = router;

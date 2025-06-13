@@ -635,3 +635,28 @@ exports.updateUser = async (req, res) => {
     res.status(500).json({ msg: 'Server error' });
   }
 };
+
+exports.getFeeStructures = async (req, res) => {
+  try {
+    const feeStructures = await FeeStructure.find().sort({ createdAt: -1 });
+    
+    res.status(200).json({
+      success: true,
+      feeStructures: feeStructures.map(fee => ({
+        _id: fee._id,
+        category: fee.category,
+        fee: fee.fee,
+        type: fee.type,
+        description: fee.description,
+        lastUpdated: fee.lastUpdated.toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        }).replace(/\//g, '/'),
+      }))
+    });
+  } catch (err) {
+    console.error('Error fetching fee structures:', err.message);
+    res.status(500).json({ msg: 'Server error' });
+  }
+};

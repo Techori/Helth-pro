@@ -1,6 +1,6 @@
 const Patient = require("../../models/Patient");
 const HealthCard = require("../../models/HealthCard");
-
+const HospitalPatients = require("../../models/hospitalPatients"); // Adjust path as needed
 
 exports.addHealthCard = async (req, res) => {
   try {
@@ -50,36 +50,30 @@ exports.addHealthCard = async (req, res) => {
 
 exports.addPatient = async (req, res) => {
   try {
-    const {
-      name,
-      age,
-      gender,
-      phone,
-      email,
-      cardNumber
-    } = req.body;
+    const { name, age, gender, phone, email, cardNumber } = req.body;
 
-    if (!name || !phone) {
-      return res.status(400).json({ message: "Name and phone are required." });
+    // Validate required fields
+    if (!name || !phone || !email || !age || !gender) {
+      return res.status(400).json({ message: "Name, phone, email, age, and gender are required." });
     }
 
     // Generate a unique patientId with retries if already exists
     let patientId;
     let patientExists = true;
     while (patientExists) {
-      patientId = `P${Math.floor(10000 + Math.random() * 90000)}`;
-      patientExists = await Patient.exists({ patientId });
+      patientId = `HP${Math.floor(10000 + Math.random() * 90000)}`; // Prefix 'HP' for HospitalPatients
+      patientExists = await HospitalPatients.exists({ patientId });
     }
 
-    // Similarly for UHID
+    // Generate a unique UHID
     let uhid;
     let uhidExists = true;
     while (uhidExists) {
       uhid = `UHID${Math.floor(100000 + Math.random() * 900000)}`;
-      uhidExists = await Patient.exists({ uhid });
+      uhidExists = await HospitalPatients.exists({ uhid });
     }
 
-    const newPatient = new Patient({
+    const newHospitalPatient = new HospitalPatients({
       patientId,
       uhid,
       name,
@@ -87,18 +81,19 @@ exports.addPatient = async (req, res) => {
       gender,
       phone,
       email,
-      cardNumber: cardNumber || undefined, // avoid null if optional and unique
+      cardNumber: cardNumber || undefined, // Avoid null for unique sparse field
       cardStatus: cardNumber ? "active" : "inactive",
       cardBalance: 0,
-      lastVisit: new Date()
+      lastVisit: new Date(),
+      // faceImage and faceEmbeddings are optional, so not included
     });
 
-    await newPatient.save();
+    await newHospitalPatient.save();
 
-    res.status(201).json({ message: "Patient added successfully", patient: newPatient });
+    res.status(201).json({ message: "Hospital patient added successfully", patient: newHospitalPatient });
   } catch (error) {
     if (error.code === 11000) {
-      return res.status(400).json({ message: "Duplicate field", error });
+      return res.status(400).json({ message: "Duplicate field (e.g., email, patientId, or uhid)", error });
     }
     res.status(500).json({ message: "Server error", error });
   }

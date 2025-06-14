@@ -115,12 +115,28 @@ const PatientManagement = () => {
     },
   ]);
 
-  const filteredPatients = patients.filter(patient =>
-    patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    patient.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    patient.cardNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    patient.phone.includes(searchTerm)
+  const filteredPatients = patients.filter(patient => {
+  // Return false if patient is null/undefined
+  if (!patient) return false;
+
+  const searchLower = searchTerm.toLowerCase();
+  
+  // Safely get values with fallbacks
+  const name = patient.name?.toLowerCase() || '';
+  const id = patient.id?.toLowerCase() || '';
+  const cardNumber = patient.cardNumber === "Not Issued" 
+    ? "not issued" 
+    : patient.cardNumber?.toLowerCase() || '';
+  const phone = patient.phone || '';
+
+  // Check each field
+  return (
+    name.includes(searchLower) ||
+    id.includes(searchLower) ||
+    cardNumber.includes(searchLower) ||
+    phone.includes(searchTerm)
   );
+});
 
 
  const handleAddPatient = async () => {

@@ -3,10 +3,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, UserPlus, Eye, UserCog, Lock, MoreHorizontal, Phone, Building, Mail, Check, Edit } from "lucide-react";
+import { Search, UserPlus, Mail, Check, Edit } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
   Dialog,
@@ -156,27 +154,11 @@ const HospitalManagement = () => {
       const apiHospitals = response.data;
       
       // Merge API data with mock data
-      const apiPendingHospitals = apiHospitals.filter(h => h.status === 'Pending');
+      const apiPendingHospitals = apiHospitals.filter(h => h.status === 'pending');
       const apiActiveHospitals = apiHospitals.filter(h => h.status === 'Active');
 
-      // Combine mock and API data, removing duplicates based on _id
-      const combinedPendingHospitals = [...mockPendingHospitals];
-      const combinedActiveHospitals = [...mockActiveHospitals];
-
-      apiPendingHospitals.forEach(apiHospital => {
-        if (!combinedPendingHospitals.some(mock => mock._id === apiHospital._id)) {
-          combinedPendingHospitals.push(apiHospital);
-        }
-      });
-
-      apiActiveHospitals.forEach(apiHospital => {
-        if (!combinedActiveHospitals.some(mock => mock._id === apiHospital._id)) {
-          combinedActiveHospitals.push(apiHospital);
-        }
-      });
-
-      setPendingHospitals(combinedPendingHospitals);
-      setActiveHospitals(combinedActiveHospitals);
+      setPendingHospitals(apiPendingHospitals);
+      setActiveHospitals(apiActiveHospitals);
     } catch (error) {
       console.error('Error fetching hospitals:', error);
       toast({
@@ -357,11 +339,13 @@ const HospitalManagement = () => {
       hospital._id.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+
+  const [isAddingStaff, setIsAddingStaff] = useState(false);
   if (loading) {
     return <div className="text-center py-6">Loading...</div>;
   }
 
-  const [isAddingStaff, setIsAddingStaff] = useState(false);
+  
 
   return (
     <div className="space-y-6">

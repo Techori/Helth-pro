@@ -54,6 +54,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
+
 // Verify patient using face
 router.post('/verify', async (req, res) => {
   try {
@@ -104,6 +105,52 @@ router.post('/verify', async (req, res) => {
   } catch (error) {
     console.error('Verification error:', error);
     res.status(500).json({ error: 'Error verifying patient' });
+  }
+});
+
+// Get patient by email or cardNumber
+router.get('/get-user', async (req, res) => {
+  try {
+    const { searchTerm } = req.query;
+    console.log('Search term:', searchTerm);
+
+    if (!searchTerm) {
+      return res.status(400).json({ error: 'Search term is required' });
+    }
+
+    const patient = await Patient.findOne({
+      $or: [
+        { email: searchTerm },
+        { cardNumber: searchTerm }
+      ]
+    }).select('-__v -password'); // Exclude sensitive fields
+
+    console.log('Found patient:', patient);
+
+    if (!patient) {
+      return res.status(404).json({ error: 'Patient not found' });
+    }
+
+    const responseData = {
+      id: patient._id,
+      name: patient.name,
+      email: patient.email,
+      cardNumber: patient.cardNumber,
+      phone: patient.phone,
+      age: patient.age,
+      gender: patient.gender,
+      cardStatus: patient.cardStatus ,
+      cardBalance: patient.cardBalance,
+      loanLimit: patient.loanLimit,
+      loanBalance: patient.loanBalance
+    };
+    console.log('Response data:', responseData);
+
+    return res.status(200).json(responseData);
+
+  } catch (error) {
+    console.error('Server error:', error);
+    return res.status(500).json({ error: 'Error fetching patient' });
   }
 });
 

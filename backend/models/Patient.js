@@ -2,30 +2,30 @@ const mongoose = require("mongoose");
 
 const patientSchema = new mongoose.Schema(
   {
+    patientId: {
+      type: String,
+      required: true,
+      unique: true,
+    },
     uhid: {
       type: String,
       required: true,
       unique: true,
     },
-    phone: {
+    name: {
       type: String,
       required: true,
+      trim: true
     },
-  name: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  age: {
-    type: Number,
-    required: true
-  },
-  gender: {
-    type: String,
-    required: true,
-    enum: ['male', 'female', 'other']
-  },
-  contact: {
+    age: {
+      type: Number,
+      required: true
+    },
+    gender: {
+      type: String,
+      required: true,
+      enum: ['male', 'female', 'other']
+    },
     phone: {
       type: String,
       required: true
@@ -42,8 +42,8 @@ const patientSchema = new mongoose.Schema(
     },
     cardStatus: {
       type: String,
-      enum: ["active", "inactive", "blocked"],
-      default: "inactive",
+      enum: ["Active", "Inactive", "Not Issued"],
+      default: "Not Issued",
     },
     cardBalance: {
       type: Number,
@@ -51,30 +51,18 @@ const patientSchema = new mongoose.Schema(
     },
     lastVisit: {
       type: Date,
+      default: null
     },
-    patientId: {
-      type: String,
-      required: true,
-      unique: true,
+    createdAt: {
+      type: Date,
+      default: Date.now
+    },
+    updatedAt: {
+      type: Date,
+      default: Date.now
     }
-  },
-  faceEmbeddings: {
-    type: [Number],
-    required: true
-  },
-  faceImage: {
-    type: String, // Base64 encoded image
-    required: true
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now
   }
-});
+);
 
 // Update the updatedAt timestamp before saving
 patientSchema.pre('save', function(next) {

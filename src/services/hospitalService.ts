@@ -48,7 +48,7 @@ export const getHospitalsByStatus = async (
 // Get user details at payment
 export const getPaymentUser = async (searchTerm: string): Promise<any> => {
   return apiRequest(
-    `/hospitals/get-user?searchTerm=${encodeURIComponent(searchTerm)}`
+    `/patient/get-user?searchTerm=${encodeURIComponent(searchTerm)}`
   );
 };
 //get hospital analytics

@@ -135,6 +135,7 @@ const setupRoute = (path, router) => {
   }
 };
 
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/hospitals', require('./routes/hospitalRoutes'));
@@ -148,6 +149,9 @@ setupRoute('/api/notifications', require('./routes/notifications'));
 setupRoute('/api/staff', require('./routes/staffRoutes'));
 setupRoute('/api/patient', patientRoutes);
 setupRoute('/api/face-auth', require('./routes/face-verification'));
+setupRoute('/api/transactions', require('./routes/transactions'));
+setupRoute('/api', require('./routes/hospitals'));
+
 setupRoute('/api/hospitalusers', require('./routes/HospitalUser'));
 setupRoute('/api/support/tickets', require('./routes/supportTickets'));
 

@@ -238,7 +238,6 @@ const updateUserKycData = async (user, kycId, status, details, actions, referenc
 router.post('/webhooks/digio', async (req, res) => {
   try {
     const { id, status, actions, reference_id } = req.body;
-
     if (!id || !status) {
       return res.status(400).json({ msg: 'Invalid webhook payload' });
     }
@@ -258,7 +257,7 @@ router.post('/webhooks/digio', async (req, res) => {
 });
 
 // @route   POST api/kyc/verify-digio
-// @desc    Verify KYC with Digio API
+// @desc    Verify KYC with Digio API (for standalone use)
 // @access  Private
 router.post('/verify-digio', auth, async (req, res) => {
   try {
@@ -328,6 +327,15 @@ router.post('/complete', [
       return res.status(404).json({ msg: 'User not found' });
     }
 
+    // Check if user has a pending verification
+    if (user.kycStatus === 'pending' && user.kycData?.verificationId) {
+      return res.status(400).json({
+        msg: 'A KYC verification is already pending. Please wait for completion.',
+        verificationId: user.kycData.verificationId
+      });
+    }
+
+    // Initiate Digio verification
     const digioResult = await verifyWithDigio({
       panNumber,
       aadhaarNumber,
@@ -338,14 +346,16 @@ router.post('/complete', [
       verificationId
     });
 
+    // Generate UHID if not already present
     if (!user.uhid) {
       user.uhid = generateUHID();
     }
 
+    // Update user KYC data
     user.kycStatus = 'pending';
     user.kycData = {
       panNumber,
-      aadhaarNumber,
+      aadhaarLastDigits: aadhaarNumber.slice(-4), // Store only last 4 digits
       dateOfBirth: new Date(dateOfBirth),
       gender,
       address,

@@ -1,4 +1,3 @@
-
 import { apiRequest } from './api';
 
 export interface KYCData {
@@ -11,25 +10,29 @@ export interface KYCData {
   state: string;
   zipCode: string;
   maritalStatus: string;
-  email: string; // Added
-  phone: string; // Added
-  firstName: string; // Added
-  lastName: string; // Added
+  email: string;
+  phone: string;
+  firstName: string;
+  lastName: string;
   dependents: string;
+  verificationId?: string;
 }
-// Interface for verification details (returned by backend after KYC completion)
+
 export interface VerificationDetails {
   aadhaar?: {
-    idNumber: string;
+    lastDigits: string;
     gender: string;
-    idProofType: string;
+    name: string;
+    address: string;
+    dob: string;
   };
   pan?: {
     idNumber: string;
+    name?: string;
+    dob?: string;
   };
 }
 
-// Interface for KYC status response
 export interface KYCStatus {
   kycStatus: 'pending' | 'completed' | 'rejected';
   uhid?: string;
@@ -38,20 +41,28 @@ export interface KYCStatus {
     verificationMethod?: string;
     verifiedAt?: string;
     verificationDetails?: VerificationDetails;
+    aadhaarLastDigits?: string;
   };
   rejectionReason?: string;
 }
 
-export const submitKYC = async (kycData: KYCData): Promise<{ uhid: string; kycStatus: string }> => {
+export const submitKYC = async (kycData: KYCData): Promise<{
+  uhid: string;
+  kycStatus: string;
+  verificationId: string;
+  accessToken: string;
+  expiresInDays: string;
+  referenceId: string;
+}> => {
   try {
-    console.log('Submitting KYC data:', kycData);
+    console.log('Submitting KYC data with Digio verification:', kycData);
     const response = await apiRequest('/kyc/complete', {
       method: 'POST',
       body: JSON.stringify(kycData)
     });
     return response;
   } catch (error) {
-    console.error('KYC submission failed:', error);
+    console.error('KYC submission and verification failed:', error);
     throw error;
   }
 };
@@ -63,21 +74,6 @@ export const getKYCStatus = async (): Promise<KYCStatus> => {
     return response;
   } catch (error) {
     console.error('Failed to fetch KYC status:', error);
-    throw error;
-  }
-};
-
-export const verifyKYCWithDigio = async (kycData: KYCData): Promise<any> => {
-  try {
-    console.log('Verifying KYC with Digio API');
-    // This would integrate with actual Digio API in the backend
-    const response = await apiRequest('/kyc/verify-digio', {
-      method: 'POST',
-      body: JSON.stringify(kycData)
-    });
-    return response;
-  } catch (error) {
-    console.error('Digio KYC verification failed:', error);
     throw error;
   }
 };

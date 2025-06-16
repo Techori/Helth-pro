@@ -11,6 +11,8 @@ const {
   addSalesTarget,
   updatePlatformFee,
   updateUser,
+  updateHospital,
+  addStaff,
   getUsers,
   getFeeStructures
 } = require('../controllers/admin/adminController');
@@ -51,5 +53,10 @@ router.put('/update-user/:id', auth, updateUser)
 
 // Get all users
 router.get('/users', auth, getUsers);
+
+router.put('/update-hospital/:id', updateHospital);
+
+
+router.post('/add-staff', addStaff);
 
 module.exports = router;

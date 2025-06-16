@@ -1,25 +1,14 @@
-
 const express = require('express');
 const router = express.Router();
 const { check, validationResult } = require('express-validator');
 const auth = require('../middleware/auth');
-
+const Patient = require('../models/Patient');
 const Transaction = require('../models/Transaction');
 const User = require('../models/User');
 
 // @route   GET api/transactions
 // @desc    Get all transactions for a user
 // @access  Private
-router.get('/', auth, async (req, res) => {
-  try {
-    const transactions = await Transaction.find({ user: req.user.id })
-      .sort({ date: -1 });
-    res.json(transactions);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-});
 
 // @route   GET api/transactions/:id
 // @desc    Get transaction by ID
@@ -59,7 +48,7 @@ router.post(
       check('amount', 'Amount is required').not().isEmpty(),
       check('type', 'Type is required').isIn(['payment', 'refund', 'charge']),
       check('description', 'Description is required').not().isEmpty(),
-      check('userId', 'User ID is required').not().isEmpty(),
+      check('userId', 'User ID (Card Number) is required').not().isEmpty(),
     ]
   ],
   async (req, res) => {
@@ -68,43 +57,69 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
     }
 
-    if (req.user.role !== 'admin' && req.user.role !== 'hospital') {
-      return res.status(401).json({ msg: 'Not authorized to create transactions' });
-    }
-
     const { amount, type, description, userId, hospital } = req.body;
 
     try {
-      // Verify user exists
-      const user = await User.findById(userId);
-      if (!user) {
-        return res.status(404).json({ msg: 'User not found' });
+      // Find patient by cardNumber and update balance atomically
+      let patient;
+      if (userId.match(/^[0-9a-fA-F]{24}$/)) {
+        // Try by _id first if it looks like an ObjectId
+        patient = await Patient.findOneAndUpdate(
+          { _id: userId },
+          { $inc: { cardBalance: -amount } },
+          { new: true }
+        );
+      }
+      if (!patient) {
+        // If not found by _id or if userId wasn't an ObjectId, try by cardNumber
+        patient = await Patient.findOneAndUpdate(
+          { cardNumber: userId },
+          { $inc: { cardBalance: -amount } },
+          { new: true }
+        );
+      }
+      
+      if (!patient) {
+        console.error('Patient not found for userId:', userId);
+        return res.status(404).json({ msg: 'Patient not found' });
       }
 
+      // Check if patient has enough balance (after the update)
+      if (patient.cardBalance < 0) {
+        // Revert the balance change if insufficient
+        await Patient.findByIdAndUpdate(
+          patient._id,
+          { $inc: { cardBalance: amount } }
+        );
+        return res.status(400).json({ msg: 'Insufficient card balance' });
+      }
+
+      // Create and save transaction
       const newTransaction = new Transaction({
-        user: userId,
+        user: patient._id,
+        cardNumber: patient.cardNumber,
         amount,
         type,
         description,
         hospital: hospital || 'Unknown',
-        status: 'completed' // Auto-complete for demo purposes
+        status: 'completed'
       });
 
       const transaction = await newTransaction.save();
 
-      // Update user health card balance or loan status in a real application
-      // This would be handled by separate user profile/card/loan services
-
-      res.json(transaction);
+      res.json({
+        transaction,
+        updatedCardBalance: patient.cardBalance
+      });
     } catch (err) {
-      console.error(err.message);
+      console.error('Transaction error:', err);
       res.status(500).send('Server Error');
     }
   }
 );
 
 // @route   GET api/transactions/user/:userId
-// @desc    Get all transactions for a specific user
+// @desc    Get all transactions for a specific user (by card number)
 // @access  Private (admin or hospital only)
 router.get('/user/:userId', auth, async (req, res) => {
   // Only admins and hospitals can view other users' transactions
@@ -113,7 +128,8 @@ router.get('/user/:userId', auth, async (req, res) => {
   }
 
   try {
-    const transactions = await Transaction.find({ user: req.params.userId })
+    // Find transactions by cardNumber (userId is actually the card number)
+    const transactions = await Transaction.find({ cardNumber: req.params.userId })
       .sort({ date: -1 });
     
     res.json(transactions);

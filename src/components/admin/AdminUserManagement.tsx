@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -20,9 +20,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 // Define the User type to ensure consistency
 interface User {
-  _id: string;
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   role: string;
   status: string;
@@ -42,152 +42,161 @@ const AdminUserManagement = () => {
     role: "",
     status: "Active",
   });
+  const [isLoading, setIsLoading] = useState(true);
+  const [users, setUsers] = useState<User[]>([]);
 
-  const [users, setUsers] = useState<User[]>([
-    {
-      _id: "507f1f77bcf86cd799439011", // Example MongoDB _id
-      id: "USR-001",
-      name: "Rahul Sharma",
-      email: "rahul.sharma@example.com",
-      role: "Patient",
-      status: "Active",
-      lastLogin: "06/04/2025 10:23 AM",
-      registeredOn: "15/01/2025",
-    },
-    {
-      _id: "507f1f77bcf86cd799439012", // Example MongoDB _id
-      id: "USR-002",
-      name: "Priya Patel",
-      email: "priya.patel@example.com",
-      role: "Hospital Staff",
-      status: "Active",
-      lastLogin: "05/04/2025 02:15 PM",
-      registeredOn: "20/01/2025",
-    },
-  ]);
+  // Fetch users when component mounts
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          toast({
+            variant: "destructive",
+            title: "Authentication Error",
+            description: "Please log in to view users.",
+          });
+          return;
+        }
+
+        console.log("Fetching users...");
+        const response = await fetch("/api/admin/users", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        console.log("Response status:", response.status);
+        const responseText = await response.text();
+        console.log("Raw response:", responseText);
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch users: ${responseText}`);
+        }
+
+        let data;
+        try {
+          data = JSON.parse(responseText);
+        } catch (err) {
+          console.error("JSON parse error:", err);
+          throw new Error("Invalid JSON response from server");
+        }
+
+        console.log("Parsed data:", data);
+        if (data.success && Array.isArray(data.users)) {
+          setUsers(data.users);
+        } else {
+          throw new Error("Invalid response format from server");
+        }
+      } catch (error) {
+        console.error("Error fetching users:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error.message || "Failed to fetch users. Please try again.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, [toast]);
 
   const filteredUsers = users.filter(
     (user) =>
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      `${user.firstName} ${user.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.role.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
- const handleAddUser = async () => {
-  if (!newUser.name || !newUser.email || !newUser.role) {
-    toast({
-      variant: "destructive",
-      title: "Invalid form",
-      description: "Please fill in all required fields.",
-    });
-    return;
-  }
-
-  const roleMap = {
-    "Patient": "patient",
-    "Hospital Staff": "hospital staff",
-    "Hospital Admin": "hospital admin",
-  };
-  const backendRole = roleMap[newUser.role] || newUser.role;
-
-  try {
-    const token = localStorage.getItem("token");
-    if (!token) {
+  const handleAddUser = async () => {
+    if (!newUser.name || !newUser.email || !newUser.role) {
       toast({
         variant: "destructive",
-        title: "Authentication Error",
-        description: "Please log in to add a user.",
+        title: "Invalid form",
+        description: "Please fill in all required fields.",
       });
       return;
     }
 
-    const newUserId = `USR-${String(users.length + 1).padStart(3, "0")}`;
-    // Generate a temporary _id for the optimistic update
-    const tempId = `temp-${Date.now()}`;
-
-    const userToAdd: User = {
-      _id: tempId, // Temporary _id for optimistic update
-      id: newUserId,
-      name: newUser.name,
-      email: newUser.email,
-      role: newUser.role,
-      status: newUser.status,
-      lastLogin: "Never",
-      registeredOn: new Date().toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      }).replace(/\//g, "/"),
+    const roleMap = {
+      "Patient": "patient",
+      "Hospital Staff": "hospital staff",
+      "Hospital Admin": "hospital admin",
     };
+    const backendRole = roleMap[newUser.role] || newUser.role;
 
-    // STEP 1: Optimistic update - Add user to the list with temp ID
-    setUsers([...users, userToAdd]);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast({
+          variant: "destructive",
+          title: "Authentication Error",
+          description: "Please log in to add a user.",
+        });
+        return;
+      }
 
-    // STEP 2: Make API call
-    const response = await fetch("api/admin/quick-action-user", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        name: newUser.name,
-        email: newUser.email,
-        role: backendRole,
-        notes: "",
-      }),
-    });
+      // Make API call
+      const response = await fetch("api/admin/quick-action-user", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: newUser.name,
+          email: newUser.email,
+          role: backendRole,
+          notes: "",
+        }),
+      });
 
-    const data = await response.json();
-    console.log("Backend response:", data); // Debug log
+      const data = await response.json();
+      console.log("Backend response:", data);
 
-    if (!response.ok) {
-      // Rollback optimistic update on error
-      setUsers(users); // Remove the added user
-      throw new Error(data.msg || "Failed to add user");
+      if (!response.ok) {
+        throw new Error(data.msg || "Failed to add user");
+      }
+
+      // Add the new user to the list with the data from the backend
+      const newUserData: User = {
+        id: data.user.id,
+        firstName: data.user.firstName,
+        lastName: data.user.lastName,
+        email: data.user.email,
+        role: newUser.role,
+        status: "Active",
+        lastLogin: "Never",
+        registeredOn: data.user.registeredOn,
+      };
+
+      setUsers([...users, newUserData]);
+
+      // Reset form and close dialog
+      setNewUser({
+        name: "",
+        email: "",
+        role: "",
+        status: "Active",
+      });
+      setIsAddingUser(false);
+
+      toast({
+        title: "Success",
+        description: "User added successfully.",
+      });
+    } catch (error) {
+      console.error("Error adding user:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to add user. Please try again.",
+      });
     }
-
-    // STEP 3: Update the user with the real MongoDB _id from backend response
-    const realMongoId = data.user?.id || data.user?._id || data.id || data._id;
-    console.log("Real MongoDB ID:", realMongoId); // Debug log
-
-    if (realMongoId) {
-      setUsers((prevUsers) =>
-        prevUsers.map((user) =>
-          user._id === tempId
-            ? { ...user, _id: realMongoId } // Replace temp ID with real MongoDB _id
-            : user
-        )
-      );
-    } else {
-      console.warn("No MongoDB ID found in response:", data);
-    }
-
-    // Reset form and close dialog
-    setNewUser({
-      name: "",
-      email: "",
-      role: "",
-      status: "Active",
-    });
-    setIsAddingUser(false);
-
-    toast({
-      title: "User Added",
-      description: `User ${newUser.name} has been added successfully.`,
-    });
-  } catch (error) {
-    // Rollback: Remove the optimistically added user
-    setUsers(users);
-    
-    toast({
-      variant: "destructive",
-      title: "Error",
-      description: error.message || "Failed to add user. Please try again.",
-    });
-  }
-};
+  };
 
   const handleEditUser = async (userId: string) => {
     const index = users.findIndex((user) => user.id === userId);
@@ -219,18 +228,9 @@ const AdminUserManagement = () => {
         return;
       }
 
-      // Use MongoDB _id for the API request
-      const mongoId = users[index]._id;
-      console.log("MongoDB ID for user:", mongoId, "User:", users[index]);
-
-      if (!mongoId || mongoId.startsWith('temp-')) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Cannot edit user: User not yet saved to database. Please wait and try again.",
-        });
-        return;
-      }
+      // Use the user's ID for the API request
+      const userToUpdate = users[index];
+      console.log("User ID for update:", userToUpdate.id, "User:", userToUpdate);
 
       // Store original users for rollback
       const originalUsers = [...users];
@@ -239,12 +239,12 @@ const AdminUserManagement = () => {
       const updatedUsers = [...users];
       updatedUsers[index] = {
         ...updatedUsers[index],
-        name: editingUser.name,
+        firstName: editingUser.name,
         email: editingUser.email,
       };
       setUsers(updatedUsers);
 
-      const response = await fetch(`api/admin/update-user/${mongoId}`, {
+      const response = await fetch(`api/admin/update-user/${userToUpdate.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -306,7 +306,7 @@ const AdminUserManagement = () => {
         if (userToEdit) {
           setEditingUserId(userId);
           setEditingUser({
-            name: userToEdit.name,
+            name: userToEdit.firstName,
             email: userToEdit.email,
           });
         }
@@ -363,171 +363,180 @@ const AdminUserManagement = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <Card className="p-4">
-              <div className="text-center space-y-2">
-                <div className="text-4xl font-bold text-primary">{users.length}</div>
-                <div className="text-sm font-medium">Total Users</div>
-              </div>
-            </Card>
-            <Card className="p-4">
-              <div className="text-center space-y-2">
-                <div className="text-4xl font-bold text-indigo-500">
-                  {users.filter((user) => user.role === "Patient").length}
-                </div>
-                <div className="text-sm font-medium">Patients</div>
-              </div>
-            </Card>
-            <Card className="p-4">
-              <div className="text-center space-y-2">
-                <div className="text-4xl font-bold text-green-500">
-                  {users.filter((user) => user.role.includes("Hospital")).length}
-                </div>
-                <div className="text-sm font-medium">Hospital Users</div>
-              </div>
-            </Card>
-            <Card className="p-4">
-              <div className="text-center space-y-2">
-                <div className="text-4xl font-bold text-amber-500">
-                  {users.filter((user) => user.status === "Active").length}
-                </div>
-                <div className="text-sm font-medium">Active Users</div>
-              </div>
-            </Card>
-          </div>
-
-          {filteredUsers.length > 0 ? (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>User ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Last Login</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="font-medium">{user.id}</TableCell>
-                      <TableCell>
-                        {editingUserId === user.id ? (
-                          <Input
-                            value={editingUser.name}
-                            onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
-                            className="w-full"
-                          />
-                        ) : (
-                          user.name
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {editingUserId === user.id ? (
-                          <Input
-                            type="email"
-                            value={editingUser.email}
-                            onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
-                            className="w-full"
-                          />
-                        ) : (
-                          user.email
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            user.role === "Hospital Admin"
-                              ? "default"
-                              : user.role === "Hospital Staff"
-                                ? "secondary"
-                                : "outline"
-                          }
-                        >
-                          {user.role}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            user.status === "Active"
-                              ? "default"
-                              : user.status === "Inactive"
-                                ? "outline"
-                                : "destructive"
-                          }
-                          className={user.status === "Active" ? "bg-green-500" : ""}
-                        >
-                          {user.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{user.lastLogin}</TableCell>
-                      <TableCell>
-                        {editingUserId === user.id ? (
-                          <div className="flex space-x-2">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handleEditUser(user.id)}
-                            >
-                              <Save className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={handleCancelEdit}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleUserAction("view", user.id, user.name)}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Profile
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleUserAction("edit", user.id, user.name)}>
-                                <UserCog className="mr-2 h-4 w-4" />
-                                Edit User
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleUserAction("reset", user.id, user.name)}>
-                                <Lock className="mr-2 h-4 w-4" />
-                                Reset Password
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              {user.status === "Active" ? (
-                                <DropdownMenuItem onClick={() => handleUserAction("suspend", user.id, user.name)}>
-                                  Suspend User
-                                </DropdownMenuItem>
-                              ) : (
-                                <DropdownMenuItem onClick={() => handleUserAction("activate", user.id, user.name)}>
-                                  Activate User
-                                </DropdownMenuItem>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+          {isLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <span className="ml-2">Loading users...</span>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-12 space-y-3">
-              <p className="text-muted-foreground">No users found</p>
-            </div>
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <Card className="p-4">
+                  <div className="text-center space-y-2">
+                    <div className="text-4xl font-bold text-primary">{users.length}</div>
+                    <div className="text-sm font-medium">Total Users</div>
+                  </div>
+                </Card>
+                <Card className="p-4">
+                  <div className="text-center space-y-2">
+                    <div className="text-4xl font-bold text-indigo-500">
+                      {users.filter((user) => user.role === "patient").length}
+                    </div>
+                    <div className="text-sm font-medium">Patients</div>
+                  </div>
+                </Card>
+                <Card className="p-4">
+                  <div className="text-center space-y-2">
+                    <div className="text-4xl font-bold text-green-500">
+                      {users.filter((user) => user.role.includes("hospital")).length}
+                    </div>
+                    <div className="text-sm font-medium">Hospital Users</div>
+                  </div>
+                </Card>
+                <Card className="p-4">
+                  <div className="text-center space-y-2">
+                    <div className="text-4xl font-bold text-amber-500">
+                      {users.filter((user) => user.status === "Active").length}
+                    </div>
+                    <div className="text-sm font-medium">Active Users</div>
+                  </div>
+                </Card>
+              </div>
+
+              {filteredUsers.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User ID</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Last Login</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredUsers.map((user) => (
+                        <TableRow key={user.id}>
+                          <TableCell className="font-medium">{user.id}</TableCell>
+                          <TableCell>
+                            {editingUserId === user.id ? (
+                              <Input
+                                value={editingUser.name}
+                                onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
+                                className="w-full"
+                              />
+                            ) : (
+                              `${user.firstName} ${user.lastName}`
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {editingUserId === user.id ? (
+                              <Input
+                                type="email"
+                                value={editingUser.email}
+                                onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
+                                className="w-full"
+                              />
+                            ) : (
+                              user.email
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                user.role === "hospital admin"
+                                  ? "default"
+                                  : user.role === "hospital staff"
+                                    ? "secondary"
+                                    : "outline"
+                              }
+                            >
+                              {user.role}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                user.status === "Active"
+                                  ? "default"
+                                  : user.status === "Inactive"
+                                    ? "outline"
+                                    : "destructive"
+                              }
+                              className={user.status === "Active" ? "bg-green-500" : ""}
+                            >
+                              {user.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{user.lastLogin}</TableCell>
+                          <TableCell>
+                            {editingUserId === user.id ? (
+                              <div className="flex space-x-2">
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => handleEditUser(user.id)}
+                                >
+                                  <Save className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={handleCancelEdit}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem onClick={() => handleUserAction("view", user.id, `${user.firstName} ${user.lastName}`)}>
+                                    <Eye className="mr-2 h-4 w-4" />
+                                    View Profile
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleUserAction("edit", user.id, `${user.firstName} ${user.lastName}`)}>
+                                    <UserCog className="mr-2 h-4 w-4" />
+                                    Edit User
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleUserAction("reset", user.id, `${user.firstName} ${user.lastName}`)}>
+                                    <Lock className="mr-2 h-4 w-4" />
+                                    Reset Password
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  {user.status === "Active" ? (
+                                    <DropdownMenuItem onClick={() => handleUserAction("suspend", user.id, `${user.firstName} ${user.lastName}`)}>
+                                      Suspend User
+                                    </DropdownMenuItem>
+                                  ) : (
+                                    <DropdownMenuItem onClick={() => handleUserAction("activate", user.id, `${user.firstName} ${user.lastName}`)}>
+                                      Activate User
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 space-y-3">
+                  <p className="text-muted-foreground">No users found</p>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
         <CardFooter>

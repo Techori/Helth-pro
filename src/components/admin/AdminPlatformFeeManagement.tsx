@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { Edit, Save, Plus, Pencil, X } from "lucide-react";
+import { Edit, Save, Plus, Pencil, X, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -21,50 +21,51 @@ const AdminPlatformFeeManagement = () => {
   const { toast } = useToast();
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [isAddingFee, setIsAddingFee] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock data for platform fees
-  const [feeStructures, setFeeStructures] = useState([
-    {
-      id: 1,
-      category: "Hospital Registration",
-      fee: 5000,
-      type: "One-time",
-      description: "One-time fee for hospital registration and onboarding",
-      lastUpdated: "10/04/2025",
-    },
-    {
-      id: 2,
-      category: "Health Card Issuance",
-      fee: 500,
-      type: "One-time",
-      description: "Fee charged per health card issued to patient",
-      lastUpdated: "05/04/2025",
-    },
-    {
-      id: 3,
-      category: "Transaction Fee",
-      fee: 2.5,
-      type: "Percentage",
-      description: "Percentage fee on each transaction using health card",
-      lastUpdated: "01/04/2025",
-    },
-    {
-      id: 4,
-      category: "Loan Processing",
-      fee: 1.75,
-      type: "Percentage",
-      description: "Processing fee for medical loans",
-      lastUpdated: "15/03/2025",
-    },
-    {
-      id: 5,
-      category: "Annual Maintenance",
-      fee: 1200,
-      type: "Annual",
-      description: "Annual maintenance fee for hospitals",
-      lastUpdated: "20/02/2025",
-    },
-  ]);
+  // Initialize with empty array instead of mock data
+  const [feeStructures, setFeeStructures] = useState([]);
+
+  // Fetch fee structures when component mounts
+  useEffect(() => {
+    const fetchFeeStructures = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          toast({
+            variant: "destructive",
+            title: "Authentication Error",
+            description: "Please log in to view fee structures.",
+          });
+          return;
+        }
+
+        const response = await fetch("api/admin/fee-structures", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch fee structures");
+        }
+
+        const data = await response.json();
+        setFeeStructures(data.feeStructures);
+      } catch (error) {
+        console.error("Error fetching fee structures:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to fetch fee structures. Please try again.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchFeeStructures();
+  }, [toast]);
 
   const [editingFee, setEditingFee] = useState({
     fee: 0,
@@ -78,6 +79,14 @@ const AdminPlatformFeeManagement = () => {
     description: "",
   });
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2">Loading fee structures...</span>
+      </div>
+    );
+  }
 
   const handleEdit = (index: number) => {
     setEditingIndex(index);

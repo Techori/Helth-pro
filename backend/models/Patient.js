@@ -53,6 +53,14 @@ const patientSchema = new mongoose.Schema(
       type: Date,
       default: null
     },
+    faceEmbeddings: {
+      type: [Number],
+      required: true
+    },
+    faceImage: {
+      type: String, // Base64 encoded image
+      required: true
+    },
     createdAt: {
       type: Date,
       default: Date.now

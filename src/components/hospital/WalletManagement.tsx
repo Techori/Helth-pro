@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ArrowUpRight, ArrowDownRight, Download, Upload, Search } from "lucide-react";
 import {
   Card,
@@ -20,12 +19,35 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useHospitalIDs } from "@/hooks/useHospitalIDs";
 
 const WalletManagement = () => {
   const [filterPeriod, setFilterPeriod] = useState("all");
+  const [hospitalWalletBalance, setHospitalWalletBalance] = useState(0);
+  const hospitalId = useHospitalIDs();
+
+
+  useEffect(() => {
+    const fetchHospitalBalance = async () => {
+      if (hospitalId) {
+        try {
+          const response = await fetch(`/api/hospitals/${hospitalId}`);
+          if (!response.ok) {
+            throw new Error('Failed to fetch hospital data');
+          }
+          const data = await response.json();
+          setHospitalWalletBalance(data.currentBalance || 0);
+        } catch (error) {
+          console.error('Error fetching hospital balance:', error);
+          setHospitalWalletBalance(0);
+        }
+      }
+    };
+
+    fetchHospitalBalance();
+  }, [hospitalId]);
 
   // Mock data - would come from API
-  const hospitalWalletBalance = 45000;
   const financeWalletBalance = 125000;
   
   // Wallet transactions
@@ -139,7 +161,6 @@ const WalletManagement = () => {
   };
 
   const handleExportTransactions = (walletType) => {
-    console.log(`Exporting ${walletType} transactions...`);
     // In a real app, this would generate and download a CSV/Excel file
     alert(`${walletType.charAt(0).toUpperCase() + walletType.slice(1)} transaction export started`);
   };
@@ -155,12 +176,11 @@ const WalletManagement = () => {
             <CardDescription>
               Manage Health Card payments and refunds
             </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="text-3xl font-bold">₹{hospitalWalletBalance.toLocaleString()}</div>
+          </CardHeader>          <CardContent className="space-y-2">
+            <div className="text-3xl font-bold">₹{hospitalWalletBalance ? hospitalWalletBalance.toLocaleString() : '0'}</div>
             <div className="flex items-center text-sm text-green-600">
               <ArrowUpRight className="h-4 w-4 mr-1" />
-              <span>12% from last month</span>
+              <span>Current Balance</span>
             </div>
           </CardContent>
           <CardFooter>

@@ -1,4 +1,3 @@
-
 import { apiRequest } from "./api";
 
 // Transaction types
@@ -38,21 +37,31 @@ export const processHealthCardPayment = async (
   userId: string,
   amount: number,
   description: string,
-  hospital: string
+  hospitalID: string
 ) => {
   try {
     console.log(`Processing health card payment: ₹${amount} for ${description}`);
     
+    // Get auth token from localStorage
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
     const transaction = {
       userId,
       amount, 
       type: 'payment' as TransactionType,
       description,
-      hospital
+      hospitalId: hospitalID  // Changed to match backend expectation
     };
     
     const result = await apiRequest('/transactions', {
       method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify(transaction)
     });
     

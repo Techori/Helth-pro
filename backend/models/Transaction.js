@@ -1,4 +1,3 @@
-
 const mongoose = require('mongoose');
 
 const TransactionSchema = new mongoose.Schema({
@@ -25,8 +24,9 @@ const TransactionSchema = new mongoose.Schema({
     enum: ['completed', 'pending', 'failed'],
     default: 'pending'
   },
-  hospital: {
-    type: String
+  hospitalId: {
+    type: String,
+    required: true
   },
   date: {
     type: Date,

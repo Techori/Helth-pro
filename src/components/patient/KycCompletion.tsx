@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/use-toast';
 import { Check, User, Loader2, Shield } from 'lucide-react';
-import { submitKYC, verifyKYCWithDigio, getKYCStatus } from '@/services/kycService';
+import { submitKYC, getKYCStatus } from '@/services/kycService';
 import io from 'socket.io-client';
 
 interface KycCompletionProps {
@@ -16,7 +16,6 @@ interface KycCompletionProps {
 const KycCompletion = ({ onComplete }: KycCompletionProps) => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
   const [step, setStep] = useState<'form' | 'verification' | 'pending' | 'completed'>('form');
   const [verificationId, setVerificationId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -36,7 +35,7 @@ const KycCompletion = ({ onComplete }: KycCompletionProps) => {
     lastName: '',
     accessToken: '',
     expiresInDays: '',
-    verificationId: '', // Add verificationId to formData
+    verificationId: '',
     verificationDetails: null
   });
 
@@ -124,30 +123,27 @@ const KycCompletion = ({ onComplete }: KycCompletionProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return; // Prevent duplicate submissions
     setIsSubmitting(true);
-    setIsVerifying(true);
     setStep('verification');
 
     try {
-      const digioResponse = await verifyKYCWithDigio(formData);
-      setVerificationId(digioResponse.verificationId);
+      const response = await submitKYC(formData);
+      setVerificationId(response.verificationId);
       setFormData(prev => ({
         ...prev,
-        verificationId: digioResponse.verificationId,
-        accessToken: digioResponse.accessToken,
-        expiresInDays: digioResponse.expiresInDays
+        verificationId: response.verificationId,
+        accessToken: response.accessToken,
+        expiresInDays: response.expiresInDays
       }));
-
-      const response = await submitKYC(formData);
       setStep('pending');
       toast({
         title: 'KYC Verification Initiated',
-        description: `Verification ID: ${digioResponse.verificationId}. Awaiting confirmation...`
+        description: `Verification ID: ${response.verificationId}. Awaiting confirmation...`
       });
     } catch (error: any) {
       console.error('KYC process failed:', error);
       setStep('form');
-      setIsVerifying(false);
       toast({
         title: 'KYC Verification Failed',
         description: error.message || 'Please verify your details.',
@@ -212,7 +208,7 @@ const KycCompletion = ({ onComplete }: KycCompletionProps) => {
             <div className="space-y-2">
               <p className="text-lg font-medium">Processing KYC Verification</p>
               <p className="text-sm text-gray-600">
-                {isVerifying ? 'Verifying documents with Digio API...' : 'Initiating verification...'}
+                Initiating verification...
               </p>
             </div>
             <div className="w-full max-w-md bg-gray-200 rounded-full h-2">
@@ -288,8 +284,8 @@ const KycCompletion = ({ onComplete }: KycCompletionProps) => {
                 <p><strong>Verification Details:</strong></p>
                 {formData.verificationDetails.aadhaar && (
                   <div>
-                    <p>Aadhaar: {formData.verificationDetails.aadhaar.idNumber} (Gender: {formData.verificationDetails.aadhaar.gender})</p>
-                    <p>Proof Type: {formData.verificationDetails.aadhaar.idProofType}</p>
+                    <p>Aadhaar: {formData.verificationDetails.aadhaar.lastDigits} (Gender: {formData.verificationDetails.aadhaar.gender})</p>
+                    <p>Name: {formData.verificationDetails.aadhaar.name}</p>
                   </div>
                 )}
                 {formData.verificationDetails.pan && (
@@ -339,7 +335,7 @@ const KycCompletion = ({ onComplete }: KycCompletionProps) => {
                 name="aadhaarNumber"
                 value={formData.aadhaarNumber}
                 onChange={handleInputChange}
-                placeholder="1234 5678 9012"
+                placeholder="123456789012"
                 required
                 maxLength={12}
               />

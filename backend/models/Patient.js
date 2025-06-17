@@ -2,14 +2,15 @@ const mongoose = require("mongoose");
 
 const patientSchema = new mongoose.Schema(
   {
-    uhid: {
+    patientId: {
       type: String,
       required: true,
       unique: true,
     },
-    phone: {
+    uhid: {
       type: String,
       required: true,
+      unique: true,
     },
     name: {
       type: String,
@@ -25,6 +26,10 @@ const patientSchema = new mongoose.Schema(
       required: true,
       enum: ['male', 'female', 'other']
     },
+    phone: {
+      type: String,
+      required: true
+    },
     email: {
       type: String,
       required: true,
@@ -33,12 +38,12 @@ const patientSchema = new mongoose.Schema(
     cardNumber: {
       type: String,
       unique: true,
-      sparse: true,
+      sparse: true, // Allows null/undefined
     },
     cardStatus: {
       type: String,
-      enum: ["active", "inactive", "blocked"],
-      default: "inactive",
+      enum: ["Active", "Inactive", "Not Issued"],
+      default: "Not Issued",
     },
     cardBalance: {
       type: Number,
@@ -46,11 +51,7 @@ const patientSchema = new mongoose.Schema(
     },
     lastVisit: {
       type: Date,
-    },
-    patientId: {
-      type: String,
-      required: true,
-      unique: true,
+      default: null
     },
     faceEmbeddings: {
       type: [Number],

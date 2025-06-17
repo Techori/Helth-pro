@@ -1,5 +1,8 @@
 // Using direct fetch `${LOCAL_API_URL}/face-auth/isRegistered`against local dev API
-const LOCAL_API_URL = "http://localhost:4000/api";
+const LOCAL_API_URL =
+  typeof window !== "undefined" && window.location.hostname !== "localhost"
+    ? "https://helth-pro.onrender.com/api"
+    : "http://localhost:4000/api";
 
 // Data interfaces for face authentication
 interface FaceData {

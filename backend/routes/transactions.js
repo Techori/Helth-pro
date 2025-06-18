@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();
 const { check, validationResult } = require('express-validator');
@@ -14,6 +13,27 @@ router.get('/', auth, async (req, res) => {
   try {
     const transactions = await Transaction.find({ user: req.user.id })
       .sort({ date: -1 });
+    res.json(transactions);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/transactions/history
+// @desc    Get all transactions for transaction history (admin/hospital only)
+// @access  Private (admin or hospital only)
+router.get('/history', auth, async (req, res) => {
+  // Only admins and hospitals can view all transactions
+  if (req.user.role !== 'admin' && req.user.role !== 'hospital') {
+    return res.status(401).json({ msg: 'Not authorized to view transaction history' });
+  }
+
+  try {
+    const transactions = await Transaction.find({})
+      .populate('user', 'email firstName lastName')
+      .sort({ date: -1 });
+    
     res.json(transactions);
   } catch (err) {
     console.error(err.message);

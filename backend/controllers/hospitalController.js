@@ -72,27 +72,11 @@ exports.getAllHospitals = async (req, res) => {
 // Get hospital by ID
 exports.getHospitalById = async (req, res) => {
   try {
-    console.log('Fetching hospital with ID:', req.params.id);
     const hospital = await Hospital.findById(req.params.id);
-    
     if (!hospital) {
-      console.log('Hospital not found with ID:', req.params.id);
       return res.status(404).json({ message: 'Hospital not found' });
     }
-
-    console.log('Found hospital:', {
-      id: hospital._id,
-      name: hospital.name,
-      currentBalance: hospital.currentBalance
-    });
-
-    res.json({
-      _id: hospital._id,
-      name: hospital.name,
-      currentBalance: hospital.currentBalance,
-      status: hospital.status,
-      totalTransactions: hospital.totalTransactions
-    });
+    res.json(hospital);
   } catch (error) {
     console.error('Error fetching hospital:', error);
     res.status(500).json({ message: 'Error fetching hospital' });

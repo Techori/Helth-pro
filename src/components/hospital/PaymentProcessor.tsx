@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Check, CreditCard, Search, X } from "lucide-react";
 import {
   Card,
@@ -22,7 +22,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { useHospitalIDs } from "@/hooks/useHospitalIDs";
 import {
   processHealthCardPayment,
   processLoanRequest,
@@ -47,7 +46,6 @@ interface PatientInfo {
 const PaymentProcessor = () => {
   const { toast } = useToast();
   const { authState } = useAuth();
-  const hospitalId = useHospitalIDs(); // Now returns a single ID
   const [searchTerm, setSearchTerm] = useState("");
   const [searching, setSearching] = useState(false);
   const [patientInfo, setPatientInfo] = useState<PatientInfo | null>(null);
@@ -75,8 +73,10 @@ const PaymentProcessor = () => {
       // Type guard: ensure raw is an object
       if (!raw || typeof raw !== "object") {
         throw new Error("Invalid response from server");
-      }   
+      }      // Add console log to see the raw response
+      console.log('Raw API Response:', raw);
       
+      // Map API response to PatientInfo
       const mappedPatient: PatientInfo = {
         id: (raw.patientId ?? raw.id ?? "Unknown ID").toString(),
         name: raw.name ?? "Unknown Name",
@@ -166,25 +166,23 @@ const PaymentProcessor = () => {
   };
 
   const processPayment = async () => {
-    if (!paymentData || !patientInfo || !hospitalId) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Missing hospital information. Please try again.",
-      });
-      return;
-    }
+    if (!paymentData || !patientInfo) return;
 
     setProcessingPayment(true);
 
     try {
+      // We should have the actual hospital name from auth state
+      const hospitalName = authState.user?.firstName
+        ? `${authState.user.firstName} ${authState.user.lastName} Hospital`
+        : "City General Hospital";
+
       if (paymentTab === "healthcard") {
-        // Process health card payment with hospitalId
+        // Process health card payment
         await processHealthCardPayment(
           paymentData.patientId,
           paymentData.amount,
           `Payment for ${paymentData.paymentType}: ${paymentData.paymentDescription}`,
-          hospitalId
+          hospitalName
         );
       } else {
         // Process loan request
@@ -193,7 +191,7 @@ const PaymentProcessor = () => {
           paymentData.amount,
           paymentData.loanPurpose,
           parseInt(paymentData.loanTenure),
-          hospitalId  // Use hospitalId here too
+          hospitalName
         );
       }
 
@@ -619,4 +617,5 @@ const PaymentProcessor = () => {
     </div>
   );
 };
+
 export default PaymentProcessor;

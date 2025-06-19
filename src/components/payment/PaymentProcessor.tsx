@@ -106,10 +106,12 @@ const PaymentProcessor = ({
                 ₹{amount.toLocaleString()}
               </span>
             </div>
-          </div>          {/* Face auth step */}
+          </div>
+
+          {/* Face auth step */}
           {paymentStep === "face-auth" && (
             <FaceAuthVerification
-              emailId={patientId}
+              patientId={patientId}
               onVerificationComplete={handleFaceVerification}
             />
           )}

@@ -1,78 +1,30 @@
-
 const mongoose = require('mongoose');
 
-const HealthCardSchema = new mongoose.Schema({
-  patientId: {
-  type: String,
-  required: true,
-  unique: true
-},
-  cardNumber: {
-    type: String,
-    required: true,
-    unique: true
+const healthCardSchema = new mongoose.Schema({
+  cardNumber: { type: String, required: true, unique: true },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  uhid: { type: String },
+  availableCredit: { type: Number, default: 0 },
+  usedCredit: { type: Number, default: 0 },
+  status: { type: String, enum: ['pending', 'active', 'rejected'], default: 'pending' },
+  cardType: { 
+    type: String, 
+    enum: ['health_paylater', 'health_emi', 'health_50_50', 'ri_medicare_discount'], 
+    required: true 
   },
-  user: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'user',
-    required: true
-  },
-  uhid: {
-    type: String,
-    ref: 'user'
-  },
-  availableCredit: {
-    type: Number,
-    required: true,
-    default: 0
-  },
-  usedCredit: {
-    type: Number,
-    default: 0
-  },
-  status: {
-    type: String,
-    enum: ['active', 'expired', 'pending', 'suspended', 'rejected'],
-    default: 'pending'
-  },
-  cardType: {
-    type: String,
-    enum: ['basic', 'premium', 'ricare_discount'],
-    default: 'basic'
-  },
-  discountPercentage: {
-    type: Number,
-    default: 0
-  },
-  monthlyLimit: {
-    type: Number
-  },
-  requestedCreditLimit: {
-    type: Number
-  },
-  medicalHistory: {
-    type: String
-  },
-  monthlyIncome: {
-    type: Number
-  },
-  employmentStatus: {
-    type: String
-  },
-  rejectionReason: {
-    type: String
-  },
-  issueDate: {
-    type: Date,
-    default: Date.now
-  },
-  expiryDate: {
-    type: Date,
-    required: true
-  },
-  notes: {
-  type: String
-}
+  discountPercentage: { type: Number, default: 0 }, // Applicable for ri_medicare_discount
+  monthlyLimit: { type: Number }, // Applicable for ri_medicare_discount
+  requestedCreditLimit: { type: Number, required: true },
+  approvedCreditLimit: { type: Number },
+  medicalHistory: { type: String },
+  monthlyIncome: { type: Number, required: true },
+  employmentStatus: { type: String, required: true },
+  expiryDate: { type: Date, required: true },
+  issueDate: { type: Date },
+  rejectionReason: { type: String },
+  interestRate: { type: Number }, // Applicable for health_emi
+  zeroInterestMonths: { type: Number }, // Applicable for health_paylater
+  dailyCashBenefit: { type: Number }, // Applicable for ri_medicare_discount
 });
 
-module.exports = mongoose.model('healthCard', HealthCardSchema);
+module.exports = mongoose.model('HealthCard', healthCardSchema);

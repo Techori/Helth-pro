@@ -10,7 +10,9 @@ import { useToast } from '@/components/ui/use-toast';
 import { ArrowLeft, ArrowRight, Check, CreditCard, FileText, User, Building } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { saveLoanDraft, submitLoanApplication, getCreditScore, LoanData } from '@/services/loanService';
+import { fetchUserHealthCards ,payHealthCardCredit} from '@/services/healthCardService';
 import axios from 'axios';
+import PatientDashboard from '@/pages/PatientDashboard';
 
 interface LoanApplicationDialogProps {
   open: boolean;
@@ -32,6 +34,8 @@ const LoanApplicationDialog = ({ open, onOpenChange, onSuccess, uhid, existingLo
   const [interestRate, setInterestRate] = useState<number>(0);
   const [healthCards, setHealthCards] = useState([]);
   const [selectedHealthCard, setSelectedHealthCard] = useState('');
+  const [showPayment, setShowPayment] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'online' | 'offline'>('online');
 
   const [formData, setFormData] = useState({
     personalInfo: {
@@ -112,12 +116,10 @@ const LoanApplicationDialog = ({ open, onOpenChange, onSuccess, uhid, existingLo
     if (open) {
       const fetchHealthCards = async () => {
         try {
-          const response = await axios.get('/api/health-cards', {
-            headers: { Authorization: `Bearer ${authState.token}` }
-          });
-          setHealthCards(response.data);
-          if (response.data.length > 0) {
-            setSelectedHealthCard(response.data[0]._id);
+          const response = await fetchUserHealthCards(authState.token || '');
+          setHealthCards(response || []);
+          if (response.length > 0) {
+            setSelectedHealthCard(response[0]._id);
           }
         } catch (error) {
           console.error('Failed to fetch health cards:', error);
@@ -344,17 +346,12 @@ const LoanApplicationDialog = ({ open, onOpenChange, onSuccess, uhid, existingLo
     }
 
     try {
-      const response = await axios.post(
-        '/api/transactions/health-card-payment',
-        {
-          healthCardId: selectedHealthCard,
-          amount: 1000,
-          description: 'Loan application processing fee'
-        },
-        {
-          headers: { Authorization: `Bearer ${authState.token}` }
-        }
-      );
+      const response = await payHealthCardCredit(
+        selectedHealthCard,
+        1000, // Processing fee
+        paymentMethod,
+        authState.token,
+      )
 
       setFormData(prev => ({
         ...prev,

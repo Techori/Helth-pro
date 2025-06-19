@@ -33,13 +33,11 @@ const MyLoans = () => {
 
   useEffect(() => {
     if (authState.user) {
-      // Get KYC status and UHID from user data
       const userData = authState.user as any;
       setKycStatus(userData.kycStatus || '');
       setUhid(userData.uhid || '');
       setKycData(userData.kycData || null);
       
-      // Fetch health cards and loans if KYC is completed
       if (userData.kycStatus === 'completed' && userData.uhid) {
         checkHealthCards();
         fetchLoans(userData.uhid);
@@ -51,7 +49,7 @@ const MyLoans = () => {
 
   const checkHealthCards = async () => {
     try {
-      const cards = await fetchUserHealthCards();
+      const cards = await fetchUserHealthCards(authState.token || '');
       setHasActiveHealthCard(cards.some(card => card.status === 'active'));
     } catch (error) {
       console.error('Failed to fetch health cards:', error);
@@ -174,7 +172,6 @@ const MyLoans = () => {
       </div>
     );
   }
-
   // Separate loans into different categories
   const draftLoans = loans.filter(isDraftLoan);
   const submittedLoans = loans.filter(loan => !isDraftLoan(loan) && loan.status !== 'approved' && loan.status !== 'completed');
@@ -183,7 +180,6 @@ const MyLoans = () => {
 
   return (
     <div className="space-y-6">
-      {/* KYC Status Card */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -215,7 +211,6 @@ const MyLoans = () => {
         </CardContent>
       </Card>
 
-      {/* Health Card Status Card */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -236,7 +231,6 @@ const MyLoans = () => {
         </CardContent>
       </Card>
 
-      {/* Loan Management Tabs */}
       <Tabs defaultValue="all" className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="all">All Loans</TabsTrigger>
@@ -328,10 +322,12 @@ const MyLoans = () => {
               ) : (
                 <div className="text-center py-8">
                   <p className="text-gray-500 mb-4">No loan applications found</p>
-                  <Button onClick={() => setShowLoanApplication(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Apply for Your First Loan
-                  </Button>
+                  {hasActiveHealthCard && (
+                    <Button onClick={() => setShowLoanApplication(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Apply for Your First Loan
+                    </Button>
+                  )}
                 </div>
               )}
             </CardContent>
@@ -530,7 +526,6 @@ const MyLoans = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Loan Application Dialog */}
       <LoanApplicationDialog
         open={showLoanApplication}
         onOpenChange={setShowLoanApplication}
@@ -540,7 +535,6 @@ const MyLoans = () => {
         existingLoan={resumingLoan}
       />
 
-      {/* EMI Payment Dialog */}
       {selectedLoan && (
         <Dialog open={showEmiPayment} onOpenChange={setShowEmiPayment}>
           <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
@@ -555,7 +549,6 @@ const MyLoans = () => {
         </Dialog>
       )}
 
-      {/* Loan Details Dialog */}
       {selectedLoan && (
         <Dialog open={showLoanDetails} onOpenChange={setShowLoanDetails}>
           <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -564,7 +557,6 @@ const MyLoans = () => {
             </DialogHeader>
             
             <div className="space-y-6">
-              {/* Application Info */}
               <Card>
                 <CardHeader>
                   <CardTitle>Application Information</CardTitle>
@@ -603,7 +595,6 @@ const MyLoans = () => {
                 </CardContent>
               </Card>
 
-              {/* Medical Information */}
               <Card>
                 <CardHeader>
                   <CardTitle>Medical Details</CardTitle>
@@ -624,7 +615,6 @@ const MyLoans = () => {
                 </CardContent>
               </Card>
 
-              {/* Loan Details */}
               <Card>
                 <CardHeader>
                   <CardTitle>Loan Details</CardTitle>

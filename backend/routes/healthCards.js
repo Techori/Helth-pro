@@ -45,7 +45,7 @@ router.get('/admin/all', auth, async (req, res) => {
 router.post('/apply', [
   auth,
   [
-    check('cardType', 'Card type is required').isIn(['basic', 'premium', 'ricare_discount']),
+    check('cardType', 'Card type is required').isIn(['health_paylater', 'health_emi', 'health_50_50', 'ri_medicare_discount']),
     check('requestedCreditLimit', 'Requested credit limit is required').isNumeric(),
     check('monthlyIncome', 'Monthly income is required').isNumeric(),
     check('employmentStatus', 'Employment status is required').not().isEmpty()
@@ -68,17 +68,32 @@ router.post('/apply', [
     // Generate card number
     const cardNumber = `HC${Date.now().toString().slice(-10)}`;
     
-    // Set credit limits based on card type
-    let maxCreditLimit = 25000; // basic
+    // Set credit limits and features based on card type
+    let maxCreditLimit = 25000;
     let discountPercentage = 0;
     let monthlyLimit = null;
+    let interestRate = null;
+    let zeroInterestMonths = null;
+    let dailyCashBenefit = null;
 
-    if (cardType === 'premium') {
-      maxCreditLimit = 100000;
-    } else if (cardType === 'ricare_discount') {
-      maxCreditLimit = 50000;
-      discountPercentage = 15;
-      monthlyLimit = 50000;
+    switch (cardType) {
+      case 'health_paylater':
+        maxCreditLimit = 25000;
+        zeroInterestMonths = 3; // 0% interest for first 3 months
+        break;
+      case 'health_emi':
+        maxCreditLimit = 100000;
+        interestRate = 15; // Default ROI 12-18%, set to midpoint
+        break;
+      case 'health_50_50':
+        maxCreditLimit = 50000;
+        break;
+      case 'ri_medicare_discount':
+        maxCreditLimit = 50000;
+        discountPercentage = 15; // 10-15% discount, set to max
+        monthlyLimit = 50000;
+        dailyCashBenefit = 3000; // Up to ₹3,000/day
+        break;
     }
 
     // Validate requested credit limit
@@ -93,13 +108,17 @@ router.post('/apply', [
       usedCredit: 0,
       status: 'pending', // Requires admin approval
       cardType,
-      discountPercentage: cardType === 'ricare_discount' ? discountPercentage : undefined,
-      monthlyLimit: cardType === 'ricare_discount' ? monthlyLimit : undefined,
+      discountPercentage,
+      monthlyLimit,
       requestedCreditLimit: approvedCreditLimit,
+      approvedCreditLimit,
       medicalHistory,
       monthlyIncome,
       employmentStatus,
-      expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year from now
+      expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
+      interestRate,
+      zeroInterestMonths,
+      dailyCashBenefit
     });
 
     const healthCard = await newHealthCard.save();
@@ -261,14 +280,46 @@ router.post(
         return res.status(404).json({ msg: 'User not found' });
       }
 
+      let maxCreditLimit = 25000;
+      let discountPercentage = 0;
+      let monthlyLimit = null;
+      let interestRate = null;
+      let zeroInterestMonths = null;
+      let dailyCashBenefit = null;
+
+      switch (cardType) {
+        case 'health_paylater':
+          maxCreditLimit = 25000;
+          zeroInterestMonths = 3;
+          break;
+        case 'health_emi':
+          maxCreditLimit = 100000;
+          interestRate = 15; // Default ROI 12-18%
+          break;
+        case 'health_50_50':
+          maxCreditLimit = 50000;
+          break;
+        case 'ri_medicare_discount':
+          maxCreditLimit = 50000;
+          discountPercentage = 15;
+          monthlyLimit = 50000;
+          dailyCashBenefit = 3000;
+          break;
+      }
+
       const newHealthCard = new HealthCard({
         cardNumber,
         user: userId,
         uhid: user.uhid,
-        availableCredit: availableCredit || 25000,
+        availableCredit: availableCredit || maxCreditLimit,
         cardType: cardType || 'basic',
         status: 'active',
-        expiryDate
+        expiryDate,
+        discountPercentage,
+        monthlyLimit,
+        interestRate,
+        zeroInterestMonths,
+        dailyCashBenefit
       });
 
       const healthCard = await newHealthCard.save();

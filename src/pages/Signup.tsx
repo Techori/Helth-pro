@@ -118,10 +118,10 @@ const Signup = () => {
         email: formData.email,
         password: formData.password,
         role: formData.role,
+        phone: formData.phone,
         ...(formData.role === "hospital" && {
           hospitalName: formData.hospitalName,
           location: formData.location,
-          phone: formData.phone,
           services: formData.services
         })
       };

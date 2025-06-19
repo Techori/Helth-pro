@@ -33,11 +33,21 @@ module.exports = async (req, res) => {
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
-
-  const { firstName, lastName, email, password, role, stateCode, rtoCode, hospitalShort } = req.body;
+  const { 
+    firstName, 
+    lastName, 
+    email, 
+    password, 
+    role = "patient",
+    hospitalName,
+    location,
+    phone,
+    services,
+  } = req.body;
 
   try {
-    let user = await User.findOne({ email });
+    // Check if user with same email exists
+    let user = await User.findOne({ email: email.toLowerCase() });
     if (user) {
       return res.status(400).json({ msg: "User already exists" });
     }
@@ -50,18 +60,30 @@ module.exports = async (req, res) => {
       }
     }
 
+    // Validate role
+    const validRoles = ["patient", "hospital", "sales", "crm", "agent", "support"];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({ msg: "Invalid role specified" });
+    }
+
+    // Additional validation for hospital role
+    if (role === "hospital" && (!hospitalName || !location || !phone)) {
+      return res.status(400).json({ msg: "Hospital name, location and phone are required for hospital registration" });
+    }
+
     // Create user
     user = new User({
       firstName,
       lastName,
       email: email.toLowerCase(),
       password,
-      role: role || "patient",
+      role,
+      phone
     });
 
     // Generate UHID for patients
-    if ((role || "patient") === "patient") {
-      user.uhid = await generateUHID(User);
+    if (role === "patient") {
+      user.uhid = null;
     }
 
     // Generate Hospital ID for hospitals
@@ -76,8 +98,7 @@ module.exports = async (req, res) => {
 
     // If user is registering as a hospital, create a hospital entry
     if (role === "hospital") {
-      try {
-        const hospitalId = `HSP${Date.now().toString().slice(-6)}`;
+      try {        const hospitalId = `HSP${Date.now().toString().slice(-6)}`;
         const hospital = new Hospital({
           _id: hospitalId,
           name: hospitalName,
@@ -94,11 +115,10 @@ module.exports = async (req, res) => {
         });
 
         await hospital.save();
-        console.log('Hospital created successfully:', hospitalId);
-      } catch (hospitalError) {
+        console.log('Hospital created successfully:', hospitalId);      } catch (hospitalError) {
         // If hospital creation fails, delete the user
         await User.findByIdAndDelete(user._id);
-        console.error("Hospital creation error:", hospitalError);
+        console.error('Hospital creation failed:', hospitalError);
         return res.status(500).json({ 
           msg: "Failed to create hospital profile",
           error: hospitalError.message 
@@ -106,6 +126,7 @@ module.exports = async (req, res) => {
       }
     }
 
+    // Generate JWT token
     const payload = {
       user: {
         id: user.id,
@@ -119,27 +140,26 @@ module.exports = async (req, res) => {
       { expiresIn: 360000 },
       (err, token) => {
         if (err) throw err;
-        res.json({ token });
+        res.json({ 
+          token,
+          user: {
+            id: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            role: user.role,
+            ...(user.uhid && { uhid: user.uhid }),
+            ...(user.hospitalId && { hospitalId: user.hospitalId })
+          }
+        });
       }
     );
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send("Server Error01");
-  }
-  } catch (err) {
-    console.error(err.message);
+    console.error("Signup error:", err.message);
     res.status(500).send("Server Error");
   }
-};
-
-mongoose.connection.on('connected', async () => {
-  try {
-    await mongoose.connection.db.collection('hospitals').dropIndex('contactEmail_1');
-    // ...
-  } catch (err) {
-    // Ignore error if index doesn't exist
-    if (err.code !== 26) {
-      console.error('Error dropping indexes:', err);
-    }
-  }
-});
+} catch (err) {
+  console.error("Validation error:", err.message);
+  res.status(500).send("Server Error");
+} 
+}

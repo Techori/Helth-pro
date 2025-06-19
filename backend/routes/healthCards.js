@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();
 const { check, validationResult } = require('express-validator');
@@ -87,6 +86,7 @@ router.post('/apply', [
 
     const newHealthCard = new HealthCard({
       cardNumber,
+      patientId: user.id,
       user: req.user.id,
       uhid: user.uhid,
       availableCredit: 0, // Will be activated after admin approval
@@ -173,10 +173,10 @@ router.put('/:id/reject', auth, async (req, res) => {
   }
 });
 
-// @route   POST api/health-cards/:id/topup
-// @desc    Top up health card balance
+// @route   POST api/health-cards/:id/pay
+// @desc    Pay health card credit
 // @access  Private
-router.post('/:id/topup', [
+router.post('/:id/pay', [
   auth,
   [
     check('amount', 'Amount is required and must be positive').isFloat({ min: 1 }),
@@ -202,20 +202,26 @@ router.post('/:id/topup', [
     }
 
     if (healthCard.status !== 'active') {
-      return res.status(400).json({ msg: 'Health card must be active to top up' });
+      return res.status(400).json({ msg: 'Health card must be active to make payments' });
+    }
+
+    if (amount > healthCard.usedCredit) {
+      return res.status(400).json({ msg: 'Payment amount cannot exceed used credit' });
     }
 
     // Simulate payment processing
-    const transactionId = `TOP${Date.now()}${Math.floor(Math.random() * 1000)}`;
+    const transactionId = `PAY${Date.now()}${Math.floor(Math.random() * 1000)}`;
     
-    // Update health card balance
+    // Update health card balances
+    healthCard.usedCredit -= amount;
     healthCard.availableCredit += amount;
     await healthCard.save();
 
     res.json({
-      message: 'Top-up successful',
+      message: 'Payment successful',
       transactionId,
-      newBalance: healthCard.availableCredit,
+      newUsedCredit: healthCard.usedCredit,
+      newAvailableCredit: healthCard.availableCredit,
       amount
     });
   } catch (err) {

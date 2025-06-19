@@ -7,6 +7,10 @@ const TransactionSchema = new mongoose.Schema({
     ref: 'user',
     required: true
   },
+  cardNumber: {
+    type: String,
+    required: true
+  },
   amount: {
     type: Number,
     required: true

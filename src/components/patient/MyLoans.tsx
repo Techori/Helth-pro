@@ -8,6 +8,7 @@ import { CreditCard, Plus, FileText, AlertCircle, Check, PlayCircle, Edit } from
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { fetchPatientLoans, LoanData } from '@/services/loanService';
+import { fetchUserHealthCards } from '@/services/healthCardService';
 import KycCompletion from './KycCompletion';
 import LoanApplicationDialog from './LoanApplicationDialog';
 import EmiPayment from './EmiPayment';
@@ -28,6 +29,7 @@ const MyLoans = () => {
   const [showEmiPayment, setShowEmiPayment] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState<LoanData | null>(null);
   const [resumingLoan, setResumingLoan] = useState<LoanData | null>(null);
+  const [hasActiveHealthCard, setHasActiveHealthCard] = useState(false);
 
   useEffect(() => {
     if (authState.user) {
@@ -37,14 +39,25 @@ const MyLoans = () => {
       setUhid(userData.uhid || '');
       setKycData(userData.kycData || null);
       
-      // Fetch loans if KYC is completed
+      // Fetch health cards and loans if KYC is completed
       if (userData.kycStatus === 'completed' && userData.uhid) {
+        checkHealthCards();
         fetchLoans(userData.uhid);
       } else {
         setLoading(false);
       }
     }
   }, [authState.user]);
+
+  const checkHealthCards = async () => {
+    try {
+      const cards = await fetchUserHealthCards();
+      setHasActiveHealthCard(cards.some(card => card.status === 'active'));
+    } catch (error) {
+      console.error('Failed to fetch health cards:', error);
+      setHasActiveHealthCard(false);
+    }
+  };
 
   const fetchLoans = async (userUhid: string) => {
     try {
@@ -182,10 +195,44 @@ const MyLoans = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={() => setShowLoanApplication(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Apply for New Loan
-          </Button>
+          {hasActiveHealthCard ? (
+            <Button onClick={() => setShowLoanApplication(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Apply for New Loan
+            </Button>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-yellow-600 flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                You need an active health card to apply for a loan
+              </p>
+              <Button variant="outline" onClick={() => window.location.href = 'patient-dashboard?tab=health-card'}>
+                <CreditCard className="h-4 w-4 mr-2" />
+                Apply for Health Card
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Health Card Status Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Check className="h-5 w-5 text-green-600" />
+            Health Card Status
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {hasActiveHealthCard ? (
+            <p className="text-green-800">
+              Your health card is active. You are eligible for cashless treatment.
+            </p>
+          ) : (
+            <p className="text-red-800">
+              No active health card found. Please contact support.
+            </p>
+          )}
         </CardContent>
       </Card>
 

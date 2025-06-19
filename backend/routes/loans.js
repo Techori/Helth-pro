@@ -39,6 +39,15 @@ const checkAndUpdateKycStatus = async (userId) => {
   };
 };
 
+// Add this helper function at the top with other helpers
+const checkHealthCardStatus = async (userId) => {
+  const healthCards = await HealthCard.find({ user: userId, status: 'active' });
+  if (!healthCards || healthCards.length === 0) {
+    throw new Error('You must have an active health card to apply for a loan');
+  }
+  return healthCards[0]; // Return the first active health card
+};
+
 // @route   GET api/loans
 // @desc    Get all loans for a user or all loans for admin
 // @access  Private
@@ -79,6 +88,9 @@ router.post('/draft', auth, async (req, res) => {
   try {
     // Check KYC status first
     const kycInfo = await checkAndUpdateKycStatus(req.user.id);
+    
+    // Check for active health card
+    await checkHealthCardStatus(req.user.id);
     
     const { step, data } = req.body;
 
@@ -144,6 +156,9 @@ router.post('/submit', auth, async (req, res) => {
   try {
     // Check KYC status first
     const kycInfo = await checkAndUpdateKycStatus(req.user.id);
+    
+    // Check for active health card
+    await checkHealthCardStatus(req.user.id);
     
     const {
       personalInfo,

@@ -5,10 +5,59 @@ const auth = require('../middleware/auth');
 const Patient = require('../models/Patient');
 const Transaction = require('../models/Transaction');
 const User = require('../models/User');
+const { processHealthCardPayment } = require('../services/payment');
+
+// @route   GET api/transactions/all
+// @desc    Get all transactions (admin only)
+// @access  Private
+router.get('/all', auth, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(401).json({ msg: 'Not authorized to view all transactions' });
+    }
+
+    const transactions = await Transaction.find()
+      .populate('user', 'firstName lastName email uhid')
+      .sort({ date: -1 });
+    res.json(transactions);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/transactions/user/:userId
+// @desc    Get all transactions for a specific user (by card number)
+// @access  Private (admin or hospital only)
+router.get('/user/:userId', auth, async (req, res) => {
+  if (req.user.role !== 'admin' && req.user.role !== 'hospital') {
+    return res.status(401).json({ msg: 'Not authorized to view these transactions' });
+  }
+
+  try {
+    const transactions = await Transaction.find({ cardNumber: req.params.userId })
+      .sort({ date: -1 });
+    
+    res.json(transactions);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
 
 // @route   GET api/transactions
 // @desc    Get all transactions for a user
 // @access  Private
+router.get('/', auth, async (req, res) => {
+  try {
+    const transactions = await Transaction.find({ user: req.user.id })
+      .sort({ date: -1 });
+    res.json(transactions);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
 
 // @route   GET api/transactions/:id
 // @desc    Get transaction by ID
@@ -33,6 +82,9 @@ router.get('/:id', auth, async (req, res) => {
     res.json(transaction);
   } catch (err) {
     console.error(err.message);
+    if (err.kind === 'ObjectId') {
+      return res.status(404).json({ msg: 'Transaction not found' });
+    }
     res.status(500).send('Server Error');
   }
 });
@@ -60,10 +112,9 @@ router.post(
     const { amount, type, description, userId, hospital } = req.body;
 
     try {
-      // Find patient by cardNumber and update balance atomically
+      // Find patient by cardNumber or _id and update balance atomically
       let patient;
       if (userId.match(/^[0-9a-fA-F]{24}$/)) {
-        // Try by _id first if it looks like an ObjectId
         patient = await Patient.findOneAndUpdate(
           { _id: userId },
           { $inc: { cardBalance: -amount } },
@@ -71,7 +122,6 @@ router.post(
         );
       }
       if (!patient) {
-        // If not found by _id or if userId wasn't an ObjectId, try by cardNumber
         patient = await Patient.findOneAndUpdate(
           { cardNumber: userId },
           { $inc: { cardBalance: -amount } },
@@ -86,7 +136,6 @@ router.post(
 
       // Check if patient has enough balance (after the update)
       if (patient.cardBalance < 0) {
-        // Revert the balance change if insufficient
         await Patient.findByIdAndUpdate(
           patient._id,
           { $inc: { cardBalance: amount } }
@@ -118,25 +167,48 @@ router.post(
   }
 );
 
-// @route   GET api/transactions/user/:userId
-// @desc    Get all transactions for a specific user (by card number)
-// @access  Private (admin or hospital only)
-router.get('/user/:userId', auth, async (req, res) => {
-  // Only admins and hospitals can view other users' transactions
-  if (req.user.role !== 'admin' && req.user.role !== 'hospital') {
-    return res.status(401).json({ msg: 'Not authorized to view these transactions' });
-  }
 
-  try {
-    // Find transactions by cardNumber (userId is actually the card number)
-    const transactions = await Transaction.find({ cardNumber: req.params.userId })
-      .sort({ date: -1 });
-    
-    res.json(transactions);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+// @route   POST api/transactions/health-card-payment
+// @desc    Process payment using health card for processing fees
+// @access  Private
+router.post(
+  '/health-card-payment',
+  [
+    auth,
+    [
+      check('healthCardId', 'Health card ID is required').isMongoId(),
+      check('amount', 'Amount is required and must be positive').isFloat({ min: 1 }),
+      check('description', 'Description is required').not().isEmpty()
+    ]
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { healthCardId, amount, description } = req.body;
+
+    try {
+      const paymentResult = await processHealthCardPayment({
+        userId: req.user.id,
+        healthCardId,
+        amount,
+        description
+      });
+
+      res.json({
+        message: 'Payment successful',
+        transactionId: paymentResult.transactionId,
+        newAvailableCredit: paymentResult.newAvailableCredit,
+        newUsedCredit: paymentResult.newUsedCredit,
+        amount: paymentResult.amount
+      });
+    } catch (err) {
+      console.error('Payment error:', err.message);
+      res.status(400).json({ msg: err.message });
+    }
   }
-});
+);
 
 module.exports = router;

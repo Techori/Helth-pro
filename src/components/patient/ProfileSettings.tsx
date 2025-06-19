@@ -19,13 +19,23 @@ import {
   X,
   Bell,
   Fingerprint,
-  Settings,
-  AlertCircle,
+  Lock,
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import FaceAuthComponent from "./FaceAuthComponent";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { updateUserProfile } from "@/services/api";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { changePassword } from "@/services/authService";
 
 const ProfileSettings = () => {
   const { authState, updateProfile } = useAuth();
@@ -39,6 +49,12 @@ const ProfileSettings = () => {
     preferredHospital: "",
     emergencyContact: "",
   });
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
 
   // Update form data when user data changes
   useEffect(() => {
@@ -62,9 +78,16 @@ const ProfileSettings = () => {
     }));
   };
 
+  const handlePasswordInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setPasswordForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
   const handleSave = async () => {
     try {
-      // Split full name into first and last name
       const [firstName, ...lastNameParts] = formData.fullName.split(" ");
       const lastName = lastNameParts.join(" ");
 
@@ -112,8 +135,48 @@ const ProfileSettings = () => {
     setFaceAuthRegistered(success);
   };
 
+  const handleChangePassword = async () => {
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast({
+        title: "Password Mismatch",
+        description: "New password and confirm password do not match.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (passwordForm.newPassword.length < 8) {
+      toast({
+        title: "Invalid Password",
+        description: "New password must be at least 8 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await changePassword(passwordForm.currentPassword, passwordForm.newPassword);
+      setIsPasswordDialogOpen(false);
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      toast({
+        title: "Password Changed",
+        description: "Your password has been updated successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Password Change Failed",
+        description: "Failed to change password. Please check your current password.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (!authState.user) {
-    return null; // Or a loading state
+    return null;
   }
 
   return (
@@ -334,7 +397,69 @@ const ProfileSettings = () => {
             <div className="space-y-4">
               <div>
                 <h3 className="text-sm font-medium mb-2">Password</h3>
-                <Button variant="outline">Change Password</Button>
+                <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline">
+                      <Lock className="mr-2 h-4 w-4" />
+                      Change Password
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Change Password</DialogTitle>
+                      <DialogDescription>
+                        Enter your current password and your new password.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="currentPassword" className="text-right">
+                          Current Password
+                        </Label>
+                        <Input
+                          id="currentPassword"
+                          name="currentPassword"
+                          type="password"
+                          className="col-span-3"
+                          value={passwordForm.currentPassword}
+                          onChange={handlePasswordInputChange}
+                        />
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="newPassword" className="text-right">
+                          New Password
+                        </Label>
+                        <Input
+                          id="newPassword"
+                          name="newPassword"
+                          type="password"
+                          className="col-span-3"
+                          value={passwordForm.newPassword}
+                          onChange={handlePasswordInputChange}
+                        />
+                      </div>
+                      <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="confirmPassword" className="text-right">
+                          Confirm Password
+                        </Label>
+                        <Input
+                          id="confirmPassword"
+                          name="confirmPassword"
+                          type="password"
+                          className="col-span-3"
+                          value={passwordForm.confirmPassword}
+                          onChange={handlePasswordInputChange}
+                        />
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setIsPasswordDialogOpen(false)}>
+                        Cancel
+                      </Button>
+                      <Button onClick={handleChangePassword}>Save Changes</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </div>
 
               <div className="pt-4 border-t">
@@ -375,7 +500,6 @@ const ProfileSettings = () => {
             </div>
           </CardContent>
         </Card>
-        {/* Face Authentication Component */}
         <FaceAuthComponent
           emailId={authState.user.email}
           onFaceRegistered={handleFaceRegistered}

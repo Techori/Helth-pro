@@ -157,7 +157,7 @@ export const updateUserProfile = async (profileData: {
 export const changePassword = async (currentPassword: string, newPassword: string): Promise<any> => {
   try {
     console.log('Changing user password');
-    const response = await apiRequest('/users/change-password', {
+    const response = await apiRequest('/users/update-password', {
       method: 'PUT',
       body: JSON.stringify({
         currentPassword,

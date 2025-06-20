@@ -24,7 +24,7 @@ export interface EmiScheduleItem {
 
 export interface LoanData {
   _id: string;
-  applicationNumber: string;
+  applicationNumber: string;//unique identifier for the loan application
   status: string;
   currentStep?: number;
   loanDetails: {

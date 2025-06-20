@@ -304,7 +304,7 @@ const handlePayCredit = async () => {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Available Balance</span>
-                    <span className="font-semibold">₹{(card.approvedCreditLimit || cardInfo.limit - card.usedCredit).toLocaleString()}</span>
+                    <span className="font-semibold">₹{(card.availableCredit || cardInfo.limit - card.usedCredit).toLocaleString()}</span>
                   </div>
                   {card.cardType === 'ri_medicare_discount' && (
                     <div className="flex justify-between items-center">

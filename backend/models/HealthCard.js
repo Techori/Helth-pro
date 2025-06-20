@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const healthCardSchema = new mongoose.Schema({
   cardNumber: { type: String, required: true, unique: true },
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'user', required: true },
   uhid: { type: String },
   availableCredit: { type: Number, default: 0 },
   usedCredit: { type: Number, default: 0 },

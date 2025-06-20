@@ -113,20 +113,35 @@ export const rejectHealthCard = async (cardId: string, rejectionReason: string, 
   }
 };
 
-export const payHealthCardCredit = async (cardId: string, amount: number, paymentMethod: string = 'online', token: string): Promise<any> => {
+export const payHealthCardCredit = async (
+  healthCardId: string,
+  amount: number,
+  description: string,
+  token: string
+): Promise<{
+  message: string;
+  transactionId: string;
+  newAvailableCredit: number;
+  newUsedCredit: number;
+  amount: number;
+}> => {
   try {
-    console.log('Paying health card credit:', { cardId, amount, paymentMethod });
+    console.log('Processing health card payment:', { healthCardId, amount, description });
     if (!token) throw new Error('Authentication token missing');
 
-    const response = await apiRequest(`/health-cards/${cardId}/pay`, {
+    const response = await apiRequest('/transactions/health-card-payment', {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ amount, paymentMethod })
+      body: JSON.stringify({
+        healthCardId,
+        amount,
+        description
+      })
     });
     return response;
   } catch (error) {
-    console.error('Failed to pay health card credit:', error);
-    throw error instanceof Error ? error : new Error('Failed to pay health card credit');
+    console.error('Failed to process health card payment:', error);
+    throw error instanceof Error ? error : new Error('Failed to process health card payment');
   }
 };
 

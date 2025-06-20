@@ -10,9 +10,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { ArrowLeft, ArrowRight, Check, CreditCard, FileText, User, Building } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { saveLoanDraft, submitLoanApplication, getCreditScore, LoanData } from '@/services/loanService';
-import { fetchUserHealthCards ,payHealthCardCredit} from '@/services/healthCardService';
-import axios from 'axios';
-import PatientDashboard from '@/pages/PatientDashboard';
+import { fetchUserHealthCards, payHealthCardCredit } from '@/services/healthCardService';
 
 interface LoanApplicationDialogProps {
   open: boolean;
@@ -34,8 +32,6 @@ const LoanApplicationDialog = ({ open, onOpenChange, onSuccess, uhid, existingLo
   const [interestRate, setInterestRate] = useState<number>(0);
   const [healthCards, setHealthCards] = useState([]);
   const [selectedHealthCard, setSelectedHealthCard] = useState('');
-  const [showPayment, setShowPayment] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'online' | 'offline'>('online');
 
   const [formData, setFormData] = useState({
     personalInfo: {
@@ -349,28 +345,28 @@ const LoanApplicationDialog = ({ open, onOpenChange, onSuccess, uhid, existingLo
       const response = await payHealthCardCredit(
         selectedHealthCard,
         1000, // Processing fee
-        paymentMethod,
-        authState.token,
-      )
+        'Loan application processing fee',
+        authState.token || ''
+      );
 
       setFormData(prev => ({
         ...prev,
-        transactionId: response.data.transactionId
+        transactionId: response.transactionId
       }));
 
       toast({
         title: "Payment Successful",
-        description: `₹1,000 processing fee paid successfully. Transaction ID: ${response.data.transactionId}`,
+        description: `₹1,000 processing fee paid successfully. Transaction ID: ${response.transactionId}`,
         variant: "default"
       });
 
       // Proceed to next step
       handleNext();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Payment failed:', error);
       toast({
         title: "Payment Failed",
-        description: error.response?.data?.msg || "Unable to process payment",
+        description: error.message || "Unable to process payment",
         variant: "destructive"
       });
     }
@@ -684,7 +680,7 @@ const LoanApplicationDialog = ({ open, onOpenChange, onSuccess, uhid, existingLo
                       <SelectValue placeholder="Select health card" />
                     </SelectTrigger>
                     <SelectContent>
-                      {healthCards.map((card) => (
+                      {healthCards.map((card: any) => (
                         <SelectItem key={card._id} value={card._id}>
                           {card.cardNumber} (₹{card.availableCredit.toLocaleString()} available)
                         </SelectItem>

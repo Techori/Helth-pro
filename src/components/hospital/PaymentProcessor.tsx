@@ -38,7 +38,7 @@ interface PatientInfo {
   email: string;
   cardNumber: string;
   cardBalance: number;
-  cardStatus: "Active" | "Inactive" | "Expired";
+  cardStatus: "active" | "inactive" | "expired";
   loanLimit: number;
   loanBalance: number;
 }
@@ -70,21 +70,27 @@ const PaymentProcessor = () => {
 
     try {
       const raw = await getPaymentUser(searchTerm);
+      // Type guard: ensure raw is an object
+      if (!raw || typeof raw !== "object") {
+        throw new Error("Invalid response from server");
+      }      // Add console log to see the raw response
+      console.log('Raw API Response:', raw);
+      
       // Map API response to PatientInfo
       const mappedPatient: PatientInfo = {
-        id: raw.patientId || raw._id,
-        name: raw.name,
-        gender: raw.gender,
-        age: raw.age,
-        phone: raw.phone,
-        email: raw.email,
-        cardNumber: raw.cardNumber || "",
-        cardBalance: raw.cardBalance || 0,
-        cardStatus: raw.cardStatus
-          ? raw.cardStatus.charAt(0).toUpperCase() + raw.cardStatus.slice(1)
-          : "Inactive",
-        loanLimit: raw.loanLimit ?? 0,
-        loanBalance: raw.loanBalance ?? 0,
+        id: (raw.patientId ?? raw.id ?? "Unknown ID").toString(),
+        name: raw.name ?? "Unknown Name",
+        gender: raw.gender ?? "Unknown",
+        age: typeof raw.age === "number" ? raw.age : 0,
+        phone: raw.phone ?? "",
+        email: raw.email ?? "",
+        cardNumber: raw.cardNumber ?? "",
+        cardBalance: typeof raw.cardBalance === "number" ? raw.cardBalance : 0,
+        cardStatus: typeof raw.cardStatus === "string" 
+          ? raw.cardStatus.toLowerCase() as "active" | "inactive" | "expired"
+          : "inactive",
+        loanLimit: typeof raw.loanLimit === "number" ? raw.loanLimit : 0,
+        loanBalance: typeof raw.loanBalance === "number" ? raw.loanBalance : 0,
       };
       setPatientInfo(mappedPatient);
     } catch (error: any) {
@@ -291,17 +297,16 @@ const PaymentProcessor = () => {
                       <div className="flex justify-between">
                         <CardTitle className="text-lg">
                           Patient Information
-                        </CardTitle>
-                        <div
+                        </CardTitle>                        <div
                           className={`px-2 py-1 text-xs font-medium rounded-full ${
-                            patientInfo.cardStatus === "Active"
+                            patientInfo.cardStatus === "active"
                               ? "bg-green-100 text-green-800"
-                              : patientInfo.cardStatus === "Inactive"
+                              : patientInfo.cardStatus === "inactive"
                               ? "bg-gray-100 text-gray-800"
                               : "bg-red-100 text-red-800"
                           }`}
                         >
-                          {patientInfo.cardStatus} Card
+                          {patientInfo.cardStatus.charAt(0).toUpperCase() + patientInfo.cardStatus.slice(1)} Card
                         </div>
                       </div>
                     </CardHeader>

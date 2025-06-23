@@ -13,6 +13,7 @@ import AdminSystemSettings from "@/components/admin/AdminSystemSettings";
 import SalesTargetManagement from "@/components/admin/SalesTargetManagement";
 import CommissionStructure from "@/components/admin/CommissionStructure";
 import HospitalUserManagement from "@/components/admin/HospitalUserManagement";
+import AdminTransactionManagement from "@/components/admin/AdminTransactionManagement";
 import AdminReports from "@/components/admin/AdminReports";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
@@ -346,6 +347,7 @@ const AdminDashboard = () => {
               <TabsTrigger value="loans">Loan Approvals</TabsTrigger>
               <TabsTrigger value="hospitals">Hospitals</TabsTrigger>
               <TabsTrigger value="health-cards">Health Cards</TabsTrigger>
+              <TabsTrigger value="transactions">Transactions & EMIs</TabsTrigger>
               <TabsTrigger value="emi-transactions">EMI Transactions</TabsTrigger>
               <TabsTrigger value="platform">Platform Fees</TabsTrigger>
               <TabsTrigger value="users">Users</TabsTrigger>
@@ -370,6 +372,10 @@ const AdminDashboard = () => {
 
             <TabsContent value="health-cards" className="mt-6">
               <AdminHealthCardManagement />
+            </TabsContent>
+            
+            <TabsContent value="transactions" className="mt-6">
+              <AdminTransactionManagement />
             </TabsContent>
 
             <TabsContent value="emi-transactions" className="mt-6">
@@ -471,8 +477,7 @@ const AdminDashboard = () => {
                       Application Number</Label>
                     <Input
                       id="loanId"
-                      placeholder="Enter 
-Application Number"
+                      placeholder="Enter Application Number"
                       className="col-span-3"
                       value={quickActionForm.loanId}
                       onChange={(e) => handleQuickActionFormChange("loanId", e.target.value)}

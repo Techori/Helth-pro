@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardHeader,
@@ -36,7 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-  import { apiRequest } from "../../services/api"
+import { apiRequest } from "../../services/api"
 
 interface Patient {
   id: string;
@@ -55,6 +54,7 @@ const PatientManagement = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [isAddingPatient, setIsAddingPatient] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [newPatientInfo, setNewPatientInfo] = useState({
     name: "",
     age: "",
@@ -64,138 +64,168 @@ const PatientManagement = () => {
     cardNumber: "",
   });
 
-  const [patients, setPatients] = useState<Patient[]>([
-    {
-      id: "P12345",
-      name: "Rahul Sharma",
-      age: 34,
-      gender: "Male",
-      phone: "9876543210",
-      email: "rahul.sharma@example.com",
-      cardNumber: "HC-1234-5678-9012",
-      cardStatus: "Active",
-      cardBalance: 15000,
-      lastVisit: "15 Nov 2023"
-    },
-    {
-      id: "P67890",
-      name: "Priya Patel",
-      age: 28,
-      gender: "Female",
-      phone: "8765432109",
-      email: "priya.patel@example.com",
-      cardNumber: "HC-5678-9012-3456",
-      cardStatus: "Active",
-      cardBalance: 8500,
-      lastVisit: "12 Nov 2023"
-    },
-    {
-      id: "P24680",
-      name: "Amit Kumar",
-      age: 45,
-      gender: "Male",
-      phone: "7654321098",
-      email: "amit.kumar@example.com",
-      cardNumber: "HC-9012-3456-7890",
-      cardStatus: "Inactive",
-      cardBalance: 0,
-      lastVisit: "5 Nov 2023"
-    },
-    {
-      id: "P13579",
-      name: "Sneha Reddy",
-      age: 31,
-      gender: "Female",
-      phone: "6543210987",
-      email: "sneha.reddy@example.com",
-      cardNumber: "Not Issued",
-      cardStatus: "Not Issued",
-      cardBalance: 0,
-      lastVisit: "Never"
-    },
-  ]);
+  const [patients, setPatients] = useState<Patient[]>([]);
 
-  const filteredPatients = patients.filter(patient =>
-    patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    patient.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    patient.cardNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    patient.phone.includes(searchTerm)
+  // Fetch patients when component mounts
+  useEffect(() => {
+    const fetchPatients = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          toast({
+            variant: "destructive",
+            title: "Authentication Error",
+            description: "Please log in to view patients.",
+          });
+          return;
+        }
+
+        console.log("Fetching patients...");
+        const response = await fetch("/api/hospitals/patients", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+        });
+
+        console.log("Response status:", response.status);
+        const data = await response.json();
+        console.log("Response data:", data);
+
+        if (!response.ok) {
+          throw new Error(data.msg || `Failed to fetch patients: ${response.status} ${response.statusText}`);
+        }
+
+        if (data.success && Array.isArray(data.patients)) {
+          setPatients(data.patients);
+        } else {
+          throw new Error("Invalid response format from server");
+        }
+      } catch (error) {
+        console.error("Error fetching patients:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error.message || "Failed to fetch patients. Please try again.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchPatients();
+  }, [toast]);
+
+  const filteredPatients = patients.filter(patient => {
+  // Return false if patient is null/undefined
+  if (!patient) return false;
+
+  const searchLower = searchTerm.toLowerCase();
+  
+  // Safely get values with fallbacks
+  const name = patient.name?.toLowerCase() || '';
+  const id = patient.id?.toLowerCase() || '';
+  const cardNumber = patient.cardNumber === "Not Issued" 
+    ? "not issued" 
+    : patient.cardNumber?.toLowerCase() || '';
+  const phone = patient.phone || '';
+
+  // Check each field
+  return (
+    name.includes(searchLower) ||
+    id.includes(searchLower) ||
+    cardNumber.includes(searchLower) ||
+    phone.includes(searchTerm)
   );
+});
 
-
- const handleAddPatient = async () => {
-  if (!newPatientInfo.name || !newPatientInfo.phone) {
-    toast({
-      variant: "destructive",
-      title: "Missing Information",
-      description: "Please fill all required fields.",
-    });
-    return;
-  }
-
-  // Convert age to an integer
-  const age = parseInt(newPatientInfo.age, 10);
-
-  if (isNaN(age)) {
-    toast({
-      variant: "destructive",
-      title: "Invalid Age",
-      description: "Please enter a valid age.",
-    });
-    return;
-  }
-
-  const patientData = {
-    ...newPatientInfo,
-    age, // Use the parsed integer age
-    gender: newPatientInfo.gender.toLowerCase(),
-  };
-
-  console.log("Adding patient with info:", patientData);
-
-  try {
-    const response = await fetch("/api/hospitals/patients", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(patientData),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Error adding patient:", errorData);
-      throw new Error(errorData.message || "Failed to add patient");
+  const handleAddPatient = async () => {
+    if (!newPatientInfo.name || !newPatientInfo.phone) {
+      toast({
+        variant: "destructive",
+        title: "Missing Information",
+        description: "Please fill all required fields.",
+      });
+      return;
     }
 
-    const data = await response.json();
-    const newPatient: Patient = data.patient;
+    // Convert age to an integer
+    const age = parseInt(newPatientInfo.age, 10);
 
-    setPatients([newPatient, ...patients]);
-    setIsAddingPatient(false);
-    setNewPatientInfo({
-      name: "",
-      age: "",
-      gender: "male",
-      phone: "",
-      email: "",
-      cardNumber: "",
-    });
+    if (isNaN(age)) {
+      toast({
+        variant: "destructive",
+        title: "Invalid Age",
+        description: "Please enter a valid age.",
+      });
+      return;
+    }
 
-    toast({
-      title: "Patient Added",
-      description: `${newPatient.name} has been successfully added to the system.`,
-    });
-  } catch (err: any) {
-    console.error("Error:", err);
-    toast({
-      variant: "destructive",
-      title: "Error",
-      description: err.message || "Something went wrong",
-    });
-  }
-};
+    const patientData = {
+      ...newPatientInfo,
+      age,
+      gender: newPatientInfo.gender.toLowerCase(),
+    };
 
+    console.log("Adding patient with info:", patientData);
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast({
+          variant: "destructive",
+          title: "Authentication Error",
+          description: "Please log in to add a patient.",
+        });
+        return;
+      }
+
+      const response = await fetch("/api/hospitals/patients", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(patientData),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.msg || "Failed to add patient");
+      }
+
+      if (data.success && data.patient) {
+        // Update the patients list with the new patient
+        setPatients(prevPatients => [data.patient, ...prevPatients]);
+        
+        // Reset form and close dialog
+        setIsAddingPatient(false);
+        setNewPatientInfo({
+          name: "",
+          age: "",
+          gender: "male",
+          phone: "",
+          email: "",
+          cardNumber: "",
+        });
+
+        toast({
+          title: "Patient Added",
+          description: `${data.patient.name} has been successfully added to the system.`,
+        });
+      } else {
+        throw new Error("Invalid response format from server");
+      }
+    } catch (err: any) {
+      console.error("Error:", err);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: err.message || "Something went wrong",
+      });
+    }
+  };
 
   const handleVerifyCard = (patient: Patient) => {
     toast({
@@ -327,7 +357,12 @@ const PatientManagement = () => {
             />
           </div>
 
-          {filteredPatients.length > 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <span className="ml-2">Loading patients...</span>
+            </div>
+          ) : filteredPatients.length > 0 ? (
             <div className="rounded-md border">
               <Table>
                 <TableHeader>

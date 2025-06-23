@@ -49,7 +49,6 @@ module.exports = async (req, res) => {
         email: user.email, // Adding email for better logging
       },
     };
-console.log("JWT Payload:", payload);
     // Sign and return JWT token
     jwt.sign(
       payload,

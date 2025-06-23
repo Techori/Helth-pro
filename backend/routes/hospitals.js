@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();
 const { check, validationResult } = require('express-validator');
@@ -17,13 +16,35 @@ const { updateHospitalProfile } = require("../controllers/hospital/hospitalContr
 router.put('/profile', auth, updateHospitalProfile);
 
 
-router.get('/patients', async (req, res) => {
+router.get('/patients', auth, async (req, res) => {
   try {
+    console.log('Fetching patients for hospital user:', req.user.id);
+    
     const patients = await Patient.find().sort({ createdAt: -1 });
-    res.json(patients);
+    console.log(`Found ${patients.length} patients`);
+    
+    res.json({
+      success: true,
+      patients: patients.map(patient => ({
+        id: patient.patientId,
+        name: patient.name,
+        age: patient.age,
+        gender: patient.gender,
+        phone: patient.phone,
+        email: patient.email,
+        cardNumber: patient.cardNumber || 'Not Issued',
+        cardStatus: patient.cardStatus || 'Not Issued',
+        cardBalance: patient.cardBalance || 0,
+        lastVisit: patient.lastVisit ? new Date(patient.lastVisit).toLocaleDateString() : 'Never'
+      }))
+    });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    console.error('Error fetching patients:', err);
+    res.status(500).json({
+      success: false,
+      msg: 'Server error',
+      error: err.message
+    });
   }
 });
 const Loan = require('../models/Loan');
@@ -367,6 +388,88 @@ router.put('/:id/status', auth, async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
+  }
+});
+
+router.post('/patients', auth, async (req, res) => {
+  try {
+    const {
+      name,
+      age,
+      gender,
+      phone,
+      email,
+      cardNumber
+    } = req.body;
+
+    if (!name || !phone) {
+      return res.status(400).json({
+        success: false,
+        msg: "Name and phone are required."
+      });
+    }
+
+    // Generate a unique patientId with retries if already exists
+    let patientId;
+    let patientExists = true;
+    while (patientExists) {
+      patientId = `P${Math.floor(10000 + Math.random() * 90000)}`;
+      patientExists = await Patient.exists({ patientId });
+    }
+
+    // Similarly for UHID
+    let uhid;
+    let uhidExists = true;
+    while (uhidExists) {
+      uhid = `UHID${Math.floor(100000 + Math.random() * 900000)}`;
+      uhidExists = await Patient.exists({ uhid });
+    }
+
+    const newPatient = new Patient({
+      patientId,
+      uhid,
+      name,
+      age,
+      gender,
+      phone,
+      email,
+      cardNumber: cardNumber || undefined,
+      cardStatus: cardNumber ? "Active" : "Not Issued",
+      cardBalance: 0,
+      lastVisit: new Date()
+    });
+
+    await newPatient.save();
+
+    res.status(201).json({
+      success: true,
+      patient: {
+        id: newPatient.patientId,
+        name: newPatient.name,
+        age: newPatient.age,
+        gender: newPatient.gender,
+        phone: newPatient.phone,
+        email: newPatient.email,
+        cardNumber: newPatient.cardNumber || 'Not Issued',
+        cardStatus: newPatient.cardStatus,
+        cardBalance: newPatient.cardBalance,
+        lastVisit: newPatient.lastVisit ? new Date(newPatient.lastVisit).toLocaleDateString() : 'Never'
+      }
+    });
+  } catch (error) {
+    console.error('Error adding patient:', error);
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        msg: "Duplicate field",
+        error: error.message
+      });
+    }
+    res.status(500).json({
+      success: false,
+      msg: "Server error",
+      error: error.message
+    });
   }
 });
 

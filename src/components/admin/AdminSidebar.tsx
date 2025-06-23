@@ -22,6 +22,7 @@ import {
   LogOut,
   BadgePercent,
   Target,
+  Receipt,
   Briefcase,
 } from "lucide-react";
 
@@ -93,6 +94,14 @@ const AdminSidebar = ({ isOpen, setIsOpen }: AdminSidebarProps) => {
                 <Link to="/admin-dashboard?tab=health-cards">
                   <CreditCard />
                   <span>Health Cards</span>
+                  </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={activeTab === "transactions"}>
+                <Link to="/admin-dashboard?tab=transactions">
+                  <Receipt />
+                  <span>Transactions & EMIs</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

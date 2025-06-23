@@ -3,11 +3,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, UserPlus, Eye, UserCog, Lock, MoreHorizontal, Phone, Building, Mail, Check, Edit } from "lucide-react";
+import { Search, UserPlus, Eye, UserCog, Lock, MoreHorizontal, Phone, Building, Mail, Check, Edit, Loader2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import axios from "axios";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface Hospital {
   _id: string;
@@ -36,100 +38,46 @@ interface Hospital {
 }
 
 const HospitalManagement = () => {
-  // Mock data
-  const mockPendingHospitals: Hospital[] = [
-    {
-      _id: "HSP12345",
-      name: "City General Hospital",
-      location: "Mumbai, Maharashtra",
-      contactPerson: "Dr. Rajesh Kumar",
-      phone: "9876543210",
-      email: "info@citygeneralhospital.com",
-      services: ["General", "Cardiology", "Orthopedics", "Neurology"],
-      registrationDate: "22/11/2023",
-      status: "Pending",
-      totalPatients: 0,
-      totalTransactions: 0,
-      currentBalance: 0
-    },
-    {
-      _id: "HSP12346",
-      name: "Wellness Multispecialty Hospital",
-      location: "Delhi, Delhi",
-      contactPerson: "Dr. Priya Sharma",
-      phone: "9876543211",
-      email: "contact@wellnesshospital.com",
-      services: ["General", "Gynecology", "Pediatrics", "ENT"],
-      registrationDate: "21/11/2023",
-      status: "Pending",
-      totalPatients: 0,
-      totalTransactions: 0,
-      currentBalance: 0
-    },
-    {
-      _id: "HSP12347",
-      name: "LifeCare Medical Center",
-      location: "Bangalore, Karnataka",
-      contactPerson: "Dr. Anand Reddy",
-      phone: "9876543212",
-      email: "info@lifecaremedical.com",
-      services: ["General", "Oncology", "Cardiology", "Dermatology"],
-      registrationDate: "20/11/2023",
-      status: "Pending",
-      totalPatients: 0,
-      totalTransactions: 0,
-      currentBalance: 0
-    },
-  ];
-
-  const mockActiveHospitals: Hospital[] = [
-    {
-      _id: "HSP12340",
-      name: "Apollo Hospitals",
-      location: "Chennai, Tamil Nadu",
-      contactPerson: "Dr. Sudha Rao",
-      phone: "9876543200",
-      email: "contact@apollohospitals.com",
-      services: ["General", "Cardiology", "Neurology", "Gastroenterology"],
-      registrationDate: "15/10/2023",
-      status: "Active",
-      totalPatients: 2450,
-      totalTransactions: 3250000,
-      currentBalance: 175000,
-    },
-    {
-      _id: "HSP12341",
-      name: "Fortis Healthcare",
-      location: "Gurgaon, Haryana",
-      contactPerson: "Dr. Vikram Mehta",
-      phone: "9876543201",
-      email: "info@fortishealthcare.com",
-      services: ["General", "Orthopedics", "Cardiology", "Oncology"],
-      registrationDate: "10/10/2023",
-      status: "Active",
-      totalPatients: 1850,
-      totalTransactions: 2875000,
-      currentBalance: 125000,
-    },
-  ];
-
-  const [pendingHospitals, setPendingHospitals] = useState<Hospital[]>(mockPendingHospitals);
-  const [activeHospitals, setActiveHospitals] = useState<Hospital[]>(mockActiveHospitals);
+  const [pendingHospitals, setPendingHospitals] = useState<Hospital[]>([]);
+  const [activeHospitals, setActiveHospitals] = useState<Hospital[]>([]);
   const [selectedHospital, setSelectedHospital] = useState<Hospital | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [isManageDialogOpen, setIsManageDialogOpen] = useState(false);
   const [editingHospital, setEditingHospital] = useState<Hospital | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     location: '',
     contactPerson: '',
     phone: '',
     email: '',
-    services: [] as string[]
+    services: [] as string[],
   });
+  const [isAddingStaff, setIsAddingStaff] = useState(false);
+  const [newStaff, setNewStaff] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    hospital: '',
+    role: '',
+    department: '',
+  });
+  const STAFF_ROLES = [
+  'Hospital Manager',
+  'Finance Staff',
+  'Front Desk Staff',
+  'Relationship Manager',
+  'Billing Staff'
+];
 
-  // Load data from localStorage on component mount
+const STAFF_DEPARTMENTS = [
+  'Administration',
+  'Finance',
+  'Reception',
+  'Marketing'
+];
+
   useEffect(() => {
     const savedPendingHospitals = localStorage.getItem('pendingHospitals');
     const savedActiveHospitals = localStorage.getItem('activeHospitals');
@@ -142,35 +90,31 @@ const HospitalManagement = () => {
     }
   }, []);
 
-  // Save data to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('pendingHospitals', JSON.stringify(pendingHospitals));
     localStorage.setItem('activeHospitals', JSON.stringify(activeHospitals));
   }, [pendingHospitals, activeHospitals]);
 
-  // Fetch hospitals from API and merge with mock data
   const fetchHospitals = async () => {
     try {
       setLoading(true);
       const response = await axios.get('/api/hospitals');
       const apiHospitals = response.data;
       
-      // Merge API data with mock data
-      const apiPendingHospitals = apiHospitals.filter(h => h.status === 'Pending');
-      const apiActiveHospitals = apiHospitals.filter(h => h.status === 'Active');
+      const apiPendingHospitals = apiHospitals.filter((h: Hospital) => h.status === 'Pending');
+      const apiActiveHospitals = apiHospitals.filter((h: Hospital) => h.status === 'Active');
 
-      // Combine mock and API data, removing duplicates based on _id
-      const combinedPendingHospitals = [...mockPendingHospitals];
-      const combinedActiveHospitals = [...mockActiveHospitals];
+      const combinedPendingHospitals = [...pendingHospitals];
+      const combinedActiveHospitals = [...activeHospitals];
 
-      apiPendingHospitals.forEach(apiHospital => {
-        if (!combinedPendingHospitals.some(mock => mock._id === apiHospital._id)) {
+      apiPendingHospitals.forEach((apiHospital: Hospital) => {
+        if (!combinedPendingHospitals.some((mock) => mock._id === apiHospital._id)) {
           combinedPendingHospitals.push(apiHospital);
         }
       });
 
-      apiActiveHospitals.forEach(apiHospital => {
-        if (!combinedActiveHospitals.some(mock => mock._id === apiHospital._id)) {
+      apiActiveHospitals.forEach((apiHospital: Hospital) => {
+        if (!combinedActiveHospitals.some((mock) => mock._id === apiHospital._id)) {
           combinedActiveHospitals.push(apiHospital);
         }
       });
@@ -193,6 +137,68 @@ const HospitalManagement = () => {
     fetchHospitals();
   }, []);
 
+  const handleAddStaff = async () => {
+  try {
+    // Validate required fields
+    if (!newStaff.name || !newStaff.email || !newStaff.role || !newStaff.hospital) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields (Name, Email, Role, Hospital)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newStaff.email)) {
+      toast({
+        title: "Validation Error",
+        description: "Invalid email address format",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    
+    const response = await axios.post('api/admin/add-staff', {
+      name: newStaff.name.trim(),
+      email: newStaff.email.trim(),
+      phone: newStaff.phone.trim(),
+      hospitalId: newStaff.hospital.trim(),
+      role: newStaff.role.trim(),
+      department: newStaff.department.trim(),
+    });
+
+    toast({
+      title: "Success",
+      description: "Staff member added successfully",
+    });
+
+    // Reset form
+    setNewStaff({
+      name: '',
+      email: '',
+      phone: '',
+      hospital: '',
+      role: '',
+      department: '',
+    });
+    setIsAddingStaff(false);
+
+  } catch (error: any) {
+    console.error("Error adding staff:", error);
+    toast({
+      title: "Error",
+      description: error.response?.data?.message || "Failed to add staff member",
+      variant: "destructive",
+    });
+  } finally {
+    setLoading(false);
+  }
+};
+
   const handleViewHospital = (hospital: Hospital) => {
     setSelectedHospital(hospital);
   };
@@ -201,20 +207,17 @@ const HospitalManagement = () => {
     try {
       if (!selectedHospital) return;
 
-      // Create new active hospital entry
       const newActiveHospital: Hospital = {
         ...selectedHospital,
-        status: "Active" as const,
+        status: "Active",
         totalPatients: 0,
         totalTransactions: 0,
         currentBalance: 0,
       };
 
-      // Update both lists
-      setPendingHospitals(prev => prev.filter(h => h._id !== selectedHospital._id));
-      setActiveHospitals(prev => [newActiveHospital, ...prev]);
+      setPendingHospitals((prev) => prev.filter((h) => h._id !== selectedHospital._id));
+      setActiveHospitals((prev) => [newActiveHospital, ...prev]);
 
-      // Try to update in API
       try {
         await axios.patch(`/api/hospitals/${selectedHospital._id}/approve`);
       } catch (error) {
@@ -241,10 +244,8 @@ const HospitalManagement = () => {
     try {
       if (!selectedHospital) return;
 
-      // Remove from pending list
-      setPendingHospitals(prev => prev.filter(h => h._id !== selectedHospital._id));
+      setPendingHospitals((prev) => prev.filter((h) => h._id !== selectedHospital._id));
 
-      // Try to update in API
       try {
         await axios.patch(`/api/hospitals/${selectedHospital._id}/reject`);
       } catch (error) {
@@ -275,62 +276,118 @@ const HospitalManagement = () => {
       contactPerson: hospital.contactPerson,
       phone: hospital.phone,
       email: hospital.email,
-      services: hospital.services
+      services: [...hospital.services],
     });
     setIsManageDialogOpen(true);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleServicesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const services = e.target.value.split(',').map(service => service.trim());
-    setFormData(prev => ({
+    const services = e.target.value
+      .split(',')
+      .map((service) => service.trim())
+      .filter((service) => service.length > 0);
+    setFormData((prev) => ({
       ...prev,
-      services
+      services,
     }));
   };
 
-  const handleUpdateHospital = async () => {
-    try {
-      if (!editingHospital) return;
+  const validateForm = () => {
+    if (!formData.name.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Hospital name is required.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    if (!formData.location.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Location is required.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    if (!formData.contactPerson.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "Contact person is required.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    if (!formData.phone.match(/^\+?[\d\s-]{10,}$/)) {
+      toast({
+        title: "Validation Error",
+        description: "Invalid phone number.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    if (!formData.email.match(/^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$/)) {
+      toast({
+        title: "Validation Error",
+        description: "Invalid email address.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    return true;
+  };
 
+  const handleUpdateHospital = async () => {
+    if (!editingHospital || isUpdating) return;
+
+    if (!validateForm()) return;
+
+    setIsUpdating(true);
+
+    try {
       const updateData = {
-        name: formData.name,
-        location: formData.location,
-        contactPerson: formData.contactPerson,
-        phone: formData.phone,
-        email: formData.email,
-        services: formData.services
+        name: formData.name.trim(),
+        location: formData.location.trim(),
+        contactPerson: formData.contactPerson.trim(),
+        phone: formData.phone.trim(),
+        email: formData.email.trim(),
+        services: formData.services,
       };
 
-      // Update active hospitals list
-      setActiveHospitals(prev => 
-        prev.map(hospital => 
-          hospital._id === editingHospital._id 
+      const previousActiveHospitals = [...activeHospitals];
+      setActiveHospitals((prev) =>
+        prev.map((hospital) =>
+          hospital._id === editingHospital._id
             ? { ...hospital, ...updateData }
             : hospital
         )
       );
 
-      // Try to update in API
       try {
-        await axios.put(
+        const response = await axios.put(
           `/api/hospitals/${editingHospital._id}`,
           updateData,
           {
             headers: {
-              'Content-Type': 'application/json'
-            }
+              'Content-Type': 'application/json',
+            },
           }
         );
-      } catch (error) {
-        console.error('Error updating API:', error);
+
+        if (response.status !== 200) {
+          throw new Error(response.data.message || 'Failed to update hospital');
+        }
+      } catch (apiError) {
+        console.error('Error updating API:', apiError);
+        setActiveHospitals(previousActiveHospitals);
+        throw apiError;
       }
 
       toast({
@@ -340,28 +397,54 @@ const HospitalManagement = () => {
 
       setIsManageDialogOpen(false);
       setEditingHospital(null);
-    } catch (error) {
+      setFormData({
+        name: '',
+        location: '',
+        contactPerson: '',
+        phone: '',
+        email: '',
+        services: [],
+      });
+    } catch (error: any) {
       console.error('Error updating hospital:', error);
       toast({
         title: "Error",
         description: error.response?.data?.message || "Failed to update hospital details.",
         variant: "destructive",
       });
+    } finally {
+      setIsUpdating(false);
     }
   };
 
   const filteredActiveHospitals = activeHospitals.filter(
-    hospital => 
+    (hospital) =>
       hospital.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       hospital.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
       hospital._id.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    doc.text("Hospital List", 20, 10);
+    autoTable(doc, {
+      head: [['ID', 'Name', 'Location', 'Contact Person', 'Phone', 'Email', 'Status']],
+      body: activeHospitals.map(hospital => [
+        hospital._id,
+        hospital.name,
+        hospital.location,
+        hospital.contactPerson,
+        hospital.phone,
+        hospital.email,
+        hospital.status,
+      ]),
+    });
+    doc.save("hospital_list.pdf");
+  };
+
   if (loading) {
     return <div className="text-center py-6">Loading...</div>;
   }
-
-  const [isAddingStaff, setIsAddingStaff] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -413,9 +496,9 @@ const HospitalManagement = () => {
                     <TableCell>{hospital.contactPerson}</TableCell>
                     <TableCell>{hospital.registrationDate}</TableCell>
                     <TableCell>
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                      <Badge variant="outline" className="bg-yellow-100 text-yellow-800">
                         {hospital.status}
-                      </span>
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <Dialog>
@@ -473,6 +556,13 @@ const HospitalManagement = () => {
                                 <Button className="flex-1" onClick={handleApproveHospital}>
                                   <Check className="mr-2 h-4 w-4" />
                                   Approve
+                                </Button>
+                                <Button 
+                                  variant="destructive" 
+                                  className="flex-1" 
+                                  onClick={handleRejectHospital}
+                                >
+                                  Reject
                                 </Button>
                               </div>
                             </DialogFooter>
@@ -532,11 +622,11 @@ const HospitalManagement = () => {
                     <TableCell>{hospital.location}</TableCell>
                     <TableCell>{hospital.totalPatients}</TableCell>
                     <TableCell>{hospital.totalTransactions}</TableCell>
-                    <TableCell>{hospital.currentBalance}</TableCell>
+                    <TableCell>₹{hospital.currentBalance.toLocaleString()}</TableCell>
                     <TableCell>
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      <Badge variant="outline" className="bg-green-100 text-green-800">
                         {hospital.status}
-                      </span>
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <Button 
@@ -562,7 +652,7 @@ const HospitalManagement = () => {
             <p className="text-sm text-muted-foreground">
               Showing {filteredActiveHospitals.length} of {activeHospitals.length} hospitals
             </p>
-            <Button variant="outline">Export Hospital List</Button>
+            <Button variant="outline" onClick={handleExportPDF}>Export Hospital List</Button>
           </div>
         </CardFooter>
       </Card>
@@ -585,6 +675,7 @@ const HospitalManagement = () => {
                   name="name"
                   value={formData.name}
                   onChange={handleInputChange}
+                  placeholder="Enter hospital name"
                 />
               </div>
               <div>
@@ -594,6 +685,7 @@ const HospitalManagement = () => {
                   name="location"
                   value={formData.location}
                   onChange={handleInputChange}
+                  placeholder="Enter location"
                 />
               </div>
             </div>
@@ -606,6 +698,7 @@ const HospitalManagement = () => {
                   name="contactPerson"
                   value={formData.contactPerson}
                   onChange={handleInputChange}
+                  placeholder="Enter contact person"
                 />
               </div>
               <div>
@@ -615,6 +708,7 @@ const HospitalManagement = () => {
                   name="phone"
                   value={formData.phone}
                   onChange={handleInputChange}
+                  placeholder="Enter phone number"
                 />
               </div>
             </div>
@@ -624,8 +718,10 @@ const HospitalManagement = () => {
               <Input 
                 id="email"
                 name="email"
+                type="email"
                 value={formData.email}
                 onChange={handleInputChange}
+                placeholder="Enter email address"
               />
             </div>
             
@@ -663,20 +759,158 @@ const HospitalManagement = () => {
               <Button 
                 variant="outline" 
                 className="flex-1"
-                onClick={() => setIsManageDialogOpen(false)}
+                onClick={() => {
+                  setIsManageDialogOpen(false);
+                  setEditingHospital(null);
+                  setFormData({
+                    name: '',
+                    location: '',
+                    contactPerson: '',
+                    phone: '',
+                    email: '',
+                    services: [],
+                  });
+                }}
+                disabled={isUpdating}
               >
                 Cancel
               </Button>
               <Button 
                 className="flex-1"
                 onClick={handleUpdateHospital}
+                disabled={isUpdating}
               >
-                Save Changes
+                {isUpdating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
               </Button>
             </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Add New Staff Member Dialog */}
+      <Dialog open={isAddingStaff} onOpenChange={setIsAddingStaff}>
+  <DialogContent className="sm:max-w-[600px]">
+    <DialogHeader>
+      <DialogTitle>Add New Staff Member</DialogTitle>
+      <DialogDescription>
+        Fill in the details to add a new staff member to the hospital.
+      </DialogDescription>
+    </DialogHeader>
+    
+    <div className="grid gap-4 py-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="staffName">Full Name*</Label>
+          <Input
+            id="staffName"
+            value={newStaff.name}
+            onChange={(e) => setNewStaff({...newStaff, name: e.target.value})}
+            placeholder="Enter staff name"
+          />
+        </div>
+        <div>
+          <Label htmlFor="staffEmail">Email*</Label>
+          <Input
+            id="staffEmail"
+            type="email"
+            value={newStaff.email}
+            onChange={(e) => setNewStaff({...newStaff, email: e.target.value})}
+            placeholder="Enter email address"
+          />
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="staffPhone">Phone</Label>
+          <Input
+            id="staffPhone"
+            value={newStaff.phone}
+            onChange={(e) => setNewStaff({...newStaff, phone: e.target.value})}
+            placeholder="Enter phone number"
+          />
+        </div>
+        <div>
+          <Label htmlFor="staffHospital">Hospital*</Label>
+          <select
+            id="staffHospital"
+            value={newStaff.hospital}
+            onChange={(e) => setNewStaff({...newStaff, hospital: e.target.value})}
+            className="w-full p-2 border rounded"
+          >
+            <option value="">Select Hospital</option>
+            {activeHospitals.map((hospital) => (
+              <option key={hospital._id} value={hospital._id}>
+                {hospital.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="staffRole">Role*</Label>
+          <select
+            id="staffRole"
+            value={newStaff.role}
+            onChange={(e) => setNewStaff({...newStaff, role: e.target.value})}
+            className="w-full p-2 border rounded"
+          >
+            <option value="">Select Role</option>
+            {STAFF_ROLES.map((role) => (
+              <option key={role} value={role}>
+                {role}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <Label htmlFor="staffDepartment">Department*</Label>
+          <select
+            id="staffDepartment"
+            value={newStaff.department}
+            onChange={(e) => setNewStaff({...newStaff, department: e.target.value})}
+            className="w-full p-2 border rounded"
+          >
+            <option value="">Select Department</option>
+            {STAFF_DEPARTMENTS.map((dept) => (
+              <option key={dept} value={dept}>
+                {dept}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+    </div>
+    
+    <DialogFooter>
+      <Button
+        variant="outline"
+        onClick={() => setIsAddingStaff(false)}
+      >
+        Cancel
+      </Button>
+      <Button onClick={handleAddStaff} disabled={loading}>
+        {loading ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Adding...
+          </>
+        ) : (
+          'Add Staff'
+        )}
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
     </div>
   );
 };

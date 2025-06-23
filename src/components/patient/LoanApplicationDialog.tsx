@@ -7,9 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
-import { ArrowLeft, ArrowRight, Check, CreditCard, FileText, User, Building, MapPin } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, CreditCard, FileText, User, Building } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { saveLoanDraft, submitLoanApplication, getCreditScore, LoanData } from '@/services/loanService';
+import { fetchUserHealthCards, payHealthCardCredit } from '@/services/healthCardService';
 
 interface LoanApplicationDialogProps {
   open: boolean;
@@ -29,9 +30,10 @@ const LoanApplicationDialog = ({ open, onOpenChange, onSuccess, uhid, existingLo
   const [creditScore, setCreditScore] = useState<number | null>(null);
   const [maxEligibleAmount, setMaxEligibleAmount] = useState<number>(0);
   const [interestRate, setInterestRate] = useState<number>(0);
+  const [healthCards, setHealthCards] = useState([]);
+  const [selectedHealthCard, setSelectedHealthCard] = useState('');
 
   const [formData, setFormData] = useState({
-    // Personal Information
     personalInfo: {
       fullName: '',
       dateOfBirth: '',
@@ -49,8 +51,6 @@ const LoanApplicationDialog = ({ open, onOpenChange, onSuccess, uhid, existingLo
       citizenshipStatus: '',
       languagePreference: 'english'
     },
-    
-    // Employment Information
     employmentInfo: {
       employerName: '',
       employerAddress: '',
@@ -64,8 +64,6 @@ const LoanApplicationDialog = ({ open, onOpenChange, onSuccess, uhid, existingLo
       householdMembersInfo: '',
       incomeFluctuation: ''
     },
-
-    // Medical Information
     medicalInfo: {
       treatmentRequired: '',
       medicalProvider: '',
@@ -79,8 +77,6 @@ const LoanApplicationDialog = ({ open, onOpenChange, onSuccess, uhid, existingLo
       preExistingConditions: '',
       outstandingMedicalDebt: ''
     },
-
-    // Loan Details
     loanDetails: {
       requestedAmount: 0,
       preferredTerm: 12,
@@ -88,8 +84,6 @@ const LoanApplicationDialog = ({ open, onOpenChange, onSuccess, uhid, existingLo
       hospitalName: '',
       purposeOfLoan: ''
     },
-
-    // Documents
     documents: {
       panCard: '',
       aadhaarCard: '',
@@ -97,8 +91,6 @@ const LoanApplicationDialog = ({ open, onOpenChange, onSuccess, uhid, existingLo
       bankStatement: '',
       medicalDocuments: ''
     },
-
-    // Payment and Agreement
     transactionId: '',
     agreementSigned: false,
     nachMandateSigned: false,
@@ -115,18 +107,33 @@ const LoanApplicationDialog = ({ open, onOpenChange, onSuccess, uhid, existingLo
     'Sign Agreement'
   ];
 
-  // Load existing loan data or KYC data when dialog opens
+  // Fetch health cards when dialog opens
   useEffect(() => {
     if (open) {
+      const fetchHealthCards = async () => {
+        try {
+          const response = await fetchUserHealthCards(authState.token || '');
+          setHealthCards(response || []);
+          if (response.length > 0) {
+            setSelectedHealthCard(response[0]._id);
+          }
+        } catch (error) {
+          console.error('Failed to fetch health cards:', error);
+          toast({
+            title: 'Error',
+            description: 'Failed to load health cards',
+            variant: 'destructive'
+          });
+        }
+      };
+      fetchHealthCards();
       if (existingLoan) {
-        // Resume existing loan
         loadExistingLoanData();
       } else if (authState.user?.kycData) {
-        // New loan with KYC data
         loadKycData();
       }
     }
-  }, [open, existingLoan, authState.user]);
+  }, [open, existingLoan, authState.user, authState.token]);
 
   const loadExistingLoanData = () => {
     if (!existingLoan) return;
@@ -257,10 +264,8 @@ const LoanApplicationDialog = ({ open, onOpenChange, onSuccess, uhid, existingLo
 
   const handleNext = async () => {
     if (currentStep === 1) {
-      // KYC already done, proceed to personal details
       setCurrentStep(2);
     } else if (currentStep === 2) {
-      // Save personal details and get credit score
       await saveDraft(2);
       
       if (formData.personalInfo.nationalId && !creditScore) {
@@ -275,30 +280,15 @@ const LoanApplicationDialog = ({ open, onOpenChange, onSuccess, uhid, existingLo
       }
       setCurrentStep(3);
     } else if (currentStep === 3) {
-      // Credit score checked, proceed to employment
       await saveDraft(3);
       setCurrentStep(4);
     } else if (currentStep === 4) {
-      // Employment details saved, proceed to medical/loan details
       await saveDraft(4);
       setCurrentStep(5);
     } else if (currentStep === 5) {
-      // Medical/loan details saved, proceed to review
       await saveDraft(5);
       setCurrentStep(6);
     } else if (currentStep === 6) {
-      // Payment simulation
-      const mockTransactionId = `TXN${Date.now()}`;
-      setFormData(prev => ({
-        ...prev,
-        transactionId: mockTransactionId
-      }));
-      
-      toast({
-        title: "Payment Successful",
-        description: `Transaction ID: ${mockTransactionId}`,
-      });
-      
       setCurrentStep(7);
     }
   };
@@ -335,11 +325,51 @@ const LoanApplicationDialog = ({ open, onOpenChange, onSuccess, uhid, existingLo
   };
 
   const handleClose = () => {
-    // Save draft before closing if not submitted
     if (currentStep > 1 && !formData.transactionId) {
       saveDraft(currentStep);
     }
     onOpenChange(false);
+  };
+
+  const handlePayment = async () => {
+    if (!selectedHealthCard) {
+      toast({
+        title: "Error",
+        description: "Please select a health card",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const response = await payHealthCardCredit(
+        selectedHealthCard,
+        1000, // Processing fee
+        'Loan application processing fee',
+        authState.token || ''
+      );
+
+      setFormData(prev => ({
+        ...prev,
+        transactionId: response.transactionId
+      }));
+
+      toast({
+        title: "Payment Successful",
+        description: `₹1,000 processing fee paid successfully. Transaction ID: ${response.transactionId}`,
+        variant: "default"
+      });
+
+      // Proceed to next step
+      handleNext();
+    } catch (error: any) {
+      console.error('Payment failed:', error);
+      toast({
+        title: "Payment Failed",
+        description: error.message || "Unable to process payment",
+        variant: "destructive"
+      });
+    }
   };
 
   const renderStepContent = () => {
@@ -640,12 +670,28 @@ const LoanApplicationDialog = ({ open, onOpenChange, onSuccess, uhid, existingLo
               <div className="bg-blue-50 p-4 rounded-lg">
                 <h4 className="font-semibold mb-2">Processing Fee Payment</h4>
                 <p className="text-sm text-gray-600 mb-2">Pay ₹1,000 as processing fee to proceed</p>
+                <div className="mb-4">
+                  <Label>Select Health Card</Label>
+                  <Select
+                    value={selectedHealthCard}
+                    onValueChange={setSelectedHealthCard}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select health card" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {healthCards.map((card: any) => (
+                        <SelectItem key={card._id} value={card._id}>
+                          {card.cardNumber} (₹{card.availableCredit.toLocaleString()} available)
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <Button 
-                  onClick={() => {
-                    // Simulate payment
-                    handleNext();
-                  }}
+                  onClick={handlePayment}
                   className="w-full"
+                  disabled={!selectedHealthCard}
                 >
                   Pay ₹1,000 Processing Fee
                 </Button>
@@ -715,7 +761,6 @@ const LoanApplicationDialog = ({ open, onOpenChange, onSuccess, uhid, existingLo
           </DialogTitle>
         </DialogHeader>
 
-        {/* Step Progress */}
         <div className="flex items-center justify-between mb-6">
           {steps.map((step, index) => (
             <div key={index} className="flex flex-col items-center">
@@ -735,7 +780,6 @@ const LoanApplicationDialog = ({ open, onOpenChange, onSuccess, uhid, existingLo
 
         {renderStepContent()}
 
-        {/* Navigation Buttons */}
         <div className="flex justify-between mt-6">
           {currentStep > 1 && (
             <Button variant="outline" onClick={handlePrev}>

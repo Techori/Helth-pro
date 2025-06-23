@@ -10,7 +10,11 @@ const {
   addPlatformFee,
   addSalesTarget,
   updatePlatformFee,
-  updateUser
+  updateUser,
+  updateHospital,
+  addStaff,
+  getUsers,
+  getFeeStructures
 } = require('../controllers/admin/adminController');
 
 // @route   POST api/admin/quick-action/hospital
@@ -37,6 +41,7 @@ router.post('/quick-action-user', auth, quickActionUser);
 
 router.post('/quick-action-user-creation', auth, quickActionUsercreation);
 
+router.get('/fee-structures', auth, getFeeStructures);
 
 router.post('/add-fee', auth, addPlatformFee);
 
@@ -46,5 +51,12 @@ router.put('/update-fee/:id', auth, updatePlatformFee);
 
 router.put('/update-user/:id', auth, updateUser)
 
+// Get all users
+router.get('/users', auth, getUsers);
+
+router.put('/update-hospital/:id', updateHospital);
+
+
+router.post('/add-staff', addStaff);
 
 module.exports = router;

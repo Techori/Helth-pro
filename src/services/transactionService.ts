@@ -30,6 +30,17 @@ export const getUserTransactions = async () => {
     throw error;
   }
 }
+export const fetchAllTransactions = async (): Promise<Transaction[]> => {
+  try {
+    console.log('Fetching all transactions for admin');
+    const response = await apiRequest('/transactions/all');
+    return response || [];
+  } catch (error) {
+    console.error('Failed to fetch all transactions:', error);
+    throw error;
+  }
+};
+
 
 /**
  * Process payment using health card

@@ -122,6 +122,7 @@ export interface AuthUser {
 
 export interface AuthState {
   user: AuthUser | null;
+  token: string | null; // Optional token for authenticated requests
   loading: boolean;
   initialized: boolean;
 }

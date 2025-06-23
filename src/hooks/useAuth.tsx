@@ -7,6 +7,7 @@ import { loginUser, registerUser, getCurrentUser, logoutUser, checkAuthToken } f
 
 const initialState: AuthState = {
   user: null,
+  token: null,
   loading: true,
   initialized: false
 };
@@ -49,6 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (userData) {
               setAuthState({
                 user: userData,
+                token: localStorage.getItem('token'), // Ensure token is set
                 loading: false,
                 initialized: true
               });
@@ -57,6 +59,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               localStorage.removeItem('token');
               setAuthState({
                 user: null,
+                token: null,
                 loading: false,
                 initialized: true
               });
@@ -67,6 +70,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             
             setAuthState({
               user: null,
+              token: null,
               loading: false,
               initialized: true
             });
@@ -75,6 +79,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           console.log('No token found, setting unauthenticated state');
           setAuthState({
             user: null,
+            token: null,
             loading: false,
             initialized: true
           });
@@ -83,6 +88,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error('Error initializing auth:', error);
         setAuthState({
           user: null,
+          token: null,
           loading: false,
           initialized: true
         });
@@ -105,6 +111,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (user) {
         setAuthState({
           user,
+          token: localStorage.getItem('token'), // Ensure token is set
           loading: false,
           initialized: true
         });
@@ -136,6 +143,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (user) {
         setAuthState({
           user,
+          token: localStorage.getItem('token'), // Ensure token is set
           loading: false,
           initialized: true
         });
@@ -165,6 +173,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Reset auth state
     setAuthState({
       user: null,
+      token: null,
       loading: false,
       initialized: true
     });

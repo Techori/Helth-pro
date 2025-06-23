@@ -21,7 +21,7 @@ const getCreditScoreCriteria = (creditScore) => {
   }
 };
 
-// Add this helper function at the top with other helpers
+// Helper function to check and update KYC status
 const checkAndUpdateKycStatus = async (userId) => {
   const user = await User.findById(userId);
   if (!user) {
@@ -39,6 +39,39 @@ const checkAndUpdateKycStatus = async (userId) => {
   };
 };
 
+// Helper function to check health card status
+const checkHealthCardStatus = async (userId) => {
+  const healthCards = await HealthCard.find({ user: userId, status: 'active' });
+  if (!healthCards || healthCards.length === 0) {
+    throw new Error('You must have an active health card to apply for a loan');
+  }
+  return healthCards[0];
+};
+
+// Helper function to generate a unique temporary application number
+const generateUniqueTempApplicationNumber = async () => {
+  const maxRetries = 5;
+  let attempt = 0;
+
+  while (attempt < maxRetries) {
+    // Generate a temporary application number: ML + Year + Timestamp + Random 4-digit number
+    const year = new Date().getFullYear();
+    const timestamp = Date.now().toString().slice(-6); // Last 6 digits of timestamp
+    const randomNum = Math.floor(1000 + Math.random() * 9000); // Random 4-digit number
+    const tempApplicationNumber = `ML${year}${timestamp}${randomNum}`;
+
+    // Check if the application number already exists
+    const existingLoan = await Loan.findOne({ applicationNumber: tempApplicationNumber });
+    if (!existingLoan) {
+      return tempApplicationNumber;
+    }
+
+    attempt++;
+  }
+
+  throw new Error('Unable to generate a unique application number after multiple attempts');
+};
+
 // @route   GET api/loans
 // @desc    Get all loans for a user or all loans for admin
 // @access  Private
@@ -46,10 +79,8 @@ router.get('/', auth, async (req, res) => {
   try {
     let loans;
     if (req.user.role === 'admin') {
-      // Admin can see all loans
       loans = await Loan.find().populate('user', 'firstName lastName email uhid').sort({ applicationDate: -1 });
     } else {
-      // Regular users see only their loans
       loans = await Loan.find({ user: req.user.id }).sort({ applicationDate: -1 });
     }
     res.json(loans || []);
@@ -80,6 +111,9 @@ router.post('/draft', auth, async (req, res) => {
     // Check KYC status first
     const kycInfo = await checkAndUpdateKycStatus(req.user.id);
     
+    // Check for active health card
+    await checkHealthCardStatus(req.user.id);
+    
     const { step, data } = req.body;
 
     // Find existing draft or create new one
@@ -89,9 +123,8 @@ router.post('/draft', auth, async (req, res) => {
     });
 
     if (!loan) {
-      // Create new draft loan with temporary application number
-      const count = await Loan.countDocuments();
-      const tempApplicationNumber = `ML${new Date().getFullYear()}${String(count + 1).padStart(6, '0')}`;
+      // Generate unique temporary application number
+      const tempApplicationNumber = await generateUniqueTempApplicationNumber();
       
       loan = new Loan({
         user: req.user.id,
@@ -144,6 +177,9 @@ router.post('/submit', auth, async (req, res) => {
   try {
     // Check KYC status first
     const kycInfo = await checkAndUpdateKycStatus(req.user.id);
+    
+    // Check for active health card
+    await checkHealthCardStatus(req.user.id);
     
     const {
       personalInfo,
@@ -241,7 +277,7 @@ router.put('/:id/status', auth, async (req, res) => {
         (loan.loanDetails.approvedAmount * monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / 
         (Math.pow(1 + monthlyRate, numPayments) - 1);
       loan.remainingBalance = loan.loanDetails.approvedAmount;
-      loan.nextEmiDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // Next month
+      loan.nextEmiDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
       loan.emiPayments = [];
     } else if (status === 'rejected') {
       loan.rejectionReason = rejectionReason;
@@ -306,7 +342,7 @@ router.post('/:id/pay-emi', auth, async (req, res) => {
     
     // Calculate next EMI date
     if (loan.remainingBalance > 0) {
-      loan.nextEmiDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // Next month
+      loan.nextEmiDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
     } else {
       loan.nextEmiDate = null;
       loan.status = 'completed';
@@ -406,7 +442,7 @@ router.get('/credit-score/:panNumber', auth, async (req, res) => {
   try {
     // Mock credit score based on PAN number
     const panNumber = req.params.panNumber;
-    const mockScore = 650 + Math.floor(Math.random() * 150); // Random score between 650-800
+    const mockScore = 650 + Math.floor(Math.random() * 150);
     
     const criteria = getCreditScoreCriteria(mockScore);
     

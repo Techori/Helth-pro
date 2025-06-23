@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();
 const { check, validationResult } = require('express-validator');
@@ -46,7 +45,7 @@ router.get('/admin/all', auth, async (req, res) => {
 router.post('/apply', [
   auth,
   [
-    check('cardType', 'Card type is required').isIn(['basic', 'premium', 'ricare_discount']),
+    check('cardType', 'Card type is required').isIn(['health_paylater', 'health_emi', 'health_50_50', 'ri_medicare_discount']),
     check('requestedCreditLimit', 'Requested credit limit is required').isNumeric(),
     check('monthlyIncome', 'Monthly income is required').isNumeric(),
     check('employmentStatus', 'Employment status is required').not().isEmpty()
@@ -69,17 +68,32 @@ router.post('/apply', [
     // Generate card number
     const cardNumber = `HC${Date.now().toString().slice(-10)}`;
     
-    // Set credit limits based on card type
-    let maxCreditLimit = 25000; // basic
+    // Set credit limits and features based on card type
+    let maxCreditLimit = 25000;
     let discountPercentage = 0;
     let monthlyLimit = null;
+    let interestRate = null;
+    let zeroInterestMonths = null;
+    let dailyCashBenefit = null;
 
-    if (cardType === 'premium') {
-      maxCreditLimit = 100000;
-    } else if (cardType === 'ricare_discount') {
-      maxCreditLimit = 50000;
-      discountPercentage = 15;
-      monthlyLimit = 50000;
+    switch (cardType) {
+      case 'health_paylater':
+        maxCreditLimit = 25000;
+        zeroInterestMonths = 3; // 0% interest for first 3 months
+        break;
+      case 'health_emi':
+        maxCreditLimit = 100000;
+        interestRate = 15; // Default ROI 12-18%, set to midpoint
+        break;
+      case 'health_50_50':
+        maxCreditLimit = 50000;
+        break;
+      case 'ri_medicare_discount':
+        maxCreditLimit = 50000;
+        discountPercentage = 15; // 10-15% discount, set to max
+        monthlyLimit = 50000;
+        dailyCashBenefit = 3000; // Up to ₹3,000/day
+        break;
     }
 
     // Validate requested credit limit
@@ -87,19 +101,24 @@ router.post('/apply', [
 
     const newHealthCard = new HealthCard({
       cardNumber,
+      patientId: user.id,
       user: req.user.id,
       uhid: user.uhid,
       availableCredit: 0, // Will be activated after admin approval
       usedCredit: 0,
       status: 'pending', // Requires admin approval
       cardType,
-      discountPercentage: cardType === 'ricare_discount' ? discountPercentage : undefined,
-      monthlyLimit: cardType === 'ricare_discount' ? monthlyLimit : undefined,
+      discountPercentage,
+      monthlyLimit,
       requestedCreditLimit: approvedCreditLimit,
+      approvedCreditLimit,
       medicalHistory,
       monthlyIncome,
       employmentStatus,
-      expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) // 1 year from now
+      expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
+      interestRate,
+      zeroInterestMonths,
+      dailyCashBenefit
     });
 
     const healthCard = await newHealthCard.save();
@@ -173,10 +192,10 @@ router.put('/:id/reject', auth, async (req, res) => {
   }
 });
 
-// @route   POST api/health-cards/:id/topup
-// @desc    Top up health card balance
+// @route   POST api/health-cards/:id/pay
+// @desc    Pay health card credit
 // @access  Private
-router.post('/:id/topup', [
+router.post('/:id/pay', [
   auth,
   [
     check('amount', 'Amount is required and must be positive').isFloat({ min: 1 }),
@@ -202,20 +221,26 @@ router.post('/:id/topup', [
     }
 
     if (healthCard.status !== 'active') {
-      return res.status(400).json({ msg: 'Health card must be active to top up' });
+      return res.status(400).json({ msg: 'Health card must be active to make payments' });
+    }
+
+    if (amount > healthCard.usedCredit) {
+      return res.status(400).json({ msg: 'Payment amount cannot exceed used credit' });
     }
 
     // Simulate payment processing
-    const transactionId = `TOP${Date.now()}${Math.floor(Math.random() * 1000)}`;
+    const transactionId = `PAY${Date.now()}${Math.floor(Math.random() * 1000)}`;
     
-    // Update health card balance
+    // Update health card balances
+    healthCard.usedCredit -= amount;
     healthCard.availableCredit += amount;
     await healthCard.save();
 
     res.json({
-      message: 'Top-up successful',
+      message: 'Payment successful',
       transactionId,
-      newBalance: healthCard.availableCredit,
+      newUsedCredit: healthCard.usedCredit,
+      newAvailableCredit: healthCard.availableCredit,
       amount
     });
   } catch (err) {
@@ -255,14 +280,46 @@ router.post(
         return res.status(404).json({ msg: 'User not found' });
       }
 
+      let maxCreditLimit = 25000;
+      let discountPercentage = 0;
+      let monthlyLimit = null;
+      let interestRate = null;
+      let zeroInterestMonths = null;
+      let dailyCashBenefit = null;
+
+      switch (cardType) {
+        case 'health_paylater':
+          maxCreditLimit = 25000;
+          zeroInterestMonths = 3;
+          break;
+        case 'health_emi':
+          maxCreditLimit = 100000;
+          interestRate = 15; // Default ROI 12-18%
+          break;
+        case 'health_50_50':
+          maxCreditLimit = 50000;
+          break;
+        case 'ri_medicare_discount':
+          maxCreditLimit = 50000;
+          discountPercentage = 15;
+          monthlyLimit = 50000;
+          dailyCashBenefit = 3000;
+          break;
+      }
+
       const newHealthCard = new HealthCard({
         cardNumber,
         user: userId,
         uhid: user.uhid,
-        availableCredit: availableCredit || 25000,
+        availableCredit: availableCredit || maxCreditLimit,
         cardType: cardType || 'basic',
         status: 'active',
-        expiryDate
+        expiryDate,
+        discountPercentage,
+        monthlyLimit,
+        interestRate,
+        zeroInterestMonths,
+        dailyCashBenefit
       });
 
       const healthCard = await newHealthCard.save();

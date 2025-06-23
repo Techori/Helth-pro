@@ -31,6 +31,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import AdminEMITransactions from "@/components/admin/AdminEMITransactions";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -345,6 +346,7 @@ const AdminDashboard = () => {
               <TabsTrigger value="loans">Loan Approvals</TabsTrigger>
               <TabsTrigger value="hospitals">Hospitals</TabsTrigger>
               <TabsTrigger value="health-cards">Health Cards</TabsTrigger>
+              <TabsTrigger value="emi-transactions">EMI Transactions</TabsTrigger>
               <TabsTrigger value="platform">Platform Fees</TabsTrigger>
               <TabsTrigger value="users">Users</TabsTrigger>
               <TabsTrigger value="hospital-users">Hospital Staff</TabsTrigger>
@@ -368,6 +370,10 @@ const AdminDashboard = () => {
 
             <TabsContent value="health-cards" className="mt-6">
               <AdminHealthCardManagement />
+            </TabsContent>
+
+            <TabsContent value="emi-transactions" className="mt-6">
+              <AdminEMITransactions />
             </TabsContent>
 
             <TabsContent value="platform" className="mt-6">

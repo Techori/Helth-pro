@@ -1,29 +1,30 @@
 const express = require('express');
 const router = express.Router();
 const hospitalController = require('../controllers/hospitalController');
-const patientController=require('../controllers/hospital/patientController');
+const patientController = require('../controllers/hospital/patientController');
+const auth = require('../middleware/auth');
+
 // Get all hospitals
-router.get('/', hospitalController.getAllHospitals);
+router.get('/', auth, hospitalController.getAllHospitals);
 
 // Get hospital by ID
-router.get('/:id', hospitalController.getHospitalById);
+router.get('/:id', auth, hospitalController.getHospitalById);
 
 // Add new hospital registration
-router.post('/', hospitalController.addHospital);
+router.post('/', auth, hospitalController.addHospital);
 
 // Approve hospital registration
-router.patch('/:id/approve', hospitalController.approveHospital);
+router.patch('/:id/approve', auth, hospitalController.approveHospital);
 
 // Reject hospital registration
-router.patch('/:id/reject', hospitalController.rejectHospital);
+router.patch('/:id/reject', auth, hospitalController.rejectHospital);
 
 // Update hospital details
-router.put('/:id', hospitalController.updateHospital);
+router.put('/:id', auth, hospitalController.updateHospital);
 
 // Delete hospital
-router.delete('/:id', hospitalController.deleteHospital);
+router.delete('/:id', auth, hospitalController.deleteHospital);
 
+router.post('/patients', auth, patientController.addPatient);
 
-router.post('/patients', patientController.addPatient);
-
-module.exports = router; 
+module.exports = router;

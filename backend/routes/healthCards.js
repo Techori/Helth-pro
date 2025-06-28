@@ -6,6 +6,108 @@ const auth = require('../middleware/auth');
 const HealthCard = require('../models/HealthCard');
 const User = require('../models/User');
 
+const MEDICARE_INTERNAL_SECRET = process.env.MEDICARE_INTERNAL_SECRET;
+
+// Middleware for internal secret validation (for server-to-server communication)
+const internalAuth = (req, res, next) => {
+  const secret = req.header('X-Internal-Secret');
+  if (!secret || secret !== MEDICARE_INTERNAL_SECRET) {
+    console.warn('Unauthorized access attempt to internal route: Invalid X-Internal-Secret');
+    return res.status(403).json({ msg: 'Forbidden: Invalid internal secret' });
+  }
+  next();
+};
+
+
+router.post('/internal/payment-update', [
+  internalAuth, // Use the internal secret middleware
+  [
+    check('correlationId', 'Correlation ID is required').not().isEmpty(),
+    check('payomatixId', 'Payomatix Transaction ID is required').not().isEmpty(),
+    check('status', 'Payment status is required').isIn(['success', 'failed', 'declined', 'pending']), // Adjust statuses as per Payomatix
+    check('amount', 'Amount is required and must be a positive number').isFloat({ min: 0.01 }),
+    check('currency', 'Currency is required').isLength({ min: 3, max: 3 }),
+    check('userId', 'User ID is required').not().isEmpty(), // Ensure userId is present
+    check('cardId', 'Card ID is required').not().isEmpty()   // Ensure cardId is present
+  ]
+], async (req, res) => {
+  console.log('--- RECEIVED /internal/payment-update ---');
+  console.log('Payload from Payomatix Proxy:', JSON.stringify(req.body, null, 2));
+
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    console.error('Validation errors for /internal/payment-update:', errors.array());
+    return res.status(400).json({ success: false, message: 'Invalid payload received', errors: errors.array() });
+  }
+
+  const {
+    correlationId,
+    payomatixId,
+    status,
+    amount,
+    currency,
+    userId, // Expected from proxy
+    cardId  // Expected from proxy
+  } = req.body;
+
+  try {
+    // 1. Find the HealthCard for the specified user and cardId
+    // This adds an extra layer of security and ensures the card belongs to the user
+    const healthCard = await HealthCard.findOne({ _id: cardId, user: userId });
+
+    if (!healthCard) {
+      console.error(`Health card not found for ID: ${cardId} and User: ${userId}`);
+      return res.status(404).json({ success: false, message: 'Health card not found for this user.' });
+    }
+
+    // 2. Prevent double processing (idempotency) - CRITICAL for webhooks
+    // You'd typically store webhook IDs or correlation IDs in a separate log/transaction collection
+    // to prevent processing the same webhook multiple times if Payomatix retries.
+    // For now, we'll assume a simple check against status, but a dedicated 'PaymentTransaction'
+    // model would be better for full idempotency.
+    // Example: Check if a transaction with this payomatixId and 'success' status already exists.
+    // If (await PaymentTransaction.exists({ payomatixId, status: 'success' })) { ... }
+    if (status === 'success' && healthCard.availableCredit >= healthCard.approvedCreditLimit) {
+        console.warn(`Card ${cardId} for user ${userId} is already at max credit or higher. Skipping top-up for status 'success'.`);
+        return res.status(200).json({ success: true, message: 'Health card already at maximum credit or higher, no update needed.' });
+    }
+
+
+    // 3. Process based on payment status
+    if (status === 'success') {
+      const newAvailableCredit = healthCard.availableCredit + amount;
+
+      // Ensure we don't exceed the approvedCreditLimit
+      if (newAvailableCredit > healthCard.approvedCreditLimit) {
+        console.warn(`Attempted to top-up card ${cardId} beyond approved limit. Limiting to max.`);
+        healthCard.availableCredit = healthCard.approvedCreditLimit; // Cap at max
+      } else {
+        healthCard.availableCredit = newAvailableCredit;
+      }
+      
+      await healthCard.save();
+      console.log(`Health card ${cardId} (user: ${userId}) topped up successfully. New available credit: ${healthCard.availableCredit}`);
+      return res.status(200).json({ success: true, message: 'Health card updated successfully.', newAvailableCredit: healthCard.availableCredit });
+
+    } else if (status === 'failed' || status === 'declined') {
+      console.warn(`Payment for card ${cardId} (user: ${userId}) failed/declined. No credit update.`);
+      // You might log this as a failed transaction in a dedicated PaymentTransaction model
+      return res.status(200).json({ success: true, message: 'Payment failed/declined, no health card update.' });
+    } else {
+      console.log(`Payment for card ${cardId} (user: ${userId}) has status: ${status}. No action taken for this status.`);
+      return res.status(200).json({ success: true, message: `Payment status ${status} received, no specific update action.` });
+    }
+
+  } catch (err) {
+    console.error('Error in /internal/payment-update route:', err.message);
+    if (err.kind === 'ObjectId') {
+      return res.status(400).json({ success: false, message: 'Invalid User or Card ID format.' });
+    }
+    res.status(500).json({ success: false, message: 'Internal server error processing payment update.' });
+  }
+});
+
+
 // @route   GET api/health-cards
 // @desc    Get all health cards for a user
 // @access  Private

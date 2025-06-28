@@ -7,8 +7,7 @@ const authRoutes = require('./routes/authRoutes');
 const patientRoutes = require('./routes/patient');
 const http = require('http');
 const { Server } = require('socket.io');
-
-console.log('Starting server initialization...');
+const helmet = require('helmet');
 
 // Request logger middleware
 const requestLogger = (req, res, next) => {
@@ -36,7 +35,6 @@ const errorHandler = (err, req, res, next) => {
 };
 
 try {
-  // Load env vars
   require("dotenv").config();
   console.log("Environment variables loaded");
 } catch (err) {
@@ -55,7 +53,15 @@ connectDB()
     process.exit(1);
   });
 
+const MEDICARE_INTERNAL_SECRET = process.env.MEDICARE_INTERNAL_SECRET;
+if (!MEDICARE_INTERNAL_SECRET) {
+  console.error("Critical Error: MEDICARE_INTERNAL_SECRET is not set in environment variables.");
+  process.exit(1);
+}
+console.log('Starting server initialization...');
+
 const app = express();
+app.use(helmet());
 const server = http.createServer(app);
 
 // Initialize Socket.IO
@@ -138,18 +144,55 @@ const setupRoute = (path, router) => {
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/hospitals', require('./routes/hospitals'));
+
+// app.post('/internal/payment-update', async (req, res) => {
+//     console.log('--- MEDICARE BACKEND: Received Internal Payment Update Request ---');
+
+//     // --- CRITICAL SECURITY: Verify Sender ---
+//     const internalSecretHeader = req.headers['x-internal-secret'];
+//     if (!internalSecretHeader || internalSecretHeader !== MEDICARE_INTERNAL_SECRET) {
+//         console.warn('MEDICARE BACKEND: Unauthorized access attempt to /internal/payment-update!');
+//         console.warn('Received secret:', internalSecretHeader);
+//         return res.status(403).json({ message: 'Forbidden: Unauthorized internal access.' });
+//     }
+//     // --- END SECURITY ---
+
+//     const paymentUpdateData = req.body;
+//     console.log('MEDICARE BACKEND: Forwarded payment data:', paymentUpdateData);
+
+//     const { correlationId, payomatixId, status, message, amount, currency, customerEmail, customerName, customerPhone } = paymentUpdateData;
+
+//     if (!correlationId || !status) {
+//         console.error('MEDICARE BACKEND: Missing essential data in forwarded payment update.');
+//         return res.status(400).json({ message: 'Bad Request: Missing correlationId or status.' });
+//     }
+
+//     try {
+//         // --- YOUR MEDICARE BUSINESS LOGIC AND DATABASE UPDATES GO HERE ---
+//         // Use `correlationId` to find and update the relevant payment record in your Medicare database.
+//         // Example: update a payment record in a MongoDB collection or SQL table
+//         // based on the `correlationId` and set its status to `status` (success/failed/cancelled).
+//         console.log(`MEDICARE BACKEND: (Conceptual) Updating database for correlationId: ${correlationId} to status: ${status}`);
+//         res.status(200).json({ received: true, message: 'Payment update received and processed by Medicare Backend.' });
+
+//     } catch (error) {
+//         console.error('MEDICARE BACKEND: Error processing payment update:', error);
+//         res.status(500).json({ received: false, message: 'Internal server error processing payment update.' });
+//     }
+// });
+
+
+setupRoute('/api/hospitals', require('./routes/hospitals'));
 setupRoute('/api/auth', require('./routes/auth'));
 setupRoute('/api/users', require('./routes/users'));
 setupRoute('/api/health-cards', require('./routes/healthCards'));
 setupRoute('/api/loans', require('./routes/loans'));
-setupRoute('/api/kyc', require('./routes/kyc')); // Uses updated kyc.js
+setupRoute('/api/kyc', require('./routes/kyc'));
 setupRoute('/api/transactions', require('./routes/transactions'));
 setupRoute('/api/notifications', require('./routes/notifications'));
 setupRoute('/api/staff', require('./routes/staffRoutes'));
 setupRoute('/api/patient', patientRoutes);
 setupRoute('/api/face-auth', require('./routes/face-verification'));
-setupRoute('/api/transactions', require('./routes/transactions'));
 setupRoute('/api', require('./routes/hospitals'));
 
 setupRoute('/api/hospitalusers', require('./routes/HospitalUser'));

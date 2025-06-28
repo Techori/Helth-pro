@@ -1,10 +1,9 @@
-import { useState } from "react";
-import { Check, CreditCard, Search, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Check, Search, X } from "lucide-react";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -22,6 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useCurrentUserEmail } from "@/hooks/useCurrentUserEmail";
 import {
   processHealthCardPayment,
   processLoanRequest,
@@ -46,6 +46,14 @@ interface PatientInfo {
 const PaymentProcessor = () => {
   const { toast } = useToast();
   const { authState } = useAuth();
+  const { userEmail } = useCurrentUserEmail();
+  
+  useEffect(() => {
+    console.log("userEmail in PaymentProcessor:", userEmail);
+    console.log("Auth state:", authState);
+    console.log("Token exists:", !!localStorage.getItem('token'));
+    console.log("User role:", authState.user?.role);
+  }, [userEmail, authState]);
   const [searchTerm, setSearchTerm] = useState("");
   const [searching, setSearching] = useState(false);
   const [patientInfo, setPatientInfo] = useState<PatientInfo | null>(null);
@@ -60,6 +68,7 @@ const PaymentProcessor = () => {
   const [showFaceAuth, setShowFaceAuth] = useState(false);
   const [paymentData, setPaymentData] = useState<any>(null);
 
+
   const handleSearch = async () => {
     if (!searchTerm) return;
 
@@ -73,10 +82,8 @@ const PaymentProcessor = () => {
       // Type guard: ensure raw is an object
       if (!raw || typeof raw !== "object") {
         throw new Error("Invalid response from server");
-      }      // Add console log to see the raw response
-      console.log('Raw API Response:', raw);
-      
-      // Map API response to PatientInfo
+      }
+
       const mappedPatient: PatientInfo = {
         id: (raw.patientId ?? raw.id ?? "Unknown ID").toString(),
         name: raw.name ?? "Unknown Name",
@@ -86,15 +93,16 @@ const PaymentProcessor = () => {
         email: raw.email ?? "",
         cardNumber: raw.cardNumber ?? "",
         cardBalance: typeof raw.cardBalance === "number" ? raw.cardBalance : 0,
-        cardStatus: typeof raw.cardStatus === "string" 
-          ? raw.cardStatus.toLowerCase() as "active" | "inactive" | "expired"
-          : "inactive",
+        cardStatus:
+          typeof raw.cardStatus === "string"
+            ? (raw.cardStatus.toLowerCase() as "active" | "inactive" | "expired")
+            : "inactive",
         loanLimit: typeof raw.loanLimit === "number" ? raw.loanLimit : 0,
         loanBalance: typeof raw.loanBalance === "number" ? raw.loanBalance : 0,
       };
       setPatientInfo(mappedPatient);
     } catch (error: any) {
-      const msg = error.message || "Failed to fetch patient";
+      const msg = error.message ?? "Failed to fetch patient";
       if (msg.toLowerCase().includes("patient not found")) {
         toast({
           variant: "destructive",
@@ -150,48 +158,88 @@ const PaymentProcessor = () => {
     setShowFaceAuth(true);
   };
 
-  const handleFaceVerification = async (success: boolean) => {
-    if (success) {
-      // Face verification succeeded, proceed with payment processing
-      processPayment();
-    } else {
-      // Face verification failed
-      toast({
-        variant: "destructive",
-        title: "Authentication Failed",
-        description: "Face verification failed. Payment cannot be processed.",
-      });
-      setShowFaceAuth(false);
+  const handleFaceVerificationSuccess = () => {
+    // Face verification succeeded, proceed with payment processing
+    processPayment();
+  };
+
+  const handleFaceVerificationFailure = () => {
+    // Face verification failed
+    toast({
+      variant: "destructive",
+      title: "Authentication Failed",
+      description: "Face verification failed. Payment cannot be processed.",
+    });
+    setShowFaceAuth(false);
+  };
+
+  const handleFaceVerificationComplete = (verificationResult: boolean) => {
+    // Handle face verification completion
+    // Use explicit method calls without relying on boolean parameter for decision making
+    const verificationOutcome = verificationResult ? 'success' : 'failure';
+    
+    switch (verificationOutcome) {
+      case 'success':
+        handleFaceVerificationSuccess();
+        break;
+      case 'failure':
+        handleFaceVerificationFailure();
+        break;
+      default:
+        handleFaceVerificationFailure();
     }
   };
 
   const processPayment = async () => {
-    if (!paymentData || !patientInfo) return;
+    
+    // Check authentication
+    if (!authState.user || !authState.token) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Error",
+        description: "Please log in to process payments.",
+      });
+      return;
+    }
+    
+    // Check if user has hospital role
+    if (authState.user.role !== 'hospital') {
+      toast({
+        variant: "destructive",
+        title: "Authorization Error",
+        description: "Only hospital users can process payments.",
+      });
+      return;
+    }
+    
+    if (!paymentData || !patientInfo || !userEmail) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Missing user information. Please try again.",
+      });
+      return;
+    }
 
     setProcessingPayment(true);
 
     try {
-      // We should have the actual hospital name from auth state
-      const hospitalName = authState.user?.firstName
-        ? `${authState.user.firstName} ${authState.user.lastName} Hospital`
-        : "City General Hospital";
-
       if (paymentTab === "healthcard") {
-        // Process health card payment
+        // Process health card payment with userEmail
         await processHealthCardPayment(
           paymentData.patientId,
           paymentData.amount,
           `Payment for ${paymentData.paymentType}: ${paymentData.paymentDescription}`,
-          hospitalName
+          userEmail
         );
       } else {
-        // Process loan request
+        // Process loan request with userEmail
         await processLoanRequest(
           paymentData.patientId,
           paymentData.amount,
           paymentData.loanPurpose,
           parseInt(paymentData.loanTenure),
-          hospitalName
+          userEmail
         );
       }
 
@@ -219,7 +267,7 @@ const PaymentProcessor = () => {
         variant: "destructive",
         title: "Payment failed",
         description:
-          error.message || "An error occurred while processing the payment.",
+          error.message ?? "An error occurred while processing the payment.",
       });
       setShowFaceAuth(false);
     } finally {
@@ -237,6 +285,27 @@ const PaymentProcessor = () => {
     setPaymentData(null);
   };
 
+  const getPaymentSuccessMessage = () => {
+    if (paymentTab === "healthcard") {
+      return `₹${paymentData?.amount?.toLocaleString()} has been charged to the patient's health card.`;
+    } else {
+      return `₹${paymentData?.amount?.toLocaleString()} loan request has been submitted successfully.`;
+    }
+  };
+
+  const getCardStatusStyles = (status: string) => {
+    switch (status) {
+      case "active":
+        return "bg-green-100 text-green-800";
+      case "inactive":
+        return "bg-gray-100 text-gray-800";
+      case "expired":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -244,7 +313,7 @@ const PaymentProcessor = () => {
           <CardTitle>Process Payment</CardTitle>
           <CardDescription>
             Collect payments using Health Card or initiate a new loan request
-          </CardDescription>
+          </CardDescription>      
         </CardHeader>
         <CardContent className="space-y-6">
           {showFaceAuth && patientInfo ? (
@@ -259,7 +328,7 @@ const PaymentProcessor = () => {
 
               <FaceAuthVerification
                 emailId={patientInfo.email}
-                onVerificationComplete={handleFaceVerification}
+                onVerificationComplete={handleFaceVerificationComplete}
               />
             </div>
           ) : (
@@ -297,16 +366,13 @@ const PaymentProcessor = () => {
                       <div className="flex justify-between">
                         <CardTitle className="text-lg">
                           Patient Information
-                        </CardTitle>                        <div
-                          className={`px-2 py-1 text-xs font-medium rounded-full ${
-                            patientInfo.cardStatus === "active"
-                              ? "bg-green-100 text-green-800"
-                              : patientInfo.cardStatus === "inactive"
-                              ? "bg-gray-100 text-gray-800"
-                              : "bg-red-100 text-red-800"
-                          }`}
+                        </CardTitle>
+                        <div
+                          className={`px-2 py-1 text-xs font-medium rounded-full ${getCardStatusStyles(patientInfo.cardStatus)}`}
                         >
-                          {patientInfo.cardStatus.charAt(0).toUpperCase() + patientInfo.cardStatus.slice(1)} Card
+                          {patientInfo.cardStatus.charAt(0).toUpperCase() +
+                            patientInfo.cardStatus.slice(1)}{" "}
+                          Card
                         </div>
                       </div>
                     </CardHeader>
@@ -353,9 +419,7 @@ const PaymentProcessor = () => {
                             <p className="text-sm font-medium text-gray-500">
                               Card Number
                             </p>
-                            <p className="font-mono">
-                              {patientInfo.cardNumber}
-                            </p>
+                            <p className="font-mono">{patientInfo.cardNumber}</p>
                           </div>
                           <div>
                             <p className="text-sm font-medium text-gray-500">
@@ -602,9 +666,7 @@ const PaymentProcessor = () => {
                   Payment Successful
                 </h3>
                 <p className="text-gray-500">
-                  {paymentTab === "healthcard"
-                    ? `₹${paymentData?.amount?.toLocaleString()} has been charged to the patient's health card.`
-                    : `₹${paymentData?.amount?.toLocaleString()} loan request has been submitted successfully.`}
+                  {getPaymentSuccessMessage()}
                 </p>
               </div>
               <Button onClick={handleNewTransaction}>
@@ -617,5 +679,4 @@ const PaymentProcessor = () => {
     </div>
   );
 };
-
 export default PaymentProcessor;

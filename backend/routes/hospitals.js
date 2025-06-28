@@ -156,26 +156,51 @@ router.post(
 );
 
 // @route   GET api/hospitals/:id
-// @desc    Get hospital by ID
+// @desc    Get hospital by ID or email
 // @access  Private
 router.get('/:id', auth, async (req, res) => {
   try {
-    const hospital = await Hospital.findById(req.params.id).populate('user', 'firstName lastName email');
+    console.log('Hospital GET request received for:', req.params.id);
+    console.log('User making request:', req.user);
+    
+    const { id } = req.params;
+    let hospital;
+
+    // Check if the id is an email (contains @) or a hospital ID
+    if (id.includes('@')) {
+      console.log('Searching by email:', id);
+      // Search by email
+      hospital = await Hospital.findOne({ email: id });
+      console.log('Hospital found by email:', hospital ? 'Yes' : 'No');
+    } else {
+      console.log('Searching by hospital ID:', id);
+      // Search by hospital ID
+      hospital = await Hospital.findById(id);
+      console.log('Hospital found by ID:', hospital ? 'Yes' : 'No');
+    }
 
     if (!hospital) {
-      return res.status(404).json({ msg: 'Hospital was not found 1' });
+      console.log('Hospital not found');
+      return res.status(404).json({ msg: 'Hospital not found' });
     }
+
+    console.log('Returning hospital data:', {
+      id: hospital._id,
+      name: hospital.name,
+      email: hospital.email,
+      currentBalance: hospital.currentBalance
+    });
 
     res.json(hospital);
   } catch (err) {
-    console.error(err.message);
+    console.error('Error in hospital GET route:', err);
+    console.error('Error stack:', err.stack);
     if (err.kind === 'ObjectId') {
       return res.status(404).json({ msg: 'Hospital not found' });
     }
     res.status(500).send('Server Error');
   }
 });
-
 // @route   PUT api/hospitals/:id
 // @desc    Update hospital
 // @access  Private

@@ -1,4 +1,3 @@
-
 const mongoose = require('mongoose');
 
 const TransactionSchema = new mongoose.Schema({
@@ -30,7 +29,13 @@ const TransactionSchema = new mongoose.Schema({
     default: 'pending'
   },
   hospital: {
-    type: String
+    type: String,
+    ref: 'hospital',
+    required: true
+  },
+  email: {
+    type: String,
+    required: true
   },
   date: {
     type: Date,

@@ -1,4 +1,3 @@
-
 import { apiRequest } from "./api";
 
 // Transaction types
@@ -13,6 +12,7 @@ export interface Transaction {
   description: string;
   status: TransactionStatus;
   hospital?: string;
+  userEmail?: string;
   date?: string;
 }
 
@@ -49,9 +49,11 @@ export const processHealthCardPayment = async (
   userId: string,
   amount: number,
   description: string,
-  hospital: string
+  userEmail: string
 ) => {
   try {
+    console.log("Processing health card payment with userEmail:", userEmail);
+    console.log("Token check:", localStorage.getItem('token') ? 'Token exists' : 'No token');
     console.log(`Processing health card payment: ₹${amount} for ${description}`);
     
     const transaction = {
@@ -59,8 +61,10 @@ export const processHealthCardPayment = async (
       amount, 
       type: 'payment' as TransactionType,
       description,
-      hospital
+      userEmail
     };
+    
+    console.log("Transaction data being sent:", transaction);
     
     const result = await apiRequest('/transactions', {
       method: 'POST',
@@ -83,7 +87,7 @@ export const processLoanRequest = async (
   amount: number,
   purpose: string,
   tenure: number,
-  hospital: string
+  userEmail: string
 ) => {
   try {
     console.log(`Processing loan request: ₹${amount} for ${purpose}, ${tenure} months`);
@@ -93,7 +97,7 @@ export const processLoanRequest = async (
       amount,
       type: 'charge' as TransactionType, 
       description: `Loan for ${purpose} - ${tenure} months tenure`,
-      hospital
+      userEmail
     };
     
     const result = await apiRequest('/transactions', {

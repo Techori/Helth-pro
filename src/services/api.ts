@@ -18,56 +18,69 @@ class APIError extends Error {
   }
 }
 
+// Assume APIError class is defined elsewhere
+// class APIError extends Error { ... }
+
 export const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
-  const token = getAuthToken();
-  
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(token ? { 'x-auth-token': token } : {}),
-    ...(options.headers || {})
+  // 1. Initialize headers object correctly
+  const headers: Record<string, string> = {
+    ...(options.headers as Record<string, string>),
   };
+
+  // 2. Conditionally add Authorization header
+  const token = localStorage.getItem('token');
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  // 3. Conditionally set Content-Type
+  // Let the browser set it for FormData
+  if (options.body && !(options.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   try {
     const response = await fetch(`${API_URL}${endpoint}`, {
       ...options,
-      headers
+      headers, // Use the new merged and corrected headers
     });
 
     const contentType = response.headers.get('content-type');
-    let responseData;
-    
+    let responseData: any; // Use 'any' here as we don't know the shape yet
+
     if (contentType && contentType.includes('application/json')) {
       responseData = await response.json();
     } else {
       responseData = await response.text();
     }
-    
+
     if (!response.ok) {
-      // Handle different types of error responses
-      if (typeof responseData === 'string') {
-        throw new APIError(responseData, responseData, response.status);
-      } else if (responseData && typeof responseData === 'object') {
-        // Handle structured error responses
-        const errorMessage = responseData.message || responseData.msg || responseData.error || 'API request failed';
-        throw new APIError(errorMessage, responseData, response.status);
-      } else {
-        throw new APIError('API request failed', null, response.status);
-      }
+      const errorMessage =
+        (typeof responseData === 'object' && responseData !== null && (responseData.message || responseData.msg || responseData.error)) ||
+        (typeof responseData === 'string' && responseData) ||
+        'API request failed';
+
+      throw new APIError(errorMessage, responseData, response.status);
     }
+
     return responseData;
   } catch (error) {
     console.error('API request error:', error);
-    // Ensure we always throw an APIError object with useful information
+
+    // Re-throw if it's already the custom error type
     if (error instanceof APIError) {
       throw error;
-    } else if (error instanceof Error) {
-      throw new APIError(error.message);
-    } else {
-      throw new APIError(typeof error === 'string' ? error : 'API request failed');
     }
+
+    // Wrap other errors (e.g., network errors) in APIError
+    if (error instanceof Error) {
+      throw new APIError(error.message, null, 0); // status 0 for network/client-side errors
+    }
+
+    // Fallback for non-Error exceptions
+    throw new APIError('An unknown error occurred.');
   }
 };
-
 export const updateUserProfile = async (userData: {
   firstName: string;
   lastName: string;

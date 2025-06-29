@@ -1,6 +1,5 @@
-
-import { useState } from "react";
-import { ArrowUpRight, ArrowDownRight, Download, Upload, Search } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowUpRight, Download, Search } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -20,12 +19,47 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useCurrentUserEmail } from "@/hooks/useCurrentUserEmail";
+import { apiRequest } from "@/services/api";
 
 const WalletManagement = () => {
   const [filterPeriod, setFilterPeriod] = useState("all");
+  const [hospitalWalletBalance, setHospitalWalletBalance] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const { userEmail } = useCurrentUserEmail();
+
+  console.log("User Email:", userEmail);
+
+  const fetchHospitalBalance = async () => {
+    if (userEmail) {
+      setLoading(true);
+      try {
+        const data = await apiRequest(`/hospitals/${userEmail}`);
+        console.log('Hospital data received:', data);
+        setHospitalWalletBalance(data.currentBalance ?? 0);
+      } catch (error) {
+        console.error('Error fetching hospital balance:', error);
+        setHospitalWalletBalance(0);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    fetchHospitalBalance();
+  }, [userEmail]);
+
+  // Refresh balance every 30 seconds for real-time updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchHospitalBalance();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [userEmail]);
 
   // Mock data - would come from API
-  const hospitalWalletBalance = 45000;
   const financeWalletBalance = 125000;
   
   // Wallet transactions
@@ -139,13 +173,22 @@ const WalletManagement = () => {
   };
 
   const handleExportTransactions = (walletType) => {
-    console.log(`Exporting ${walletType} transactions...`);
     // In a real app, this would generate and download a CSV/Excel file
     alert(`${walletType.charAt(0).toUpperCase() + walletType.slice(1)} transaction export started`);
   };
 
+  const getHospitalWalletDisplay = () => {
+    if (loading) {
+      return <span className="text-gray-400">Loading...</span>;
+    }
+    
+    const balance = hospitalWalletBalance ?? 0;
+    return `₹${balance.toLocaleString()}`;
+  };
+
   return (
     <div className="space-y-6">
+
       {/* Wallet Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Hospital Wallet Card */}
@@ -157,10 +200,12 @@ const WalletManagement = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            <div className="text-3xl font-bold">₹{hospitalWalletBalance.toLocaleString()}</div>
+            <div className="text-3xl font-bold">
+              {getHospitalWalletDisplay()}
+            </div>
             <div className="flex items-center text-sm text-green-600">
               <ArrowUpRight className="h-4 w-4 mr-1" />
-              <span>12% from last month</span>
+              <span>Current Balance</span>
             </div>
           </CardContent>
           <CardFooter>

@@ -1,6 +1,8 @@
 
 const mongoose = require('mongoose');
 
+
+
 // Drop problematic indexes if they exist
 mongoose.connection.on('connected', async () => {
   try {
@@ -84,6 +86,11 @@ const hospitalSchema = new mongoose.Schema({
   currentBalance: {
     type: Number,
     default: 0
+  },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'user',
+    required: true
   }
 }, {
   timestamps: true
@@ -93,6 +100,7 @@ const hospitalSchema = new mongoose.Schema({
 hospitalSchema.index({ email: 1 }, { unique: true });
 hospitalSchema.index({ status: 1 });
 hospitalSchema.index({ name: 1 });
+hospitalSchema.index({ user: 1 });
 
 const Hospital = mongoose.model('Hospital', hospitalSchema);
 

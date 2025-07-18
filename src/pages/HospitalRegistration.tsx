@@ -1,68 +1,86 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import axios from 'axios';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-const backendURL = import.meta.env.VITE_BACKEND_BASE_URL;
+import { registerHospital } from '@/services/hospitalService';
+import { Hospital } from '@/types/app.types';
+import { getHospitalByHospitalId } from '@/services/hospitalService';
 
-const HospitalRegistration = () => {
+const HospitalRegistration: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { authState, signIn } = useAuth();
+  const { authState } = useAuth();
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Partial<Hospital>>({
     name: '',
-    address: '',
-    city: '',
-    state: '',
-    zipCode: '',
+    location: '',
     contactPerson: '',
-    contactEmail: '',
-    contactPhone: '',
-    specialties: [],
-    hospitalType: 'private',
-    bedCount: 0,
-    registrationNumber: '',
+    email: '',
+    phone: '',
+    services: [],
   });
 
-  const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState<number>(1);
+  const [loading, setLoading] = useState<boolean>(false);
 
+
+
+
+    
+ 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
   const handleMultiSelectChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    const values = value.split(',').map(item => item.trim());
+    const values = value.split(',').map(item => item.trim()).filter(item => item);
     setFormData(prev => ({ ...prev, [name]: values }));
   };
 
-  const nextStep = () => {
-    if (step === 1) {
-      if (!formData.name || !formData.address || !formData.city || !formData.state || !formData.zipCode) {
+  const validateStep = (currentStep: number): boolean => {
+    if (currentStep === 1) {
+      if (!formData.name || !formData.location) {
         toast({
           title: "Validation Error",
-          description: "Please fill out all required fields",
+          description: "Please fill out all required fields: Name, Location",
           variant: "destructive",
         });
-        return;
+        return false;
+      }
+    } else if (currentStep === 2) {
+      if (!formData.contactPerson || !formData.email || !formData.phone) {
+        toast({
+          title: "Validation Error",
+          description: "Please fill out all required fields: Contact Person, Email, Phone",
+          variant: "destructive",
+        });
+        return false;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+        toast({
+          title: "Validation Error",
+          description: "Please provide a valid email address",
+          variant: "destructive",
+        });
+        return false;
       }
     }
-    setStep(step + 1);
+    return true;
+  };
+
+  const nextStep = () => {
+    if (validateStep(step)) {
+      setStep(step + 1);
+    }
   };
 
   const prevStep = () => {
@@ -71,32 +89,33 @@ const HospitalRegistration = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    if (!validateStep(2)) return;
 
+    if (!authState?.token) {
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to register a hospital.",
+        variant: "destructive",
+      });
+      navigate('/login');
+      return;
+    }
+
+    setLoading(true);
     try {
-      const response = await axios.post(
-        `/api/hospitals`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': authState?.user ? `Bearer ${localStorage.getItem('token')}` : '',
-          },
-        }
-      );
+      const response = await registerHospital(formData, authState.token);
 
       toast({
         title: "Registration Successful",
-        description: "Your hospital has been registered successfully! You can now login to manage your hospital.",
+        description: "Your hospital has been registered successfully! You can now manage your hospital.",
       });
-
-      // Redirect to login after successful registration
-      navigate('/login');
-    } catch (error) {
+      navigate('/dashboard');
+    } catch (error: any) {
       console.error('Hospital registration error:', error);
+      const errorMessage = error.response?.data?.msg || error.response?.data?.errors?.[0]?.msg || 'There was an error registering your hospital. Please try again.';
       toast({
         title: "Registration Failed",
-        description: "There was an error registering your hospital. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -118,7 +137,7 @@ const HospitalRegistration = () => {
               </div>
               <div className={`w-1/3 text-center ${step >= 2 ? 'text-#521C0D' : 'text-gray-400'}`}>
                 <div className={`rounded-full h-10 w-10 mx-auto flex items-center justify-center ${step >= 2 ? 'bg-brand-600 text-white' : 'bg-gray-200'}`}>2</div>
-                <p className="mt-2" >Hospital Details</p>
+                <p className="mt-2">Hospital Details</p>
               </div>
               <div className={`w-1/3 text-center ${step >= 3 ? 'text-#521C0D' : 'text-gray-400'}`}>
                 <div className={`rounded-full h-10 w-10 mx-auto flex items-center justify-center ${step >= 3 ? 'bg-brand-600 text-white' : 'bg-gray-200'}`}>3</div>
@@ -162,46 +181,14 @@ const HospitalRegistration = () => {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="address" style={{ color: '#521C0D' }}>Address *</Label>
+                      <Label htmlFor="location" style={{ color: '#521C0D' }}>Location *</Label>
                       <Textarea
-                        id="address"
-                        name="address"
-                        value={formData.address}
+                        id="location"
+                        name="location"
+                        value={formData.location}
                         onChange={handleInputChange}
                         required
                       />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <Label htmlFor="city" style={{ color: '#521C0D' }}>City *</Label>
-                        <Input
-                          id="city"
-                          name="city"
-                          value={formData.city}
-                          onChange={handleInputChange}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="state" style={{ color: '#521C0D' }}>State *</Label>
-                        <Input
-                          id="state"
-                          name="state"
-                          value={formData.state}
-                          onChange={handleInputChange}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="zipCode" style={{ color: '#521C0D' }}>ZIP Code *</Label>
-                        <Input
-                          id="zipCode"
-                          name="zipCode"
-                          value={formData.zipCode}
-                          onChange={handleInputChange}
-                          required
-                        />
-                      </div>
                     </div>
                   </div>
                 )}
@@ -220,73 +207,34 @@ const HospitalRegistration = () => {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="contactEmail" style={{ color: '#521C0D' }}>Contact Email *</Label>
+                        <Label htmlFor="email" style={{ color: '#521C0D' }}>Email *</Label>
                         <Input
-                          id="contactEmail"
-                          name="contactEmail"
+                          id="email"
+                          name="email"
                           type="email"
-                          value={formData.contactEmail}
+                          value={formData.email}
                           onChange={handleInputChange}
                           required
                         />
                       </div>
                       <div>
-                        <Label htmlFor="contactPhone" style={{ color: '#521C0D' }}>Contact Phone *</Label>
+                        <Label htmlFor="phone" style={{ color: '#521C0D' }}>Phone *</Label>
                         <Input
-                          id="contactPhone"
-                          name="contactPhone"
-                          value={formData.contactPhone}
+                          id="phone"
+                          name="phone"
+                          value={formData.phone}
                           onChange={handleInputChange}
                           required
                         />
                       </div>
                     </div>
                     <div>
-                      <Label htmlFor="specialties" style={{ color: '#521C0D' }}>Specialties (comma-separated)</Label>
+                      <Label htmlFor="services" style={{ color: '#521C0D' }}>Services (comma-separated)</Label>
                       <Input
-                        id="specialties"
-                        name="specialties"
-                        value={formData.specialties.join(', ')}
+                        id="services"
+                        name="services"
+                        value={formData.services?.join(', ') || ''}
                         onChange={handleMultiSelectChange}
-                      />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="hospitalType" style={{ color: '#521C0D' }}>Hospital Type</Label>
-                        <Select
-                          value={formData.hospitalType}
-                          onValueChange={(value) => handleSelectChange('hospitalType', value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select hospital type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectGroup>
-                              <SelectItem value="private">Private</SelectItem>
-                              <SelectItem value="government">Government</SelectItem>
-                              <SelectItem value="nonprofit">Non-Profit</SelectItem>
-                            </SelectGroup>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <Label htmlFor="bedCount" style={{ color: '#521C0D' }}>Bed Count</Label>
-                        <Input
-                          id="bedCount"
-                          name="bedCount"
-                          type="number"
-                          value={formData.bedCount.toString()}
-                          onChange={handleInputChange}
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="registrationNumber" style={{ color: '#521C0D' }}>Registration Number</Label>
-                      <Input
-                        id="registrationNumber"
-                        name="registrationNumber"
-                        value={formData.registrationNumber}
-                        onChange={handleInputChange}
                       />
                     </div>
                   </div>
@@ -301,48 +249,24 @@ const HospitalRegistration = () => {
                         <p>{formData.name}</p>
                       </div>
                       <div className="p-4 border rounded-md bg-white shadow-sm">
-                        <p className="text-base font-medium" style={{ color: '#521C0D' }}>Address</p>
-                        <p>{formData.address}</p>
-                      </div>
-                      <div className="p-4 border rounded-md bg-white shadow-sm">
-                        <p className="text-base font-medium" style={{ color: '#521C0D' }}>City</p>
-                        <p>{formData.city}</p>
-                      </div>
-                      <div className="p-4 border rounded-md bg-white shadow-sm">
-                        <p className="text-base font-medium" style={{ color: '#521C0D' }}>State</p>
-                        <p>{formData.state}</p>
-                      </div>
-                      <div className="p-4 border rounded-md bg-white shadow-sm">
-                        <p className="text-base font-medium" style={{ color: '#521C0D' }}>ZIP Code</p>
-                        <p>{formData.zipCode}</p>
+                        <p className="text-base font-medium" style={{ color: '#521C0D' }}>Location</p>
+                        <p>{formData.location}</p>
                       </div>
                       <div className="p-4 border rounded-md bg-white shadow-sm">
                         <p className="text-base font-medium" style={{ color: '#521C0D' }}>Contact Person</p>
                         <p>{formData.contactPerson}</p>
                       </div>
                       <div className="p-4 border rounded-md bg-white shadow-sm">
-                        <p className="text-base font-medium" style={{ color: '#521C0D' }}>Contact Email</p>
-                        <p>{formData.contactEmail}</p>
+                        <p className="text-base font-medium" style={{ color: '#521C0D' }}>Email</p>
+                        <p>{formData.email}</p>
                       </div>
                       <div className="p-4 border rounded-md bg-white shadow-sm">
-                        <p className="text-base font-medium" style={{ color: '#521C0D' }}>Contact Phone</p>
-                        <p>{formData.contactPhone}</p>
+                        <p className="text-base font-medium" style={{ color: '#521C0D' }}>Phone</p>
+                        <p>{formData.phone}</p>
                       </div>
                       <div className="p-4 border rounded-md bg-white shadow-sm">
-                        <p className="text-base font-medium" style={{ color: '#521C0D' }}>Specialties</p>
-                        <p>{formData.specialties.join(', ') || 'None specified'}</p>
-                      </div>
-                      <div className="p-4 border rounded-md bg-white shadow-sm">
-                        <p className="text-base font-medium" style={{ color: '#521C0D' }}>Hospital Type</p>
-                        <p className="capitalize">{formData.hospitalType}</p>
-                      </div>
-                      <div className="p-4 border rounded-md bg-white shadow-sm">
-                        <p className="text-base font-medium" style={{ color: '#521C0D' }}>Bed Count</p>
-                        <p>{formData.bedCount}</p>
-                      </div>
-                      <div className="p-4 border rounded-md bg-white shadow-sm">
-                        <p className="text-base font-medium" style={{ color: '#521C0D' }}>Registration Number</p>
-                        <p>{formData.registrationNumber || 'Not provided'}</p>
+                        <p className="text-base font-medium" style={{ color: '#521C0D' }}>Services</p>
+                        <p>{formData.services?.join(', ') || 'None specified'}</p>
                       </div>
                     </div>
                   </div>

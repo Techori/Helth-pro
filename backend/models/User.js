@@ -20,7 +20,7 @@ const UserSchema = new mongoose.Schema({
     unique: true,
     validate: {
       validator: function(v) {
-        // Validate phone number format (example: 10 digits)
+        // Validate phone number format (10 digits)
         return /^\d{10}$/.test(v);
       },
       message: 'Phone number must be 10 digits'
@@ -32,9 +32,8 @@ const UserSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ["patient", "hospital", "admin", "sales", "crm", "agent", "support","hospital staff", "hospital admin"],
-    default: "patient",
-
+    enum: ["patient", "hospital", "admin", "sales", "crm", "agent", "support", "hospital staff", "hospital admin"],
+    default: "patient"
   },
   uhid: {
     type: String,
@@ -42,8 +41,11 @@ const UserSchema = new mongoose.Schema({
     sparse: true,
     validate: {
       validator: function(v) {
-        // Only allow UHID if role is patient
-        return this.role !== 'patient' ? !v : true;
+        // Allow null for patients, disallow for non-patients
+        if (this.role !== 'patient') {
+          return !v;
+        }
+        return true; // Allow null or valid UHID for patients
       },
       message: 'UHID can only be assigned to patients'
     }
@@ -53,7 +55,7 @@ const UserSchema = new mongoose.Schema({
     enum: ['pending', 'completed', 'rejected'],
     default: 'pending'
   },
-kycData: {
+  kycData: {
     panNumber: String,
     aadhaarNumber: String,
     dateOfBirth: Date,
@@ -86,31 +88,23 @@ kycData: {
     type: Date,
     default: Date.now
   },
-    resetPasswordToken: {
-
+  resetPasswordToken: {
     type: String,
-
-    default: null,
-
+    default: null
   },
-    hospitalId: {
+  hospitalId: {
     type: String,
     unique: true,
-    sparse: true, // Allows null for non-hospital roles
+    sparse: true // Allows null for non-hospital roles
   },
-   notes: {
+  notes: {
     type: String,
-    default: '',
+    default: ''
   },
-
   resetPasswordTokenExpiry: {
-
     type: Date,
-
-    default: null,
-
-  },
-
+    default: null
+  }
 });
 
 // Add pre-save middleware to clear UHID if role is not patient

@@ -9,12 +9,12 @@ const Patient = require('../models/Patient');
 const { addPatient } = require("../controllers/hospital/patientController");
 const { addHealthCard } = require("../controllers/hospital/patientController");
 const { updateHospitalProfile } = require("../controllers/hospital/hospitalController");
+const Loan = require('../models/Loan');
 
 // @route   PUT api/hospitals/profile
 // @desc    Update hospital profile
 // @access  Private
 router.put('/profile', auth, updateHospitalProfile);
-
 
 router.get('/patients', auth, async (req, res) => {
   try {
@@ -47,7 +47,6 @@ router.get('/patients', auth, async (req, res) => {
     });
   }
 });
-const Loan = require('../models/Loan');
 
 // @route   GET api/hospitals
 // @desc    Get all hospitals (admin) or user's hospital (hospital user)
@@ -60,7 +59,7 @@ router.get('/', auth, async (req, res) => {
     } else if (req.user.role === 'hospital') {
       hospitals = await Hospital.find({ user: req.user.id }).sort({ date: -1 });
     } else {
-      hospitals = await Hospital.find({ status: 'active' }).sort({ date: -1 });
+      hospitals = await Hospital.find({ status: 'Active' }).sort({ date: -1 });
     }
     res.json(hospitals);
   } catch (err) {
@@ -78,13 +77,10 @@ router.post(
     auth,
     [
       check('name', 'Name is required').not().isEmpty(),
-      check('address', 'Address is required').not().isEmpty(),
-      check('city', 'City is required').not().isEmpty(),
-      check('state', 'State is required').not().isEmpty(),
-      check('zipCode', 'Zip Code is required').not().isEmpty(),
+      check('location', 'Location is required').not().isEmpty(),
       check('contactPerson', 'Contact person is required').not().isEmpty(),
-      check('contactEmail', 'Valid contact email is required').isEmail(),
-      check('contactPhone', 'Contact phone is required').not().isEmpty()
+      check('email', 'Valid email is required').isEmail(),
+      check('phone', 'Phone is required').not().isEmpty()
     ]
   ],
   async (req, res) => {
@@ -95,53 +91,56 @@ router.post(
 
     const {
       name,
-      address,
-      city,
-      state,
-      zipCode,
+      location,
       contactPerson,
-      contactEmail,
-      contactPhone,
-      specialties,
-      services,
-      hospitalType,
-      bedCount,
-      registrationNumber,
-      website
+      email,
+      phone,
+      services
     } = req.body;
 
     try {
       // Check if hospital already exists
-      let existingHospital = await Hospital.findOne({ 
-        $or: [
-          { contactEmail },
-          { registrationNumber: registrationNumber || '' }
-        ]
-      });
-
+      let existingHospital = await Hospital.findOne({ email });
       if (existingHospital) {
         return res.status(400).json({ 
-          msg: 'Hospital with this email or registration number already exists' 
+          msg: 'Hospital with this email already exists' 
         });
       }
 
+      // Verify user exists
+      const user = await User.findById(req.user.id);
+      if (!user) {
+        return res.status(400).json({ 
+          msg: 'Invalid user ID' 
+        });
+      }
+
+      // Generate unique hospitalId (_id)
+      let hospitalId;
+      let idExists = true;
+      
+      if(user.hospitalId){
+        while (idExists) {
+         hospitalId=user.hospitalId;
+        idExists = await Hospital.exists({ _id: hospitalId });
+      }
+      }
+      else{
+      while (idExists) {
+        hospitalId = `H${Math.floor(10000 + Math.random() * 90000)}`;
+        idExists = await Hospital.exists({ _id: hospitalId });
+      }}
+
       const newHospital = new Hospital({
+        _id: hospitalId,
         name,
-        address,
-        city,
-        state,
-        zipCode,
+        location,
         contactPerson,
-        contactEmail,
-        contactPhone,
-        specialties: specialties || [],
+        email,
+        phone,
         services: services || [],
-        hospitalType: hospitalType || 'private',
-        bedCount: bedCount || 0,
-        registrationNumber,
-        website,
-        status: 'pending',
-        user: req.user.id
+        user: req.user.id,
+        status: 'Pending'
       });
 
       const hospital = await newHospital.save();
@@ -182,44 +181,28 @@ router.get('/:id', auth, async (req, res) => {
 router.put('/:id', auth, async (req, res) => {
   const {
     name,
-    address,
-    city,
-    state,
-    zipCode,
+    location,
     contactPerson,
-    contactEmail,
-    contactPhone,
-    specialties,
+    email,
+    phone,
     services,
-    hospitalType,
-    bedCount,
-    registrationNumber,
-    website,
     status
   } = req.body;
 
   // Build hospital object
   const hospitalFields = {};
   if (name) hospitalFields.name = name;
-  if (address) hospitalFields.address = address;
-  if (city) hospitalFields.city = city;
-  if (state) hospitalFields.state = state;
-  if (zipCode) hospitalFields.zipCode = zipCode;
+  if (location) hospitalFields.location = location;
   if (contactPerson) hospitalFields.contactPerson = contactPerson;
-  if (contactEmail) hospitalFields.contactEmail = contactEmail;
-  if (contactPhone) hospitalFields.contactPhone = contactPhone;
-  if (specialties) hospitalFields.specialties = specialties;
+  if (email) hospitalFields.email = email;
+  if (phone) hospitalFields.phone = phone;
   if (services) hospitalFields.services = services;
-  if (hospitalType) hospitalFields.hospitalType = hospitalType;
-  if (bedCount !== undefined) hospitalFields.bedCount = bedCount;
-  if (registrationNumber) hospitalFields.registrationNumber = registrationNumber;
-  if (website) hospitalFields.website = website;
   if (status && req.user.role === 'admin') hospitalFields.status = status;
 
   try {
     let hospital = await Hospital.findById(req.params.id);
 
-    if (!hospital) return res.status(404).json({ msg: 'Hospital  was not found 2' });
+    if (!hospital) return res.status(404).json({ msg: 'Hospital was not found 2' });
 
     // Make sure user is admin or the hospital owner
     if (req.user.role !== 'admin' && hospital.user.toString() !== req.user.id) {
@@ -370,7 +353,7 @@ router.put('/:id/status', auth, async (req, res) => {
 
     const { status } = req.body;
     
-    if (!['active', 'pending', 'inactive'].includes(status)) {
+    if (!['Active', 'Pending', 'Rejected'].includes(status)) {
       return res.status(400).json({ msg: 'Invalid status' });
     }
 

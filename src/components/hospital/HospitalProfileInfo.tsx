@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Building, MapPin, Phone, Mail, Globe, Edit, Users, TrendingUp, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { getAllHospitals, getHospitalAnalytics } from "@/services/hospitalService";
+import { getAllHospitals, getHospitalAnalytics, getHospitalByHospitalId } from "@/services/hospitalService";
 import { useAuth } from "@/hooks/useAuth";
 import { Hospital } from '@/types/app.types';
 
@@ -18,23 +18,25 @@ const HospitalProfileInfo = () => {
 
   useEffect(() => {
     fetchHospitalData();
-  }, [authState.user]);
+  }, [authState.user.hospitalId]);
 
   const fetchHospitalData = async () => {
     try {
       setLoading(true);
       // Get hospitals for the current user
-      const hospitals = await getAllHospitals();
+       console.log("hsopitalid",authState.user);
       
-      if (hospitals && hospitals.length > 0) {
-        const userHospital = hospitals[0]; // Assuming user has one hospital
-        setHospital(userHospital);
+      const userHospital = await getHospitalByHospitalId(authState.user.hospitalId);
+     
+      
+     
+      setHospital(userHospital);
         
-        if (userHospital.id) {
+      if (userHospital.id) {
           const analyticsData = await getHospitalAnalytics(userHospital.id);
           setAnalytics(analyticsData);
         }
-      }
+      
     } catch (error) {
       console.error('Failed to fetch hospital data:', error);
       toast({

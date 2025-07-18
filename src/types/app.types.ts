@@ -1,7 +1,5 @@
-// Add any custom application types here
 export type NotificationType = 'success' | 'error' | 'info' | 'warning';
 
-// Define types for our application
 export type UserRole = 'patient' | 'hospital' | 'admin' | 'sales' | 'crm' | 'agent' | 'support';
 
 export interface UserProfile {
@@ -17,22 +15,16 @@ export interface UserProfile {
 export interface Hospital {
   id: string;
   name: string;
-  address: string;
-  city: string;
-  state: string;
-  zipCode: string;
+  location: string;
   contactPerson: string;
-  contactEmail: string;
-  contactPhone: string;
-  status: 'active' | 'pending' | 'inactive';
-  specialties?: string[];
+  email: string;
+  phone: string;
   services?: string[];
-  hospitalType?: 'government' | 'private' | 'nonprofit';
-  bedCount?: number;
-  registrationNumber?: string;
-  accreditations?: string[];
-  logo?: string;
-  website?: string;
+  status: 'Active' | 'Pending' | 'Rejected';
+  registrationDate?: string;
+  totalPatients?: number;
+  totalTransactions?: number;
+  currentBalance?: number;
   user?: string;
 }
 
@@ -102,10 +94,9 @@ export interface Appointment {
   status: 'pending' | 'completed' | 'confirmed' | 'cancelled';
   reason: string;
   notes: string;
-  slot?: string; // Optional field to store the selected time slot (e.g., "Monday: 9AM - 2PM")
+  slot?: string;
 }
 
-// Auth types
 export interface AuthUser {
   id: string;
   email?: string;
@@ -114,15 +105,15 @@ export interface AuthUser {
   lastName?: string;
   hospitalId?: string;
   phone?: string;
-  avatarUrl?: string; // URL to the user's avatar image
+  avatarUrl?: string;
   kycStatus?: 'pending' | 'completed' | 'rejected';
-  uhid?: string; // Unique Health ID
-  kycData?: any; // KYC data can be any type, adjust as needed
+  uhid?: string;
+  kycData?: any;
 }
 
 export interface AuthState {
   user: AuthUser | null;
-  token: string | null; // Optional token for authenticated requests
+  token: string | null;
   loading: boolean;
   initialized: boolean;
 }

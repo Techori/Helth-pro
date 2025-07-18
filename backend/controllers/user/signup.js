@@ -17,12 +17,12 @@ async function generateUHID(User) {
 }
 
 // Helper to generate Hospital ID
-async function generateHospitalId(User) {
+async function generateHospitalId(Hospital) {
   let hospitalId;
   let hospitalIdExists = true;
   while (hospitalIdExists) {
-    hospitalId = `HOSP${Math.floor(100000 + Math.random() * 900000)}`;
-    hospitalIdExists = await User.exists({ hospitalId });
+    hospitalId = `H${Math.floor(10000 + Math.random() * 90000)}`;
+    hospitalIdExists = await Hospital.exists({ _id: hospitalId });
   }
   return hospitalId;
 }
@@ -33,19 +33,19 @@ module.exports = async (req, res) => {
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
-  const { 
-    firstName, 
-    lastName, 
-    email, 
-    password, 
-    role = "patient",
-    hospitalName,
-    location,
-    phone,
-    services,
-  } = req.body;
 
-  try {
+    const { 
+      firstName, 
+      lastName, 
+      email, 
+      password, 
+      role = "patient",
+      hospitalName,
+      location,
+      phone,
+      services,
+    } = req.body;
+
     // Check if user with same email exists
     let user = await User.findOne({ email: email.toLowerCase() });
     if (user) {
@@ -88,7 +88,7 @@ module.exports = async (req, res) => {
 
     // Generate Hospital ID for hospitals
     if (role === "hospital") {
-      user.hospitalId = await generateHospitalId(User);
+      user.hospitalId = await generateHospitalId(Hospital);
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -98,9 +98,9 @@ module.exports = async (req, res) => {
 
     // If user is registering as a hospital, create a hospital entry
     if (role === "hospital") {
-      try {        const hospitalId = `HSP${Date.now().toString().slice(-6)}`;
+      try {
         const hospital = new Hospital({
-          _id: hospitalId,
+          _id: user.hospitalId, // Use the same hospitalId as in user
           name: hospitalName,
           location: location,
           contactPerson: `${firstName} ${lastName}`,
@@ -111,11 +111,13 @@ module.exports = async (req, res) => {
           status: "Pending",
           totalPatients: 0,
           totalTransactions: 0,
-          currentBalance: 0
+          currentBalance: 0,
+          user: user._id // Add user reference
         });
 
         await hospital.save();
-        console.log('Hospital created successfully:', hospitalId);      } catch (hospitalError) {
+        console.log('Hospital created successfully:', hospital._id);
+      } catch (hospitalError) {
         // If hospital creation fails, delete the user
         await User.findByIdAndDelete(user._id);
         console.error('Hospital creation failed:', hospitalError);
@@ -158,8 +160,4 @@ module.exports = async (req, res) => {
     console.error("Signup error:", err.message);
     res.status(500).send("Server Error");
   }
-} catch (err) {
-  console.error("Validation error:", err.message);
-  res.status(500).send("Server Error");
-} 
 }

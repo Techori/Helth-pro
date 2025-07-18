@@ -83,6 +83,7 @@ export const getCurrentUser = async (): Promise<AuthUser | null> => {
         kycStatus: data.kycStatus || 'pending',
         kycData: data.kycData || null,
         uhid: data.uhid || '',
+        hospitalId:data.hospitalId||null
       };
     }
     

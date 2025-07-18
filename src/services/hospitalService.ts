@@ -1,7 +1,5 @@
-
 import { apiRequest } from './api';
 import { Hospital } from '@/types/app.types';
-
 
 // Get all hospitals
 export const getAllHospitals = async (): Promise<Hospital[]> => {
@@ -15,20 +13,24 @@ export const getHospitalByHospitalId = async (hospitalId: string): Promise<Hospi
 
 // Register a new hospital
 export const registerHospital = async (
-  hospitalData: Partial<Hospital>
+  hospitalData: Partial<Hospital>,
+  token: string
 ): Promise<Hospital> => {
   return apiRequest("/hospitals", {
     method: "POST",
     body: JSON.stringify(hospitalData),
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    },
   });
 };
-
 
 // Update hospital by Hospital ID
 export const updateHospital = async (hospitalId: string, hospitalData: Partial<Hospital>): Promise<Hospital> => {
   return apiRequest(`/hospitals/${hospitalId}`, {
     method: 'PUT',
-    body: JSON.stringify(hospitalData)
+    body: JSON.stringify(hospitalData),
   });
 };
 
@@ -39,10 +41,9 @@ export const getHospitalStatus = async (hospitalId: string): Promise<{ status: s
 
 // Get hospitals by status
 export const getHospitalsByStatus = async (
-  status: "active" | "pending" | "inactive"
+  status: "Active" | "Pending" | "Rejected"
 ): Promise<Hospital[]> => {
   return apiRequest(`/hospitals?status=${status}`);
-
 };
 
 // Get user details at payment
@@ -51,7 +52,8 @@ export const getPaymentUser = async (searchTerm: string): Promise<any> => {
     `/patient/get-user?searchTerm=${encodeURIComponent(searchTerm)}`
   );
 };
-//get hospital analytics
+
+// Get hospital analytics
 export const getHospitalAnalytics = async (hospitalId: string): Promise<any> => {
   return apiRequest(`/hospitals/${hospitalId}/analytics`);
 };

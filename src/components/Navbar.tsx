@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation,useNavigate } from 'react-router-dom';
 import { Menu, X, ChevronDown, Globe, LogOut, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,12 +10,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/useAuth';
+import { getHospitalByHospitalId } from '@/services/hospitalService';
 
 const Navbar = () => {
   const { authState, signOut } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [language, setLanguage] = useState('en'); // 'en' for English, 'hi' for Hindi
+  const [hasHospital, setHasHospital] = useState(false); // New state to track hospital existence
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -31,6 +33,29 @@ const Navbar = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Check if user has a registered hospital
+  useEffect(() => {
+    const checkHospital = async () => {
+      if (authState.user?.hospitalId) {
+        try {
+          const hospital = await getHospitalByHospitalId(authState.user.hospitalId);
+          if (hospital) {
+            setHasHospital(true); // Hospital exists, hide registration link
+          } else {
+            setHasHospital(false); // No hospital, show registration link
+          }
+        } catch (error) {
+          console.error('Error checking hospital:', error);
+          setHasHospital(false); // On error, show registration link
+        }
+      } else {
+        setHasHospital(false); // No hospitalId, show registration link
+      }
+    };
+
+    checkHospital();
+  }, [authState.user?.hospitalId]);
 
   // Close mobile menu when route changes
   useEffect(() => {
@@ -96,7 +121,8 @@ const Navbar = () => {
     { name: 'Our Cards', to: '/our-cards' },
     // Only show Apply Loan for authenticated patients
     ...(authState.user?.role === 'patient' ? [{ name: 'Apply for Loan', to: '/patient-dashboard?tab=loans' }] : []),
-    { name: 'Hospital Registration', to: '/hospital-registration' },
+    // Only show Hospital Registration if no hospital is registered
+    ...(!hasHospital && authState.user ? [{ name: 'Hospital Registration', to: '/hospital-registration' }] : []),
     { name: 'About Us', to: '/about-us' }
   ];
 

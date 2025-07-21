@@ -1,7 +1,7 @@
 // API service with improved error handling
 const API_URL = process.env.NODE_ENV === 'production' 
-  ? 'http://localhost:4000/api'
-  : 'http://13.234.78.88/api';
+  ? 'http://13.234.78.88/api'
+  : 'http://localhost:4000/api';
 
 // https://helth-pro.onrender.com/api
 

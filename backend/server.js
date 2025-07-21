@@ -7,6 +7,7 @@ const authRoutes = require('./routes/authRoutes');
 const patientRoutes = require('./routes/patient');
 const http = require('http');
 const { Server } = require('socket.io');
+const auth = require('./middleware/auth');
 
 console.log('Starting server initialization...');
 
@@ -72,7 +73,11 @@ console.log("Socket.IO initialized");
 try {
   console.log("Initializing middleware...");
   app.use(express.json({ extended: false }));
-  app.use(cors());
+ app.use(cors({
+  origin:['https://web.rimedicare.in/','http://localhost:8080','https://helth-pro.vercel.app/'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'X-CSRF-Token','X-auth-Token'],
+}));
   app.use(requestLogger);
   console.log("Middleware initialized: JSON parser, CORS, and request logger enabled");
 } catch (err) {

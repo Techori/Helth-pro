@@ -77,6 +77,8 @@ try {
   origin:['https://web.rimedicare.in/','http://localhost:8080','https://helth-pro.vercel.app/'],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'X-CSRF-Token','X-auth-Token'],
+  accessControlAllowOrigin: '*',
+  credentials: true,
 }));
   app.use(requestLogger);
   console.log("Middleware initialized: JSON parser, CORS, and request logger enabled");

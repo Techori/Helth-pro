@@ -40,26 +40,26 @@ const Login = () => {
   };
 
   // Hospital specific demo credentials
-  const hospitalDemoCredentials = [
-    { 
-      name: 'City General Hospital',
-      email: 'rajesh@cityhospital.com',
-      password: 'demo123',
-      address: 'Mumbai, Maharashtra'
-    },
-    { 
-      name: 'Wellness Multispecialty Hospital',
-      email: 'priya@wellnesshospital.com',
-      password: 'demo123',
-      address: 'Delhi, Delhi'
-    },
-    { 
-      name: 'LifeCare Medical Center',
-      email: 'anand@lifecaremedical.com',
-      password: 'demo123',
-      address: 'Bangalore, Karnataka'
-    }
-  ];
+  // const hospitalDemoCredentials = [
+  //   { 
+  //     name: 'City General Hospital',
+  //     email: 'rajesh@cityhospital.com',
+  //     password: 'demo123',
+  //     address: 'Mumbai, Maharashtra'
+  //   },
+  //   { 
+  //     name: 'Wellness Multispecialty Hospital',
+  //     email: 'priya@wellnesshospital.com',
+  //     password: 'demo123',
+  //     address: 'Delhi, Delhi'
+  //   },
+  //   { 
+  //     name: 'LifeCare Medical Center',
+  //     email: 'anand@lifecaremedical.com',
+  //     password: 'demo123',
+  //     address: 'Bangalore, Karnataka'
+  //   }
+  // ];
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -153,17 +153,17 @@ const Login = () => {
     setFormData({ email: '', password: '' }); // Reset form data when changing login type
   };
 
-  const handleHospitalSelect = (hospital: typeof hospitalDemoCredentials[0]) => {
-    setFormData({
-      email: hospital.email,
-      password: hospital.password
-    });
-    setShowHospitalList(false);
-    toast({
-      title: "Hospital Selected",
-      description: `Login credentials for ${hospital.name} loaded`,
-    });
-  };
+  // const handleHospitalSelect = (hospital: typeof hospitalDemoCredentials[0]) => {
+  //   setFormData({
+  //     email: hospital.email,
+  //     password: hospital.password
+  //   });
+  //   setShowHospitalList(false);
+  //   toast({
+  //     title: "Hospital Selected",
+  //     description: `Login credentials for ${hospital.name} loaded`,
+  //   });
+  // };
 
   const handleDemoLogin = async (type: 'hospital' | 'patient' | 'admin' | 'sales' | 'crm') => {
     setLoginType(type);
@@ -256,7 +256,7 @@ const Login = () => {
                       >
                         Hospital
                       </button>
-                      <button
+                      {/* <button
                         className={`flex-1 py-2 px-3 text-sm font-medium ${loginType === 'admin' ? 'bg-brand-50 text-brand-600' : 'hover:bg-gray-50'}`}
                         onClick={() => handleLoginTypeChange('admin')}
                       >
@@ -273,13 +273,13 @@ const Login = () => {
                         onClick={() => handleLoginTypeChange('crm')}
                       >
                         CRM
-                      </button>
+                      </button> */}
                     </div>
                   </div>
                   
                   {loginType === 'hospital' && (
                     <div className="mb-6">
-                      <Button
+                      {/* <Button
                         variant="outline"
                         type="button"
                         className="w-full flex items-center justify-center"
@@ -303,7 +303,7 @@ const Login = () => {
                             </div>
                           ))}
                         </div>
-                      )}
+                      )} */}
                     </div>
                   )}
                   

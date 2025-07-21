@@ -71,12 +71,12 @@ const Footer = () => {
                     <DropdownMenuItem asChild>
                       <Link to="/admin-dashboard" className="cursor-pointer">Admin Dashboard</Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
+                    {/* <DropdownMenuItem asChild>
                       <Link to="/hospital-dashboard" className="cursor-pointer">Hospital Dashboard</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link to="/patient-dashboard" className="cursor-pointer">Patient Dashboard</Link>
-                    </DropdownMenuItem>
+                    </DropdownMenuItem> */}
                     <DropdownMenuItem asChild>
                       <Link to="/support-dashboard" className="cursor-pointer">Support Dashboard</Link>
                     </DropdownMenuItem>

@@ -18,13 +18,13 @@ const HospitalRegistration: React.FC = () => {
   const { toast } = useToast();
   const { authState } = useAuth();
 
-  const [formData, setFormData] = useState<Partial<Hospital>>({
+  const [formData, setFormData] = useState<Partial<Hospital> & { services?: string }>({
     name: '',
     location: '',
     contactPerson: '',
     email: '',
     phone: '',
-    services: [],
+    services: '',
   });
 
   const [step, setStep] = useState<number>(1);
@@ -40,11 +40,7 @@ const HospitalRegistration: React.FC = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleMultiSelectChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    const values = value.split(',').map(item => item.trim()).filter(item => item);
-    setFormData(prev => ({ ...prev, [name]: values }));
-  };
+  // No need for handleMultiSelectChange, use handleInputChange for all fields
 
   const validateStep = (currentStep: number): boolean => {
     if (currentStep === 1) {
@@ -79,7 +75,18 @@ const HospitalRegistration: React.FC = () => {
 
   const nextStep = () => {
     if (validateStep(step)) {
-      setStep(step + 1);
+      // If moving from step 2 to 3, convert services string to array
+      if (step === 2 && typeof formData.services === 'string') {
+        setFormData(prev => ({
+          ...prev,
+          services: prev.services
+            ? prev.services.split(',').map(item => item.trim()).filter(item => item)
+            : [],
+        }));
+        setStep(step + 1);
+      } else {
+        setStep(step + 1);
+      }
     }
   };
 
@@ -101,15 +108,23 @@ const HospitalRegistration: React.FC = () => {
       return;
     }
 
+    // Convert services to array if it's a string
+    let submitData = { ...formData };
+    if (typeof submitData.services === 'string') {
+      submitData.services = submitData.services
+        ? submitData.services.split(',').map(item => item.trim()).filter(item => item)
+        : [];
+    }
+
     setLoading(true);
     try {
-      const response = await registerHospital(formData, authState.token);
+      const response = await registerHospital(submitData, authState.token);
 
       toast({
         title: "Registration Successful",
         description: "Your hospital has been registered successfully! You can now manage your hospital.",
       });
-      navigate('/dashboard');
+      navigate('/hospital-dashboard');
     } catch (error: any) {
       console.error('Hospital registration error:', error);
       const errorMessage = error.response?.data?.msg || error.response?.data?.errors?.[0]?.msg || 'There was an error registering your hospital. Please try again.';
@@ -233,8 +248,9 @@ const HospitalRegistration: React.FC = () => {
                       <Input
                         id="services"
                         name="services"
-                        value={formData.services?.join(', ') || ''}
-                        onChange={handleMultiSelectChange}
+                        value={typeof formData.services === 'string' ? formData.services : (formData.services?.join(', ') || '')}
+                        onChange={handleInputChange}
+                        placeholder="e.g. Cardiology, Neurology, Pediatrics"
                       />
                     </div>
                   </div>

@@ -122,7 +122,7 @@ const Navbar = () => {
     // Only show Apply Loan for authenticated patients
     ...(authState.user?.role === 'patient' ? [{ name: 'Apply for Loan', to: '/patient-dashboard?tab=loans' }] : []),
     // Only show Hospital Registration if no hospital is registered
-    ...(!hasHospital && authState.user ? [{ name: 'Hospital Registration', to: '/hospital-registration' }] : []),
+    ...(!hasHospital && authState.user &&authState.user.role=="hospital" ? [{ name: 'Hospital Registration', to: '/hospital-registration' }] : []),
     { name: 'About Us', to: '/about-us' }
   ];
 

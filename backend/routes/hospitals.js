@@ -142,6 +142,9 @@ router.post(
         user: req.user.id,
         status: 'Pending'
       });
+      //set hospital ID in user profile
+      user.hospitalId = hospitalId;
+      await user.save();
 
       const hospital = await newHospital.save();
       await hospital.populate('user', 'firstName lastName email');
@@ -310,7 +313,9 @@ router.get('/:id/analytics', auth, async (req, res) => {
     }
 
     // Get analytics data
-    const loans = await Loan.find({ 'loanDetails.hospitalName': hospital.name });
+    const loans = await Loan.find({ 'medicalInfo.medicalProvider': hospital.name });
+
+    console.log(`Found ${loans.length} loans for hospital ${hospital.name}`);
     
     const totalLoans = loans.length;
     const approvedLoans = loans.filter(loan => loan.status === 'approved' || loan.status === 'completed').length;
@@ -325,6 +330,21 @@ router.get('/:id/analytics', auth, async (req, res) => {
       .filter(loan => loan.status === 'approved' || loan.status === 'completed')
       .reduce((sum, loan) => sum + (loan.loanDetails.approvedAmount || 0), 0);
 
+      // Get bed count from hospital return integer from service string which includes bedcount or related info
+    const bedCount = hospital.services.reduce((count, service) => {
+      const match = service.match(/(\d+)\s*bed/i);
+      if (match) {
+        return count + parseInt(match[1], 10);
+      }
+      return count;
+    }, 0);
+
+    //check if services includes hospital type like private,general,government or related include it
+    const hospitalType = hospital.services.find(service =>
+      ['private', 'general', 'government', 'trust'].includes(service.toLowerCase())
+    ) || 'General';
+
+    console.log(`Hospital Type: ${hospitalType}`);
     const analytics = {
       totalLoans,
       approvedLoans,
@@ -332,7 +352,9 @@ router.get('/:id/analytics', auth, async (req, res) => {
       rejectedLoans,
       totalAmount,
       disbursedAmount,
-      approvalRate: totalLoans > 0 ? ((approvedLoans / totalLoans) * 100).toFixed(1) : 0
+      approvalRate: totalLoans > 0 ? ((approvedLoans / totalLoans) * 100).toFixed(1) : 0,
+      bedCount: bedCount,
+      hospitalType: hospitalType.charAt(0).toUpperCase() + hospitalType.slice(1)
     };
 
     res.json(analytics);

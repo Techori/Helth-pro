@@ -24,7 +24,9 @@ export const ProtectedRoute = ({ children, requiredRole ,allowedRoles}: Protecte
   }
 
   // If role is required and user doesn't have the required role
-  if (requiredRole && authState.user.role !== requiredRole) {
+
+ 
+  if ( !allowedRoles.includes(authState.user.role)) {
     return <Navigate to="/unauthorized" replace />;
   }
 

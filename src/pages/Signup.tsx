@@ -126,7 +126,7 @@ const Signup = () => {
         })
       };
 
-      const response = await fetch('/api/auth/', {
+      const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -287,10 +287,10 @@ const Signup = () => {
                       >
                         <option value="patient">Patient</option>
                         <option value="hospital">Hospital</option>
-                        <option value="sales">Sales</option>
+                        {/* <option value="sales">Sales</option>
                         <option value="crm">CRM</option>
                         <option value="agent">Agent</option>
-                        <option value="support">Support</option>
+                        <option value="support">Support</option> */}
                       </select>
                     </div>
 

@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Building, MapPin, Phone, Mail, Globe, Edit, Users, TrendingUp, Clock } from "lucide-react";
+import { Building, MapPin, Phone, Mail, Globe, Edit, Users, TrendingUp, Clock, PercentIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getAllHospitals, getHospitalAnalytics, getHospitalByHospitalId } from "@/services/hospitalService";
 import { useAuth } from "@/hooks/useAuth";
@@ -25,16 +25,20 @@ const HospitalProfileInfo = () => {
       setLoading(true);
       // Get hospitals for the current user
        console.log("hsopitalid",authState.user);
+       console.log("hsopitalid",authState.user.hospitalId);
       
       const userHospital = await getHospitalByHospitalId(authState.user.hospitalId);
      
       
      
       setHospital(userHospital);
+
+      console.log("userhospitalid",userHospital._id);
         
-      if (userHospital.id) {
-          const analyticsData = await getHospitalAnalytics(userHospital.id);
+      if (userHospital._id) {
+          const analyticsData = await getHospitalAnalytics(userHospital._id);
           setAnalytics(analyticsData);
+          console.log("analyticsData", analyticsData);
         }
       
     } catch (error) {
@@ -110,7 +114,7 @@ const HospitalProfileInfo = () => {
               <div className="flex items-center gap-2 mt-2">
                 {getStatusBadge(hospital.status)}
                 <Badge variant="outline" className="capitalize">
-                  {hospital.hospitalType}
+                  {analytics.hospitalType || 'General'}
                 </Badge>
               </div>
             </div>
@@ -128,8 +132,8 @@ const HospitalProfileInfo = () => {
                 <div>
                   <p className="font-medium">Address</p>
                   <p className="text-sm text-gray-600">
-                    {hospital.address}<br />
-                    {hospital.city}, {hospital.state} - {hospital.zipCode}
+                    {hospital.location}<br />
+                    {/* {hospital.city}, {hospital.state} - {hospital.zipCode} */}
                   </p>
                 </div>
               </div>
@@ -138,7 +142,7 @@ const HospitalProfileInfo = () => {
                 <Phone className="h-5 w-5 text-gray-400" />
                 <div>
                   <p className="font-medium">Phone</p>
-                  <p className="text-sm text-gray-600">{hospital.contactPhone}</p>
+                  <p className="text-sm text-gray-600">{hospital.phone}</p>
                 </div>
               </div>
             </div>
@@ -148,7 +152,7 @@ const HospitalProfileInfo = () => {
                 <Mail className="h-5 w-5 text-gray-400" />
                 <div>
                   <p className="font-medium">Email</p>
-                  <p className="text-sm text-gray-600">{hospital.contactEmail}</p>
+                  <p className="text-sm text-gray-600">{hospital.email}</p>
                 </div>
               </div>
               
@@ -213,13 +217,13 @@ const HospitalProfileInfo = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-blue-500" />
                 <span className="text-sm">Total Patients</span>
               </div>
-              <span className="font-semibold">{analytics?.totalLoans || 0}</span>
+              <span className="font-semibold">{hospital.totalPatients || 0}</span>
             </div>
             
             <div className="flex items-center justify-between">
@@ -243,19 +247,21 @@ const HospitalProfileInfo = () => {
                 <Building className="h-4 w-4 text-purple-500" />
                 <span className="text-sm">Bed Count</span>
               </div>
-              <span className="font-semibold">{hospital.bedCount || 'N/A'}</span>
+              <span className="font-semibold">{analytics.bedCount || 'N/A'}</span>
             </div>
 
-            {analytics?.approvalRate && (
               <div className="pt-4 border-t">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">
+                  <div className="text-xl  text-green-600">
                     {analytics.approvalRate}%
                   </div>
-                  <p className="text-sm text-gray-600">Approval Rate</p>
+                  {analytics?.approvalRate>=0 ? (
+                    <p className="text-sm text-gray-600">  Approval Rate</p>
+                  ) : (
+                    <p className="text-sm text-gray-600">Approval Rate: N/A</p>
+                  )}
                 </div>
               </div>
-            )}
           </div>
         </CardContent>
       </Card>

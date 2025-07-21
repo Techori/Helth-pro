@@ -73,13 +73,13 @@ console.log("Socket.IO initialized");
 try {
   console.log("Initializing middleware...");
   app.use(express.json({ extended: false }));
- app.use(cors({
-  origin:['https://web.rimedicare.in/','http://localhost:8080','https://helth-pro.vercel.app/'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'X-CSRF-Token','X-auth-Token'],
-  accessControlAllowOrigin: '*',
-  credentials: true,
-}));
+ app.use(
+  cors({
+    origin: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true, // Important: allows cookies to be sent
+  })
+);
   app.use(requestLogger);
   console.log("Middleware initialized: JSON parser, CORS, and request logger enabled");
 } catch (err) {

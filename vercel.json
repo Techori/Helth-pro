@@ -1,8 +1,12 @@
 {
-    "rewrites": [
-      {
-        "source": "/:any*",
-        "destination": "/"
-      }
-    ]
-  }
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://helth-pro.onrender.com/api/:path*"
+    },
+    {
+      "source": "/:any*",
+      "destination": "/"
+    }
+  ]
+}

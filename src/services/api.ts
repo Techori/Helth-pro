@@ -1,9 +1,9 @@
 // API service with improved error handling
 const API_URL = process.env.NODE_ENV === 'production' 
-  ? 'http://13.234.78.88/api'
+  ? 'https://helth-pro.onrender.com/api'
   : 'http://localhost:4000/api';
 
-// https://helth-pro.onrender.com/api
+// http://13.234.78.88/api
 
 export const getAuthToken = () => localStorage.getItem('token');
 

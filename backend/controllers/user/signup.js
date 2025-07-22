@@ -81,11 +81,6 @@ module.exports = async (req, res) => {
       phone
     });
 
-    // Generate UHID for patients
-    if (role === "patient") {
-      user.uhid = null;
-    }
-
     // Generate Hospital ID for hospitals
     if (role === "hospital") {
       user.hospitalId = await generateHospitalId(Hospital);
@@ -150,7 +145,6 @@ module.exports = async (req, res) => {
             lastName: user.lastName,
             email: user.email,
             role: user.role,
-            ...(user.uhid && { uhid: user.uhid }),
             ...(user.hospitalId && { hospitalId: user.hospitalId })
           }
         });

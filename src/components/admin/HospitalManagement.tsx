@@ -22,6 +22,10 @@ import axios from "axios";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
+const API_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://helth-pro.onrender.com/api'
+  : 'http://localhost:4000/api';
+
 interface Hospital {
   _id: string;
   name: string;
@@ -42,6 +46,7 @@ const HospitalManagement = () => {
   const [activeHospitals, setActiveHospitals] = useState<Hospital[]>([]);
   const [selectedHospital, setSelectedHospital] = useState<Hospital | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm1, setSearchTerm1] = useState("");
   const [isManageDialogOpen, setIsManageDialogOpen] = useState(false);
   const [editingHospital, setEditingHospital] = useState<Hospital | null>(null);
   const [loading, setLoading] = useState(false);
@@ -98,8 +103,11 @@ const STAFF_DEPARTMENTS = [
   const fetchHospitals = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/hospitals');
-      const apiHospitals = response.data;
+      const response = await axios.get(`${API_URL}/hospitals`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      const apiHospitals = Array.isArray(response.data) ? response.data : response.data.hospitals || [];
+      console.log('Fetched hospitals from API:', apiHospitals);
       
       const apiPendingHospitals = apiHospitals.filter((h: Hospital) => h.status === 'Pending');
       const apiActiveHospitals = apiHospitals.filter((h: Hospital) => h.status === 'Active');
@@ -137,67 +145,70 @@ const STAFF_DEPARTMENTS = [
     fetchHospitals();
   }, []);
 
-  const handleAddStaff = async () => {
-  try {
-    // Validate required fields
-    if (!newStaff.name || !newStaff.email || !newStaff.role || !newStaff.hospital) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields (Name, Email, Role, Hospital)",
-        variant: "destructive",
-      });
-      return;
-    }
+//   const handleAddStaff = async () => {
+//   try {
+//     // Validate required fields
+//     if (!newStaff.name || !newStaff.email || !newStaff.role || !newStaff.hospital) {
+//       toast({
+//         title: "Validation Error",
+//         description: "Please fill in all required fields (Name, Email, Role, Hospital)",
+//         variant: "destructive",
+//       });
+//       return;
+//     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(newStaff.email)) {
-      toast({
-        title: "Validation Error",
-        description: "Invalid email address format",
-        variant: "destructive",
-      });
-      return;
-    }
+//     // Validate email format
+//     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+//     if (!emailRegex.test(newStaff.email)) {
+//       toast({
+//         title: "Validation Error",
+//         description: "Invalid email address format",
+//         variant: "destructive",
+//       });
+//       return;
+//     }
 
-    setLoading(true);
+//     setLoading(true);
     
-    const response = await axios.post('api/admin/add-staff', {
-      name: newStaff.name.trim(),
-      email: newStaff.email.trim(),
-      phone: newStaff.phone.trim(),
-      hospitalId: newStaff.hospital.trim(),
-      role: newStaff.role.trim(),
-      department: newStaff.department.trim(),
-    });
+//     const response = await axios.post(`${API_URL}admin/add-staff`, {
+//       name: newStaff.name.trim(),
+//       email: newStaff.email.trim(),
+//       phone: newStaff.phone.trim(),
+//       hospitalId: newStaff.hospital.trim(),
+//       role: newStaff.role.trim(),
+//       department: newStaff.department.trim(),
+//       headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+//       method: 'POST',
 
-    toast({
-      title: "Success",
-      description: "Staff member added successfully",
-    });
+//     });
 
-    // Reset form
-    setNewStaff({
-      name: '',
-      email: '',
-      phone: '',
-      hospital: '',
-      role: '',
-      department: '',
-    });
-    setIsAddingStaff(false);
+//     toast({
+//       title: "Success",
+//       description: "Staff member added successfully",
+//     });
 
-  } catch (error: any) {
-    console.error("Error adding staff:", error);
-    toast({
-      title: "Error",
-      description: error.response?.data?.message || "Failed to add staff member",
-      variant: "destructive",
-    });
-  } finally {
-    setLoading(false);
-  }
-};
+//     // Reset form
+//     setNewStaff({
+//       name: '',
+//       email: '',
+//       phone: '',
+//       hospital: '',
+//       role: '',
+//       department: '',
+//     });
+//     setIsAddingStaff(false);
+
+//   } catch (error: any) {
+//     console.error("Error adding staff:", error);
+//     toast({
+//       title: "Error",
+//       description: error.response?.data?.message || "Failed to add staff member",
+//       variant: "destructive",
+//     });
+//   } finally {
+//     setLoading(false);
+//   }
+// };
 
   const handleViewHospital = (hospital: Hospital) => {
     setSelectedHospital(hospital);
@@ -219,10 +230,11 @@ const STAFF_DEPARTMENTS = [
       setActiveHospitals((prev) => [newActiveHospital, ...prev]);
 
       try {
-        await axios.patch(`/api/hospitals/${selectedHospital._id}/approve`);
-      } catch (error) {
-        console.error('Error updating API:', error);
-      }
+        const response= await axios.patch(`${API_URL}/hospitals/${selectedHospital._id}/approve`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    });
+      
+    console.log('Hospital approved:', response.data);
 
       toast({
         title: "Hospital Approved",
@@ -230,6 +242,9 @@ const STAFF_DEPARTMENTS = [
       });
 
       setSelectedHospital(null);
+      } catch (error) {
+        console.error('Error updating API:', error);
+      }
     } catch (error) {
       console.error('Error approving hospital:', error);
       toast({
@@ -247,7 +262,9 @@ const STAFF_DEPARTMENTS = [
       setPendingHospitals((prev) => prev.filter((h) => h._id !== selectedHospital._id));
 
       try {
-        await axios.patch(`/api/hospitals/${selectedHospital._id}/reject`);
+        await axios.patch(`${API_URL}hospitals/${selectedHospital._id}/reject`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    });
       } catch (error) {
         console.error('Error updating API:', error);
       }
@@ -377,6 +394,7 @@ const STAFF_DEPARTMENTS = [
           {
             headers: {
               'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
             },
           }
         );
@@ -452,134 +470,152 @@ const STAFF_DEPARTMENTS = [
         <CardHeader>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <CardTitle>Hospital Staff Management</CardTitle>
-              <CardDescription>Manage hospital staff and their roles across partner hospitals</CardDescription>
+              <CardTitle>Hospitals Management</CardTitle>
+              <CardDescription>Manage hospitals choose to be partner hospitals</CardDescription>
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
               <div className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="search"
-                  placeholder="Search staff..."
+                  placeholder="Search pending hospitals..."
                   className="pl-8 max-w-[300px]"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  value={searchTerm1}
+                  onChange={(e) => setSearchTerm1(e.target.value)}
                 />
               </div>
-              <Button onClick={() => setIsAddingStaff(true)}>
-                <UserPlus className="mr-2 h-4 w-4" />
-                Add Staff
-              </Button>
+             
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          {pendingHospitals.length > 0 ? (
-            <Table>
+            {(() => {
+            const filteredPendingHospitals = pendingHospitals.filter(
+              (hospital) =>
+              hospital.name.toLowerCase().includes(searchTerm1.toLowerCase()) ||
+              hospital.location.toLowerCase().includes(searchTerm1.toLowerCase()) ||
+              hospital._id.toLowerCase().includes(searchTerm1.toLowerCase())
+            );
+            return filteredPendingHospitals.length > 0 ? (
+              <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Hospital ID</TableHead>
-                  <TableHead>Hospital Name</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Contact Person</TableHead>
-                  <TableHead>Registration Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Actions</TableHead>
+                <TableHead>Hospital ID</TableHead>
+                <TableHead>Hospital Name</TableHead>
+                <TableHead>Location</TableHead>
+                <TableHead>Contact Person</TableHead>
+                <TableHead>Registration Date</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pendingHospitals.map((hospital) => (
-                  <TableRow key={hospital._id}>
-                    <TableCell className="font-medium">{hospital._id}</TableCell>
-                    <TableCell>{hospital.name}</TableCell>
-                    <TableCell>{hospital.location}</TableCell>
-                    <TableCell>{hospital.contactPerson}</TableCell>
-                    <TableCell>{hospital.registrationDate}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="bg-yellow-100 text-yellow-800">
-                        {hospital.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleViewHospital(hospital)}
-                          >
-                            Review
-                          </Button>
-                        </DialogTrigger>
-                        
-                        {selectedHospital && selectedHospital._id === hospital._id && (
-                          <DialogContent className="sm:max-w-[600px]">
-                            <DialogHeader>
-                              <DialogTitle>Hospital Registration Review</DialogTitle>
-                              <DialogDescription>
-                                Review hospital details and approve or reject registration
-                              </DialogDescription>
-                            </DialogHeader>
-                            
-                            <div className="grid gap-4 py-4">
-                              <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                  <Label htmlFor="hospitalName">Hospital Name</Label>
-                                  <Input 
-                                    id="hospitalName" 
-                                    value={selectedHospital.name} 
-                                    readOnly 
-                                  />
-                                </div>
-                                <div>
-                                  <Label htmlFor="hospitalId">Hospital ID</Label>
-                                  <Input 
-                                    id="hospitalId" 
-                                    value={selectedHospital._id} 
-                                    readOnly 
-                                  />
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-1 mt-1">
-                                <Mail className="h-3 w-3 text-muted-foreground" />
-                                <span>{selectedHospital.email}</span>
-                              </div>
-                            </div>
-                            <DialogFooter>
-                              <div className="flex gap-2">
-                                <Button 
-                                  variant="outline" 
-                                  onClick={() => setSelectedHospital(null)}
-                                >
-                                  Cancel
-                                </Button>
-                                <Button className="flex-1" onClick={handleApproveHospital}>
-                                  <Check className="mr-2 h-4 w-4" />
-                                  Approve
-                                </Button>
-                                <Button 
-                                  variant="destructive" 
-                                  className="flex-1" 
-                                  onClick={handleRejectHospital}
-                                >
-                                  Reject
-                                </Button>
-                              </div>
-                            </DialogFooter>
-                          </DialogContent>
-                        )}
-                      </Dialog>
-                    </TableCell>
-                  </TableRow>
+                {filteredPendingHospitals.map((hospital) => (
+                <TableRow key={hospital._id}>
+                  <TableCell className="font-medium">{hospital._id}</TableCell>
+                  <TableCell>{hospital.name}</TableCell>
+                  <TableCell>{hospital.location}</TableCell>
+                  <TableCell>{hospital.contactPerson}</TableCell>
+                  <TableCell>{hospital.registrationDate}</TableCell>
+                  <TableCell>
+                  <Badge variant="outline" className="bg-yellow-100 text-yellow-800">
+                    {hospital.status}
+                  </Badge>
+                  </TableCell>
+                  <TableCell>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleViewHospital(hospital)}
+                    >
+                      Review
+                    </Button>
+                    </DialogTrigger>
+                    
+                    {selectedHospital && selectedHospital._id === hospital._id && (
+                    <DialogContent className="sm:max-w-[600px]">
+                      <DialogHeader>
+                      <DialogTitle>Hospital Registration Review</DialogTitle>
+                      <DialogDescription>
+                        Review hospital details and approve or reject registration
+                      </DialogDescription>
+                      </DialogHeader>
+                      
+                      <div className="grid gap-4 py-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                        <Label htmlFor="hospitalName">Hospital Name</Label>
+                        <Input 
+                          id="hospitalName" 
+                          value={selectedHospital.name} 
+                          readOnly 
+                        />
+                        </div>
+                        <div>
+                        <Label htmlFor="hospitalId">Hospital ID</Label>
+                        <Input 
+                          id="hospitalId" 
+                          value={selectedHospital._id} 
+                          readOnly 
+                        />
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 mt-1">
+                        <Mail className="h-3 w-3 text-muted-foreground" />
+                        <span>{selectedHospital.email}</span>
+                      </div>
+                      </div>
+                      <DialogFooter>
+                      <div className="flex gap-2">
+                        <Button 
+                        variant="outline" 
+                        onClick={() => setSelectedHospital(null)}
+                        >
+                        Cancel
+                        </Button>
+                        <Button className="flex-1" onClick={handleApproveHospital}>
+                        <Check className="mr-2 h-4 w-4" />
+                        Approve
+                        </Button>
+                        <Button 
+                        variant="destructive" 
+                        className="flex-1" 
+                        onClick={handleRejectHospital}
+                        >
+                        Reject
+                        </Button>
+                      </div>
+                      </DialogFooter>
+                    </DialogContent>
+                    )}
+                  </Dialog>
+                  </TableCell>
+                </TableRow>
                 ))}
               </TableBody>
-            </Table>
-          ) : (
-            <div className="text-center py-6">
+              </Table>
+            ) : (
+              <div className="text-center py-6">
               <p className="text-muted-foreground">No pending hospital registrations</p>
-            </div>
-          )}
+              </div>
+            );
+            })()}
         </CardContent>
+        <CardFooter>
+          <div className="flex justify-between w-full">
+            <p className="text-sm text-muted-foreground">
+              {pendingHospitals.filter(
+                (hospital) =>
+                  hospital.name.toLowerCase().includes(searchTerm1.toLowerCase()) ||
+                  hospital.location.toLowerCase().includes(searchTerm1.toLowerCase()) ||
+                  hospital._id.toLowerCase().includes(searchTerm1.toLowerCase())
+              ).length} of {pendingHospitals.length} hospitals
+            </p>
+            <Button variant="outline" onClick={handleExportPDF}>Export Hospital List</Button>
+          </div>
+        </CardFooter>
       </Card>
 
       <Card>
@@ -794,7 +830,7 @@ const STAFF_DEPARTMENTS = [
         </DialogContent>
       </Dialog>
 
-      {/* Add New Staff Member Dialog */}
+      {/* Add New Staff Member Dialog
       <Dialog open={isAddingStaff} onOpenChange={setIsAddingStaff}>
   <DialogContent className="sm:max-w-[600px]">
     <DialogHeader>
@@ -910,7 +946,7 @@ const STAFF_DEPARTMENTS = [
       </Button>
     </DialogFooter>
   </DialogContent>
-</Dialog>
+</Dialog> */}
     </div>
   );
 };

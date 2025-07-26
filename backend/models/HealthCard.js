@@ -25,6 +25,8 @@ const healthCardSchema = new mongoose.Schema({
   interestRate: { type: Number }, // Applicable for health_emi
   zeroInterestMonths: { type: Number }, // Applicable for health_paylater
   dailyCashBenefit: { type: Number }, // Applicable for ri_medicare_discount
+}, {
+  timestamps: true,
 });
 
 module.exports = mongoose.model('HealthCard', healthCardSchema);

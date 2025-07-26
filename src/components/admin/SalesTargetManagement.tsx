@@ -1,6 +1,7 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,10 @@ interface ExtendedJsPDF extends jsPDF {
   lastAutoTable: { finalY: number };
 }
 
+const API_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://helth-pro.onrender.com/api'
+  : 'http://localhost:4000/api';
+
 const SalesTargetManagement = () => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
@@ -37,41 +42,66 @@ const SalesTargetManagement = () => {
     status: "Active",
   });
 
-  const [salesTargets, setSalesTargets] = useState([
-    {
-      id: "ST-001",
-      hospital: "City General Hospital",
-      department: "Cardiology",
-      targetAmount: 500000,
-      currentAmount: 350000,
-      period: "Q1 2025",
-      status: "Active",
-      progress: 70,
-      lastUpdated: "01/04/2025",
-    },
-    {
-      id: "ST-002",
-      hospital: "LifeCare Hospital",
-      department: "Orthopedics",
-      targetAmount: 750000,
-      currentAmount: 600000,
-      period: "Q1 2025",
-      status: "Active",
-      progress: 80,
-      lastUpdated: "01/04/2025",
-    },
-    {
-      id: "ST-003",
-      hospital: "Carewell Hospital",
-      department: "Neurology",
-      targetAmount: 1000000,
-      currentAmount: 450000,
-      period: "Q1 2025",
-      status: "Active",
-      progress: 45,
-      lastUpdated: "01/04/2025",
-    },
-  ]);
+  const [salesTargets, setSalesTargets] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const fetchSalesTargets = async () => {
+    try {
+      setIsLoading(true);
+      setError("");
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("Authentication token not found");
+      }
+
+      const response = await fetch(`${API_URL}/admin/sales-targets`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch sales targets");
+      }
+
+      const responseData = await response.json();
+      console.log('API Response:', responseData);
+      
+      // Ensure we have an array of targets from the response
+      const data = Array.isArray(responseData) ? responseData : responseData.salesTargets || [];
+      
+      // Transform the data to match our frontend structure
+      const transformedTargets = data.map(target => ({
+        id: target._id,
+        hospital: target.hospital,
+        department: target.department,
+        targetAmount: target.targetAmount,
+        currentAmount: target.currentAmount || 0,
+        period: target.period,
+        status: target.status,
+        progress: target.currentAmount ? Math.round((target.currentAmount / target.targetAmount) * 100) : 0,
+        lastUpdated: target.lastUpdated 
+    }));
+
+      setSalesTargets(transformedTargets);
+    } catch (err) {
+      console.error("Error fetching sales targets:", err);
+      setError(err.message || "Failed to fetch sales targets");
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: err.message || "Failed to fetch sales targets",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch sales targets when component mounts
+  useEffect(() => {
+    fetchSalesTargets();
+  }, []);
 
   const filteredTargets = salesTargets.filter(
     (target) =>
@@ -142,7 +172,7 @@ const SalesTargetManagement = () => {
       setSalesTargets((prevTargets) => [...prevTargets, targetToAdd]);
 
       // Send request to backend
-      const response = await fetch("http://localhost:3000/api/admin/add-sales-target", {
+      const response = await fetch(`${API_URL}/admin/add-sales-target`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -177,12 +207,8 @@ const SalesTargetManagement = () => {
         throw new Error(data.msg || "Failed to add sales target");
       }
 
-      // Update state with backend ID
-      setSalesTargets((prevTargets) =>
-        prevTargets.map((target) =>
-          target.id === tempTargetId ? { ...target, id: data.salesTarget._id } : target
-        )
-      );
+      // Refresh the sales targets from the backend
+      await fetchSalesTargets();
 
       // Reset form and close dialog
       setNewTarget({
@@ -236,8 +262,8 @@ const SalesTargetManagement = () => {
       const tableData = filteredTargets.map((target) => [
         target.hospital,
         target.department,
-        `₹${target.targetAmount.toLocaleString()}`,
-        `₹${target.currentAmount.toLocaleString()}`,
+        `Rs ${target.targetAmount.toLocaleString()}`,
+        `Rs ${target.currentAmount.toLocaleString()}`,
         `${target.progress}%`,
         target.period,
         target.status,
@@ -355,7 +381,18 @@ const SalesTargetManagement = () => {
             </Card>
           </div>
 
-          {filteredTargets.length > 0 ? (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-12 space-y-3">
+              <p className="text-destructive">{error}</p>
+              <Button variant="outline" onClick={fetchSalesTargets}>
+                Retry
+              </Button>
+            </div>
+          ) : filteredTargets.length > 0 ? (
             <div className="rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>

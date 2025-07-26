@@ -23,6 +23,10 @@ const AdminPlatformFeeManagement = () => {
   const [isAddingFee, setIsAddingFee] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  const API_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://helth-pro.onrender.com/api'
+  : 'http://localhost:4000/api';
+
   // Initialize with empty array instead of mock data
   const [feeStructures, setFeeStructures] = useState([]);
 
@@ -40,7 +44,7 @@ const AdminPlatformFeeManagement = () => {
           return;
         }
 
-        const response = await fetch("api/admin/fee-structures", {
+        const response = await fetch(`${API_URL}/admin/fee-structures`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -144,7 +148,7 @@ const AdminPlatformFeeManagement = () => {
       setFeeStructures(updatedFeeStructures);
 
       // Send request to backend
-      const response = await fetch(`api/admin/update-fee/${feeStructures[index].id}`, {
+      const response = await fetch(`${API_URL}/admin/update-fee/${feeStructures[index].id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

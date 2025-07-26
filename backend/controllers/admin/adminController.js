@@ -11,6 +11,169 @@ const Staff = require('../../models/Staff'); // Import the Staff model
 
 const { v4: uuidv4 } = require('uuid'); // Import UUID for unique email generation
 
+// Get overview statistics
+exports.getOverviewStats = async (req, res) => {
+  try {
+    // Get total users
+    const totalUsers = await User.countDocuments();
+    
+    // Get total hospitals
+    const totalHospitals = await Hospital.countDocuments();
+    
+    // Get active health cards
+    const activeHealthCards = await HealthCard.countDocuments({ status: 'active' });
+    
+    // Get active loans
+    const activeLoans = await Loan.countDocuments({ status: 'approved' });
+
+    // Get monthly data
+    const currentYear = new Date().getFullYear();
+    const monthlyData = [];
+    
+    for (let month = 0; month < 11; month++) {
+      const startDate = new Date(currentYear, month, 1);
+      const endDate = new Date(currentYear, month + 1, 0);
+      
+      const users = await User.countDocuments({
+        createdAt: { $gte: startDate, $lte: endDate }
+      });
+      
+      const loans = await Loan.countDocuments({
+        createdAt: { $gte: startDate, $lte: endDate },
+        status: 'active'
+      });
+      
+      monthlyData.push({
+        month: startDate.toLocaleString('default', { month: 'short' }),
+        users,
+        loans
+      });
+    }
+
+    // Get recent activities
+    const recentActivities = [];
+    
+    // Get latest user registrations
+    const latestUsers = await User.find({
+      createdAt: { $gte: new Date(new Date().setMonth(new Date().getMonth() - 1)) }
+    }).sort({ createdAt: -1 });
+      
+    latestUsers.forEach(user => {
+      recentActivities.push({
+        id: `ACT${user._id.toString().slice(-6)}`,
+        date: user.createdAt,
+        type: "User Registration",
+        description: "New patient registered",
+        status: "Completed"
+      });
+    });
+
+    // Get latest hospital registrations
+    const latestHospitals = await Hospital.find({
+      createdAt: { $gte: new Date(new Date().setMonth(new Date().getMonth() - 1)) }
+    }).sort({ createdAt: -1 });
+      
+    latestHospitals.forEach(hospital => {
+      recentActivities.push({
+        id: `ACT${hospital._id.toString().slice(-6)}`,
+        date: hospital.createdAt,
+        type: "Hospital Onboarding",
+        description: "New hospital added to network",
+        status: hospital.status === 'active' ? "Completed" : "Pending Review"
+      });
+    });
+
+    // Get latest loans
+    const latestLoans = await Loan.find({
+      createdAt: { $gte: new Date(new Date().setMonth(new Date().getMonth() - 1)) }
+    }).sort({ createdAt: -1 });
+      
+    latestLoans.forEach(loan => {
+      recentActivities.push({
+        id: `ACT${loan._id.toString().slice(-6)}`,
+        date: loan.createdAt,
+        type: "Loan Application",
+        description: loan.status === 'approved' ? "Medical loan approved" : "New loan application received",
+        status: loan.status === 'approved' ? "Completed" : "Under Review"
+      });
+    });
+
+    // Sort activities by date
+    recentActivities.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    //latest hospitals like from 1 month
+    const latestHospitals1 = await Hospital.find({
+      createdAt: { $gte: new Date(new Date().setMonth(new Date().getMonth() - 1)) }
+    }).sort({ createdAt: -1 });
+    
+    //latest health cards this month
+    const latestHealthCards1= await HealthCard.find({
+      createdAt: { $gte: new Date(new Date().setMonth(new Date().getMonth() - 1)) }
+    }).sort({ createdAt: -1 });
+
+    // Get latest pending loans count
+    const latestPendingLoans = await Loan.find({
+      status: 'approved',
+      createdAt: { $gte: new Date(new Date().setMonth(new Date().getMonth() - 1)) }
+    }).sort({ createdAt: -1 });
+
+    //get total health cards issued
+    const totalHealthCards = await HealthCard.countDocuments();
+
+    //last month how much percent users registered
+    const lastMonthUsers = await User.countDocuments({
+      createdAt: { $gte: new Date(new Date().setMonth(new Date().getMonth() - 2)), $lt: new Date(new Date().setMonth(new Date().getMonth() - 1)) }
+    });
+
+    res.json({
+      systemData: {
+        totalUsers,
+        totalHospitals,
+        activeHealthCards,
+        activeLoans,
+        latestHospitals1,
+        latestHealthCards1,
+        latestPendingLoans,
+        totalHealthCards,
+        lastMonthUsers,
+      },
+      monthlyData,
+      recentActivities: recentActivities.slice(0, 5) // Return only latest 5 activities
+    });
+  } catch (err) {
+    console.error('Error fetching overview stats:', err.message);
+    res.status(500).json({ msg: 'Server error while fetching overview statistics' });
+  }
+};
+
+// Get dashboard statistics
+exports.getDashboardStats = async (req, res) => {
+  try {
+    // Get pending loans count
+    const pendingLoans = await Loan.countDocuments({ status: ['pending','under_review','submitted','additional_docs_needed'] });
+
+    // Get hospital registrations count (pending ones)
+    const hospitalRegistrations = await Hospital.countDocuments({ status: 'pending' });
+
+    // Get active users count (excluding inactive users)
+    const activeUsers = await User.countDocuments({ status: { $ne: 'inactive' } });
+
+    // Get total health cards issued
+    const healthCardsIssued = await HealthCard.countDocuments();
+
+    const stats = {
+      pendingLoans,
+      hospitalRegistrations,
+      activeUsers,
+      healthCardsIssued
+    };
+
+    res.json(stats);
+  } catch (err) {
+    console.error('Error fetching dashboard stats:', err.message);
+    res.status(500).json({ msg: 'Server error while fetching dashboard statistics' });
+  }
+};
 
 
 const generateHospitalId = async () => {
@@ -830,3 +993,32 @@ exports.getFeeStructures = async (req, res) => {
 
   }
 };
+
+// Get all sales targets
+exports.getSalesTargets = async (req, res) => {
+  try {
+    const salesTargets = await SalesTarget.find().sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      salesTargets: salesTargets.map(target => ({
+        _id: target._id,
+        hospital: target.hospital,
+        department: target.department,
+        targetAmount: target.targetAmount,
+        currentAmount: target.currentAmount,
+        period: target.period,
+        status: target.status,
+        progress: target.progress,
+        lastUpdated: target.lastUpdated.toLocaleDateString('en-GB', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        }).replace(/\//g, '/'),
+      }))
+    });
+  } catch (err) {
+    console.error('Error fetching sales targets:', err.message);
+    res.status(500).json({ msg: 'Server error' });
+  }
+}

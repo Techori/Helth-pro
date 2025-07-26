@@ -145,15 +145,26 @@ router.put('/:id/approve', auth, async (req, res) => {
 
     const { approvedCreditLimit } = req.body;
 
-    healthCard.status = 'active';
-    healthCard.availableCredit = approvedCreditLimit || healthCard.requestedCreditLimit || 25000;
-    healthCard.issueDate = new Date();
+    // Use findByIdAndUpdate to update only specific fields without triggering full validation
+    const updatedHealthCard = await HealthCard.findByIdAndUpdate(
+      req.params.id,
+      {
+        $set: {
+          status: 'active',
+          availableCredit: approvedCreditLimit || healthCard.requestedCreditLimit || 25000,
+          issueDate: new Date()
+        }
+      },
+      { new: true, runValidators: false }
+    );
 
-    await healthCard.save();
+    if (!updatedHealthCard) {
+      return res.status(404).json({ msg: 'Health card not found' });
+    }
 
     res.json({
       message: 'Health card approved successfully',
-      healthCard
+      healthCard: updatedHealthCard
     });
   } catch (err) {
     console.error(err.message);
@@ -260,6 +271,9 @@ router.post(
       check('cardNumber', 'Card number is required').not().isEmpty(),
       check('userId', 'User ID is required').not().isEmpty(),
       check('expiryDate', 'Expiry date is required').not().isEmpty(),
+      check('cardType', 'Card type must be valid')
+        .optional()
+        .isIn(['health_paylater', 'health_emi', 'health_50_50', 'ri_medicare_discount'])
     ]
   ],
   async (req, res) => {
@@ -307,19 +321,24 @@ router.post(
           break;
       }
 
+      // Set default values for required fields when admin creates card
       const newHealthCard = new HealthCard({
         cardNumber,
         user: userId,
         uhid: user.uhid,
         availableCredit: availableCredit || maxCreditLimit,
-        cardType: cardType || 'basic',
+        cardType: cardType || 'health_paylater', // Default to health_paylater instead of basic
         status: 'active',
         expiryDate,
         discountPercentage,
         monthlyLimit,
         interestRate,
         zeroInterestMonths,
-        dailyCashBenefit
+        dailyCashBenefit,
+        // Add required fields with default values for admin-created cards
+        monthlyIncome: 0, // Admin can update this later if needed
+        employmentStatus: 'other', // Default status for admin-created cards
+        requestedCreditLimit: maxCreditLimit // Use the maxCreditLimit as the requested amount
       });
 
       const healthCard = await newHealthCard.save();

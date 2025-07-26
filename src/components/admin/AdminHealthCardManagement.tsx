@@ -28,7 +28,7 @@ const AdminHealthCardManagement = () => {
   const loadHealthCards = async () => {
     try {
       setLoading(true);
-      const cards = await fetchAllHealthCards();
+      const cards = await fetchAllHealthCards(localStorage.getItem('token') || '');
       setHealthCards(cards);
     } catch (error) {
       console.error('Failed to load health cards:', error);
@@ -61,7 +61,7 @@ const AdminHealthCardManagement = () => {
     if (!reason) return;
 
     try {
-      await rejectHealthCard(card._id, reason);
+      await rejectHealthCard(card._id, reason, localStorage.getItem('token') || '');
       toast({
         title: "Card Rejected",
         description: `Health card ${card.cardNumber} has been rejected`,
@@ -80,7 +80,7 @@ const AdminHealthCardManagement = () => {
     if (!selectedCard) return;
 
     try {
-      await approveHealthCard(selectedCard._id, approvedCreditLimit);
+      await approveHealthCard(selectedCard._id, approvedCreditLimit, localStorage.getItem('token') || '');
       toast({
         title: "Card Approved",
         description: `Health card ${selectedCard.cardNumber} has been approved with credit limit ₹${approvedCreditLimit.toLocaleString()}`,

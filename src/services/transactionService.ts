@@ -1,4 +1,3 @@
-
 import { apiRequest } from "./api";
 
 // Transaction types
@@ -7,7 +6,12 @@ export type TransactionStatus = 'completed' | 'pending' | 'failed';
 
 export interface Transaction {
   _id?: string;
-  user: string;
+  user: string | {
+    _id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+  };
   amount: number;
   type: TransactionType;
   description: string;
@@ -156,13 +160,58 @@ export const getTransactionById = async (transactionId: string) => {
     throw error;
   }
 }
+
 export const fetchUserTransactions = async (): Promise<Transaction[]> => {
   try {
-    console.log('Fetching user transactions');
+    console.log('Fetching user transactions...');
+    console.log('API URL:', process.env.NODE_ENV === 'production' 
+      ? 'https://helth-pro.onrender.com/api'
+      : 'http://localhost:4000/api');
+    
+    const token = localStorage.getItem('token');
+    console.log('Auth token exists:', !!token);
+    
     const response = await apiRequest('/transactions');
+    console.log('API Response:', response);
+    console.log(`Retrieved ${response?.length || 0} transactions`);
+    
     return response || [];
   } catch (error) {
     console.error('Failed to fetch transactions:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      status: (error as any)?.status,
+      response: (error as any)?.response
+    });
+    throw error;
+  }
+};
+
+/**
+ * Get all transactions for transaction history (admin/hospital only)
+ */
+export const fetchTransactionHistory = async (): Promise<Transaction[]> => {
+  try {
+    console.log('Fetching transaction history...');
+    console.log('API URL:', process.env.NODE_ENV === 'production' 
+      ? 'https://helth-pro.onrender.com/api'
+      : 'http://localhost:4000/api');
+    
+    const token = localStorage.getItem('token');
+    console.log('Auth token exists:', !!token);
+    
+    const response = await apiRequest('/transactions/history');
+    console.log('Transaction History Response:', response);
+    console.log(`Retrieved ${response?.length || 0} transactions for history`);
+    
+    return response || [];
+  } catch (error) {
+    console.error('Failed to fetch transaction history:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      status: (error as any)?.status,
+      response: (error as any)?.response
+    });
     throw error;
   }
 };

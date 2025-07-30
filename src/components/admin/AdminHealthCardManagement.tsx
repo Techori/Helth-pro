@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,7 +27,8 @@ const AdminHealthCardManagement = () => {
   const loadHealthCards = async () => {
     try {
       setLoading(true);
-      const cards = await fetchAllHealthCards();
+      const token = localStorage.getItem('token') || '';
+      const cards = await fetchAllHealthCards(token);
       setHealthCards(cards);
     } catch (error) {
       console.error('Failed to load health cards:', error);
@@ -61,7 +61,8 @@ const AdminHealthCardManagement = () => {
     if (!reason) return;
 
     try {
-      await rejectHealthCard(card._id, reason);
+      const token = localStorage.getItem('token') || '';
+      await rejectHealthCard(card._id, reason, token);
       toast({
         title: "Card Rejected",
         description: `Health card ${card.cardNumber} has been rejected`,
@@ -80,7 +81,8 @@ const AdminHealthCardManagement = () => {
     if (!selectedCard) return;
 
     try {
-      await approveHealthCard(selectedCard._id, approvedCreditLimit);
+      const token = localStorage.getItem('token') || '';
+      await approveHealthCard(selectedCard._id, approvedCreditLimit, token);
       toast({
         title: "Card Approved",
         description: `Health card ${selectedCard.cardNumber} has been approved with credit limit ₹${approvedCreditLimit.toLocaleString()}`,

@@ -54,13 +54,11 @@ const generateUniqueTempApplicationNumber = async () => {
   let attempt = 0;
 
   while (attempt < maxRetries) {
-    // Generate a temporary application number: ML + Year + Timestamp + Random 4-digit number
     const year = new Date().getFullYear();
-    const timestamp = Date.now().toString().slice(-6); // Last 6 digits of timestamp
-    const randomNum = Math.floor(1000 + Math.random() * 9000); // Random 4-digit number
+    const timestamp = Date.now().toString().slice(-6);
+    const randomNum = Math.floor(1000 + Math.random() * 9000);
     const tempApplicationNumber = `ML${year}${timestamp}${randomNum}`;
 
-    // Check if the application number already exists
     const existingLoan = await Loan.findOne({ applicationNumber: tempApplicationNumber });
     if (!existingLoan) {
       return tempApplicationNumber;
@@ -70,6 +68,20 @@ const generateUniqueTempApplicationNumber = async () => {
   }
 
   throw new Error('Unable to generate a unique application number after multiple attempts');
+};
+
+// Helper function to calculate the 2nd of the next month
+const getNextEmiDate = () => {
+  let currentDate = new Date();
+  let nextMonth = currentDate.getMonth() + 1;
+  let nextYear = currentDate.getFullYear();
+
+  if (nextMonth === 12) {
+    nextMonth = 0;
+    nextYear += 1;
+  }
+
+  return new Date(nextYear, nextMonth, 2);
 };
 
 // @route   GET api/loans
@@ -108,24 +120,15 @@ router.get('/by-uhid/:uhid', auth, async (req, res) => {
 // @access  Private
 router.post('/draft', auth, async (req, res) => {
   try {
-    // Check KYC status first
     const kycInfo = await checkAndUpdateKycStatus(req.user.id);
-    
-    // Check for active health card
     await checkHealthCardStatus(req.user.id);
     
     const { step, data } = req.body;
 
-    // Find existing draft or create new one
-    let loan = await Loan.findOne({ 
-      user: req.user.id, 
-      status: 'draft' 
-    });
+    let loan = await Loan.findOne({ user: req.user.id, status: 'draft' });
 
     if (!loan) {
-      // Generate unique temporary application number
       const tempApplicationNumber = await generateUniqueTempApplicationNumber();
-      
       loan = new Loan({
         user: req.user.id,
         uhid: kycInfo.uhid,
@@ -136,33 +139,19 @@ router.post('/draft', auth, async (req, res) => {
       });
     }
 
-    // Update loan data based on what's provided in data
-    if (data.personalInfo) {
-      loan.personalInfo = { ...loan.personalInfo, ...data.personalInfo };
-    }
-    if (data.employmentInfo) {
-      loan.employmentInfo = { ...loan.employmentInfo, ...data.employmentInfo };
-    }
-    if (data.medicalInfo) {
-      loan.medicalInfo = { ...loan.medicalInfo, ...data.medicalInfo };
-    }
-    if (data.loanDetails) {
-      loan.loanDetails = { ...loan.loanDetails, ...data.loanDetails };
-    }
-    if (data.documents) {
-      loan.documents = { ...loan.documents, ...data.documents };
-    }
+    if (data.personalInfo) loan.personalInfo = { ...loan.personalInfo, ...data.personalInfo };
+    if (data.employmentInfo) loan.employmentInfo = { ...loan.employmentInfo, ...data.employmentInfo };
+    if (data.medicalInfo) loan.medicalInfo = { ...loan.medicalInfo, ...data.medicalInfo };
+    if (data.loanDetails) loan.loanDetails = { ...loan.loanDetails, ...data.loanDetails };
+    if (data.documents) loan.documents = { ...loan.documents, ...data.documents };
 
-    // Update step and other fields
     loan.currentStep = Math.max(loan.currentStep || 1, step || 1);
-    
     if (data.transactionId) loan.transactionId = data.transactionId;
     if (data.agreementSigned !== undefined) loan.agreementSigned = data.agreementSigned;
     if (data.nachMandateSigned !== undefined) loan.nachMandateSigned = data.nachMandateSigned;
     if (data.termsAccepted !== undefined) loan.termsAccepted = data.termsAccepted;
 
     await loan.save();
-
     res.json(loan);
   } catch (err) {
     console.error('Loan draft error:', err.message);
@@ -175,10 +164,7 @@ router.post('/draft', auth, async (req, res) => {
 // @access  Private
 router.post('/submit', auth, async (req, res) => {
   try {
-    // Check KYC status first
     const kycInfo = await checkAndUpdateKycStatus(req.user.id);
-    
-    // Check for active health card
     await checkHealthCardStatus(req.user.id);
     
     const {
@@ -195,11 +181,7 @@ router.post('/submit', auth, async (req, res) => {
       termsAccepted
     } = req.body;
 
-    // Find existing draft or create new loan
-    let loan = await Loan.findOne({ 
-      user: req.user.id, 
-      status: 'draft' 
-    });
+    let loan = await Loan.findOne({ user: req.user.id, status: 'draft' });
 
     if (!loan) {
       loan = new Loan({
@@ -209,7 +191,6 @@ router.post('/submit', auth, async (req, res) => {
       });
     }
 
-    // Update all loan data
     loan.personalInfo = personalInfo;
     loan.employmentInfo = employmentInfo;
     loan.medicalInfo = medicalInfo;
@@ -224,13 +205,10 @@ router.post('/submit', auth, async (req, res) => {
     loan.status = 'submitted';
     loan.submissionDate = new Date();
 
-    // Calculate monthly payment if approved amount exists
     if (loan.loanDetails.approvedAmount && loan.loanDetails.preferredTerm && loan.loanDetails.interestRate) {
       const monthlyRate = loan.loanDetails.interestRate / 100 / 12;
       const numPayments = loan.loanDetails.preferredTerm;
-      loan.monthlyPayment = 
-        (loan.loanDetails.approvedAmount * monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / 
-        (Math.pow(1 + monthlyRate, numPayments) - 1);
+      loan.monthlyPayment = (loan.loanDetails.approvedAmount * monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1);
       loan.remainingBalance = loan.loanDetails.approvedAmount;
     }
 
@@ -270,14 +248,12 @@ router.put('/:id/status', auth, async (req, res) => {
       if (interestRate) loan.loanDetails.interestRate = interestRate;
       if (term) loan.loanDetails.preferredTerm = term;
       
-      // Calculate monthly payment
       const monthlyRate = loan.loanDetails.interestRate / 100 / 12;
       const numPayments = loan.loanDetails.preferredTerm;
-      loan.monthlyPayment = 
-        (loan.loanDetails.approvedAmount * monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / 
-        (Math.pow(1 + monthlyRate, numPayments) - 1);
+      loan.monthlyPayment = (loan.loanDetails.approvedAmount * monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1);
       loan.remainingBalance = loan.loanDetails.approvedAmount;
-      loan.nextEmiDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      
+      loan.nextEmiDate = getNextEmiDate();
       loan.emiPayments = [];
     } else if (status === 'rejected') {
       loan.rejectionReason = rejectionReason;
@@ -303,7 +279,6 @@ router.post('/:id/pay-emi', auth, async (req, res) => {
       return res.status(404).json({ msg: 'Loan not found' });
     }
 
-    // Check if loan belongs to user (unless admin)
     if (req.user.role !== 'admin' && loan.user.toString() !== req.user.id) {
       return res.status(401).json({ msg: 'Not authorized' });
     }
@@ -316,33 +291,37 @@ router.post('/:id/pay-emi', auth, async (req, res) => {
       return res.status(400).json({ msg: 'Loan is already fully paid' });
     }
 
-    // Simulate payment processing
+    if (amount <= 0) {
+      return res.status(400).json({ msg: 'Payment amount must be greater than zero' });
+    }
+
     const transactionId = `EMI${Date.now()}${Math.floor(Math.random() * 1000)}`;
-    
-    // Calculate payment allocation (principal vs interest)
     const monthlyRate = loan.loanDetails.interestRate / 100 / 12;
-    const interestPayment = loan.remainingBalance * monthlyRate;
+    const interestPayment = Math.min(loan.remainingBalance * monthlyRate, amount);
     const principalPayment = Math.min(amount - interestPayment, loan.remainingBalance);
-    
-    // Create EMI payment record
+
+    const paymentDate = new Date();
+    const nextEmiDueDate = new Date(loan.nextEmiDate);
+
+    // Determine which EMI this payment applies to
+    const appliesToMonth = paymentDate < nextEmiDueDate ? nextEmiDueDate : getNextEmiDate();
     const emiPayment = {
-      paymentDate: new Date(),
+      paymentDate: paymentDate,
       amount: amount,
       principalAmount: principalPayment,
       interestAmount: interestPayment,
       transactionId: transactionId,
       paymentMethod: paymentMethod,
-      status: 'completed'
+      status: 'completed',
+      appliesToMonth: appliesToMonth.toISOString() // Record the month this payment applies to
     };
 
-    // Update loan
     loan.emiPayments = loan.emiPayments || [];
     loan.emiPayments.push(emiPayment);
     loan.remainingBalance = Math.max(0, loan.remainingBalance - principalPayment);
-    
-    // Calculate next EMI date
+
     if (loan.remainingBalance > 0) {
-      loan.nextEmiDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      loan.nextEmiDate = getNextEmiDate();
     } else {
       loan.nextEmiDate = null;
       loan.status = 'completed';
@@ -369,12 +348,11 @@ router.post('/:id/pay-emi', auth, async (req, res) => {
 // @access  Private
 router.get('/:id/emi-schedule', auth, async (req, res) => {
   try {
-    const loan = await Loan.findById(req.params.id);
+    const loan = await Loan.findById(req.params.id).lean();
     if (!loan) {
       return res.status(404).json({ msg: 'Loan not found' });
     }
 
-    // Check if loan belongs to user (unless admin)
     if (req.user.role !== 'admin' && loan.user.toString() !== req.user.id) {
       return res.status(401).json({ msg: 'Not authorized' });
     }
@@ -383,7 +361,6 @@ router.get('/:id/emi-schedule', auth, async (req, res) => {
       return res.status(400).json({ msg: 'EMI schedule not available for this loan status' });
     }
 
-    // Generate EMI schedule
     const schedule = [];
     const monthlyPayment = loan.monthlyPayment;
     const monthlyRate = loan.loanDetails.interestRate / 100 / 12;
@@ -392,33 +369,40 @@ router.get('/:id/emi-schedule', auth, async (req, res) => {
 
     for (let i = 1; i <= loan.loanDetails.preferredTerm; i++) {
       const interestAmount = balance * monthlyRate;
-      const principalAmount = monthlyPayment - interestAmount;
+      const principalAmount = Math.min(monthlyPayment - interestAmount, balance);
       balance = Math.max(0, balance - principalAmount);
 
       const dueDate = new Date(startDate);
-      dueDate.setMonth(dueDate.getMonth() + i);
+      dueDate.setMonth(dueDate.getMonth() + i - 1);
+      dueDate.setDate(2);
 
-      // Check if this EMI has been paid
-      const paidEmi = loan.emiPayments?.find(payment => 
-        payment.paymentDate && 
-        new Date(payment.paymentDate).getMonth() === dueDate.getMonth() &&
-        new Date(payment.paymentDate).getFullYear() === dueDate.getFullYear()
-      );
+      // Match payment to the current EMI based on appliesToMonth
+      const paidEmi = loan.emiPayments?.find(payment => {
+        const paymentDueDate = new Date(payment.nextEmiDate);
+        return paymentDueDate.toDateString() === dueDate.toDateString() && payment.amount >= monthlyPayment;
+      });
+
+      const status = paidEmi
+        ? 'paid'
+        : (dueDate < new Date() && !paidEmi ? 'overdue' : 'pending');
 
       schedule.push({
         emiNumber: i,
-        dueDate: dueDate,
+        dueDate: dueDate.toISOString(),
         emiAmount: monthlyPayment,
         principalAmount: principalAmount,
         interestAmount: interestAmount,
         balanceAfterPayment: balance,
-        status: paidEmi ? 'paid' : (dueDate < new Date() ? 'overdue' : 'pending'),
-        paidDate: paidEmi?.paymentDate || null,
+        status: status,
+        paidDate: paidEmi?.paymentDate ? new Date(paidEmi.paymentDate).toISOString() : null,
         transactionId: paidEmi?.transactionId || null
       });
 
       if (balance <= 0) break;
     }
+
+    const nextPendingEmi = schedule.find(emi => emi.status === 'pending');
+    const nextEmiDate = nextPendingEmi ? nextPendingEmi.dueDate : null;
 
     res.json({
       loanId: loan._id,
@@ -426,8 +410,9 @@ router.get('/:id/emi-schedule', auth, async (req, res) => {
       totalAmount: loan.loanDetails.approvedAmount,
       monthlyPayment: monthlyPayment,
       remainingBalance: loan.remainingBalance,
-      nextEmiDate: loan.nextEmiDate,
-      schedule: schedule
+      nextEmiDate: nextEmiDate || loan.nextEmiDate,
+      schedule: schedule,
+      status: loan.status
     });
   } catch (err) {
     console.error('EMI schedule error:', err.message);
@@ -440,10 +425,8 @@ router.get('/:id/emi-schedule', auth, async (req, res) => {
 // @access  Private
 router.get('/credit-score/:panNumber', auth, async (req, res) => {
   try {
-    // Mock credit score based on PAN number
     const panNumber = req.params.panNumber;
     const mockScore = 650 + Math.floor(Math.random() * 150);
-    
     const criteria = getCreditScoreCriteria(mockScore);
     
     res.json({
@@ -462,11 +445,7 @@ router.get('/credit-score/:panNumber', auth, async (req, res) => {
 // @access  Private
 router.get('/draft/current', auth, async (req, res) => {
   try {
-    const loan = await Loan.findOne({ 
-      user: req.user.id, 
-      status: 'draft'
-    });
-    
+    const loan = await Loan.findOne({ user: req.user.id, status: 'draft' });
     res.json({ loan });
   } catch (err) {
     console.error('Error fetching draft loan:', err.message);
@@ -479,9 +458,7 @@ router.get('/draft/current', auth, async (req, res) => {
 // @access  Private
 router.post('/:id/disburse-to-health-card', [
   auth,
-  [
-    check('healthCardId', 'Health card ID is required').not().isEmpty()
-  ]
+  [check('healthCardId', 'Health card ID is required').not().isEmpty()]
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -496,7 +473,6 @@ router.post('/:id/disburse-to-health-card', [
       return res.status(404).json({ msg: 'Loan not found' });
     }
 
-    // Check if loan belongs to user (unless admin)
     if (req.user.role !== 'admin' && loan.user.toString() !== req.user.id) {
       return res.status(401).json({ msg: 'Not authorized' });
     }
@@ -509,7 +485,6 @@ router.post('/:id/disburse-to-health-card', [
       return res.status(400).json({ msg: 'Loan amount already disbursed to health card' });
     }
 
-    // Find and verify health card
     const healthCard = await HealthCard.findById(healthCardId);
     if (!healthCard) {
       return res.status(404).json({ msg: 'Health card not found' });
@@ -523,20 +498,16 @@ router.post('/:id/disburse-to-health-card', [
       return res.status(400).json({ msg: 'Health card must be active for disbursement' });
     }
 
-    // Disburse loan amount to health card
     const disbursementAmount = loan.loanDetails.approvedAmount;
     healthCard.availableCredit += disbursementAmount;
     
-    // Update loan status
     loan.disbursedToHealthCard = true;
     loan.healthCardId = healthCardId;
     loan.status = 'disbursed';
     
-    // Save both documents
     await healthCard.save();
     await loan.save();
 
-    // Generate transaction ID
     const transactionId = `DISB${Date.now()}${Math.floor(Math.random() * 1000)}`;
 
     res.json({

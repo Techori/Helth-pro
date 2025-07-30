@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, Menu, User, CreditCard, LogOut, Settings, Trash2 } from "lucide-react";
+import { Bell, Menu, User, CreditCard, LogOut, Settings, Trash2, User2, UserX2, UserCog, User2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
   DropdownMenu,
@@ -131,7 +131,7 @@ const PatientDashboardHeader = ({
   const healthId = authState?.user?.uhid || 'Not Available';
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-6">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background  overflow-auto-x">
       <Button
         variant="ghost"
         size="icon"
@@ -142,7 +142,7 @@ const PatientDashboardHeader = ({
         <span className="sr-only">Toggle Sidebar</span>
       </Button>
       <div className="flex-1">
-        <h1 className="text-lg font-semibold">Welcome, {patientName}</h1>
+        <h1 className="text-lg font-semibold">Hey, {patientName} 😎</h1>
         <p className="text-sm text-muted-foreground">
           Health ID: {healthId}
         </p>
@@ -225,7 +225,7 @@ const PatientDashboardHeader = ({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="relative">
-              <User className="h-5 w-5" />
+              <User2Icon className="h-5 w-5" />
               <span className="sr-only">User Profile</span>
             </Button>
           </DropdownMenuTrigger>

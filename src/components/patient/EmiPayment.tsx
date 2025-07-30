@@ -37,6 +37,7 @@ const EmiPayment = ({ loan, onPaymentSuccess }: EmiPaymentProps) => {
       setLoading(true);
       const response = await getEmiSchedule(loan._id);
       setEmiSchedule(response.schedule || []);
+      console.log("emi schedule:",response)
     } catch (error) {
       console.error('Failed to fetch EMI schedule:', error);
       toast({

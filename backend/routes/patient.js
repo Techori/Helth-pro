@@ -4,6 +4,9 @@ const Patient = require('../models/Patient');
 const faceapi = require('face-api.js');
 const canvas = require('canvas');
 const { Canvas, Image, ImageData } = canvas;
+const auth=require('../middleware/auth');
+const getDashboard = require('../controllers/patient/dashboard');
+
 faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
 
 // Configure face-api.js
@@ -153,5 +156,9 @@ router.get('/get-user', async (req, res) => {
     return res.status(500).json({ error: 'Error fetching patient' });
   }
 });
+
+
+// Dashboard route
+router.get('/dashboard', auth, getDashboard);
 
 module.exports = router;

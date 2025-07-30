@@ -1,4 +1,3 @@
-
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { AuthState, AuthUser, UserRole } from '@/types/app.types';
 import { toast } from "@/components/ui/use-toast";
@@ -12,12 +11,17 @@ const initialState: AuthState = {
   initialized: false
 };
 
+interface SignInResult {
+  error: any | null;
+  data: any | null;
+  requiresTwoFA?: boolean;
+  userData?: any;
+  tempToken?: string;
+}
+
 const AuthContext = createContext<{
   authState: AuthState;
-  signIn: (email: string, password: string) => Promise<{
-    error: any | null;
-    data: any | null;
-  }>;
+  signIn: (email: string, password: string) => Promise<SignInResult>;
   signUp: (email: string, password: string, firstName: string, lastName: string, phone: string, role?: UserRole) => Promise<{
     error: any | null;
     data: any | null;
@@ -48,13 +52,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const userData = await getCurrentUser();
             
             if (userData) {
-              setAuthState({
+              const sessionToken=await apiRequest(`/users/sessions`);
+              //loop into sessionToken to find local token
+              let isSessionFound=0;
+              for (const session of sessionToken.sessions) {
+                //check sessions token with localStorage token
+                if ((session.token===localStorage.getItem('token'))){
+                  setAuthState({
                 user: userData,
                 token: localStorage.getItem('token'), // Ensure token is set
                 loading: false,
                 initialized: true
               });
-            } else {
+              isSessionFound+=1;
+              console.log("isfound:",isSessionFound)
+              console.log("session found for user");
+
+              }
+              //uncomment this to let user logged in only one device
+            //   else if(!(session.token===localStorage.getItem('token'))){
+            //   await apiRequest(`/users/sessions/${session._id}`, { method: 'DELETE' });
+            // }
+          }
+            if(isSessionFound===0){
+                  localStorage.removeItem('token');
+                  console.log("No session found for this token,removing token.")
+                  setAuthState({
+                    user: null,
+                    token: null,
+                    loading: false,
+                    initialized: true
+                    });
+                    window.location.href = '/session-expired';
+            }
+            }
+            else if(!userData) {
               console.log('No user data received, clearing token');
               localStorage.removeItem('token');
               setAuthState({
@@ -98,25 +130,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     initializeAuth();
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string): Promise<SignInResult> => {
     try {
       console.log('Signing in with:', email);
-      const { user, error } = await loginUser(email, password);
+      const result = await loginUser(email, password);
       
-      if (error) {
-        console.error('Login error:', error);
-        return { error, data: null };
+      if (result.error) {
+        console.error('Login error:', result.error);
+        return { error: result.error, data: null };
       }
       
-      if (user) {
+      if (result.requiresTwoFA) {
+        // Return special response for 2FA
+        return { 
+          data: null, 
+          error: null, 
+          requiresTwoFA: true,
+          userData: result.userData,
+          tempToken: result.tempToken
+        };
+      }
+      
+      if (result.user) {
         setAuthState({
-          user,
-          token: localStorage.getItem('token'), // Ensure token is set
+          user: result.user,
+          token: localStorage.getItem('token'),
           loading: false,
           initialized: true
         });
         
-        return { data: { user }, error: null };
+        return { data: { user: result.user }, error: null };
       } else {
         console.error('No user data returned from login');
         return { error: new Error('Failed to retrieve user data'), data: null };
@@ -198,7 +241,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         body: JSON.stringify({
           firstName: userData.firstName,
           lastName: userData.lastName,
-          email: userData.email
+          email: userData.email,
+          phone: userData.phone,
+          address: userData.kycData?.address,
+          preferredHospital: userData.preferredHospital,
+          emergencyContact: userData.emergencyContact,
+          avatar: userData.avatar // Ensure avatar is included
         })
       });
       

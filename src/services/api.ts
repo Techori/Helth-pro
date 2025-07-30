@@ -20,19 +20,21 @@ class APIError extends Error {
   }
 }
 
-export const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
+// services/api.js
+export const apiRequest = async(endpoint: string, options: RequestInit = {}) => {
   const token = getAuthToken();
   
   const headers = {
     'Content-Type': 'application/json',
     ...(token ? { 'x-auth-token': token } : {}),
-    ...(options.headers || {})
+    ...(options.headers || {}),
   };
 
   try {
     const response = await fetch(`${API_URL}${endpoint}`, {
       ...options,
-      headers
+      headers,
+      credentials: 'include', // Include cookies if used
     });
 
     const contentType = response.headers.get('content-type');
@@ -45,11 +47,9 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
     }
     
     if (!response.ok) {
-      // Handle different types of error responses
       if (typeof responseData === 'string') {
         throw new APIError(responseData, responseData, response.status);
       } else if (responseData && typeof responseData === 'object') {
-        // Handle structured error responses
         const errorMessage = responseData.message || responseData.msg || responseData.error || 'API request failed';
         throw new APIError(errorMessage, responseData, response.status);
       } else {
@@ -59,7 +59,6 @@ export const apiRequest = async (endpoint: string, options: RequestInit = {}) =>
     return responseData;
   } catch (error) {
     console.error('API request error:', error);
-    // Ensure we always throw an APIError object with useful information
     if (error instanceof APIError) {
       throw error;
     } else if (error instanceof Error) {

@@ -33,6 +33,8 @@ import AmbulanceService from "./pages/services/AmbulanceService";
 import StoresService from "./pages/services/StoresService";
 import PathologyService from "./pages/services/PathologyService";
 import PharmacyService from "./pages/services/PharmacyService";
+import TwoFactorAuth from "./pages/TwoFactorAuth";
+import SessionExpiry from "./pages/SessionExpiry";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +45,10 @@ const App = () => (
         <TooltipProvider>
           <Suspense fallback={<div className="loading">Loading...</div>}>
             <Routes>
+              {/*Authentication Routes*/}
+              <Route path="/two-factor-auth" element={<TwoFactorAuth />} />
+              <Route path="/session-expired" element={<SessionExpiry/>} />
+
               {/* Public Routes */}
 
               <Route path="/" element={<Index />} />

@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CreditCard, Plus, IndianRupee, CheckCircle } from "lucide-react";
+import { CreditCard, Plus, IndianRupee, CheckCircle, Loader2, Loader } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -13,6 +13,7 @@ import { fetchUserHealthCards, applyForHealthCard, type HealthCard,payHealthCard
 import { getKYCStatus } from "@/services/kycService";
 import KycCompletion from "./KycCompletion";
 import axios from "axios"; // Assuming axios is used for API calls
+import { is } from "@react-three/fiber/dist/declarations/src/core/utils";
 
 const HealthCardManagement = () => {
   const { toast } = useToast();
@@ -93,11 +94,24 @@ const handlePayCredit = async () => {
   if (!selectedCard || !paymentAmount || !paymentCardId || !authState.token) return;
 
   try {
-    const response = await payHealthCardCredit(paymentCardId, parseFloat(paymentAmount), 'online', authState.token);
+    console.log('Processing credit payment:', {
+      cardId: paymentCardId,
+      amount: parseFloat(paymentAmount),
+      usedCredit: selectedCard.usedCredit
+    });
+
+    const response = await payHealthCardCredit(
+      paymentCardId, 
+      parseFloat(paymentAmount), 
+      'Credit payment towards health card balance', 
+      authState.token
+    );
 
     if (!response) throw new Error('Payment failed');
 
     const data = response;
+    
+    // Update the health card with new balances
     setHealthCards(prev => prev.map(card => 
       card._id === paymentCardId 
         ? { 
@@ -115,7 +129,7 @@ const handlePayCredit = async () => {
 
     toast({
       title: "Payment Successful",
-      description: `₹${paymentAmount} paid towards your health card credit`,
+      description: `₹${paymentAmount} paid towards your health card. Available credit increased to ₹${data.newAvailableCredit.toLocaleString()}`,
     });
   } catch (error: any) {
     console.error('Payment failed:', error);
@@ -148,6 +162,7 @@ const handlePayCredit = async () => {
     return types[cardType as keyof typeof types] || types.health_paylater;
   };
 
+  if(!loading) {
   if (kycStatus !== 'completed') {
     return (
       <div className="space-y-6">
@@ -175,7 +190,15 @@ const handlePayCredit = async () => {
       </div>
     );
   }
-
+}
+else if (loading) {
+  return (
+    <div className="flex h-screen items-center justify-center">
+      <Loader className="h-8 w-8 animate-spin text-gray-500" />
+      <p className="text-gray-500">Loading health card data...</p>
+    </div>
+  );
+}
   return (
     <div className="space-y-6">
       <Card>

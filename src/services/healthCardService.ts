@@ -126,16 +126,17 @@ export const payHealthCardCredit = async (
   amount: number;
 }> => {
   try {
-    console.log('Processing health card payment:', { healthCardId, amount, description });
+    console.log('Processing health card credit payment:', { healthCardId, amount, description });
     if (!token) throw new Error('Authentication token missing');
 
+    // This should INCREASE available credit by paying down the used credit
     const response = await apiRequest('/transactions/health-card-payment', {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       body: JSON.stringify({
         healthCardId,
         amount,
-        description
+        description: description || 'Credit payment towards health card'
       })
     });
     return response;

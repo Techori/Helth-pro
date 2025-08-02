@@ -59,6 +59,10 @@ connectDB()
 
 const app = express();
 const server = http.createServer(app);
+//increase payload size limit
+app.use(express.json({ limit: '50mb' })); // Increase payload size limit to 50mb
+app.use(express.urlencoded({ limit: '50mb', extended: true })); // Increase URL-encoded payload size limit
+
 
 // Initialize Socket.IO
 const io = new Server(server, {

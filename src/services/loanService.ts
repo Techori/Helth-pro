@@ -17,7 +17,7 @@ export interface EmiScheduleItem {
   principalAmount: number;
   interestAmount: number;
   balanceAfterPayment: number;
-  status: 'paid' | 'pending' | 'overdue';
+  status: 'paid' | 'pending' | 'overdue'|'completed';
   paidDate?: string;
   transactionId?: string;
 }

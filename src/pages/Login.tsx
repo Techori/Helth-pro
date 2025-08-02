@@ -28,7 +28,6 @@ const Login = () => {
   });
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showHospitalList, setShowHospitalList] = useState(false);
 
   // Demo credentials
   const demoCredentials = {
@@ -38,28 +37,6 @@ const Login = () => {
     sales: { email: 'sales@demo.com', password: 'demo123' },
     crm: { email: 'crm@demo.com', password: 'demo123' },
   };
-
-  // Hospital specific demo credentials
-  // const hospitalDemoCredentials = [
-  //   { 
-  //     name: 'City General Hospital',
-  //     email: 'rajesh@cityhospital.com',
-  //     password: 'demo123',
-  //     address: 'Mumbai, Maharashtra'
-  //   },
-  //   { 
-  //     name: 'Wellness Multispecialty Hospital',
-  //     email: 'priya@wellnesshospital.com',
-  //     password: 'demo123',
-  //     address: 'Delhi, Delhi'
-  //   },
-  //   { 
-  //     name: 'LifeCare Medical Center',
-  //     email: 'anand@lifecaremedical.com',
-  //     password: 'demo123',
-  //     address: 'Bangalore, Karnataka'
-  //   }
-  // ];
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -103,42 +80,46 @@ const Login = () => {
     setError(null);
     
     try {
-      const { error, data } = await signIn(formData.email, formData.password);
+      const result = await signIn(formData.email, formData.password);
       
-      if (error) {
-        console.error('Login error:', error);
-        setError(error.message || 'Invalid email or password');
+      if (result.error) {
+        console.error('Login error:', result.error);
+        setError(result.error.message || 'Invalid email or password');
         toast({
           title: "Login Failed",
-          description: error.message || "Invalid credentials",
+          description: result.error.message || "Invalid credentials",
           variant: "destructive"
         });
+      } else if (result.requiresTwoFA) {
+        // Redirect to 2FA verification page
+        navigate('/two-factor-auth', {
+          state: {
+            userData: { ...result.userData, token: result.tempToken },
+            userRole: result.userData.role
+          }
+        });
       } else {
-
         toast({
           title: "Login Successful",
           description: `Welcome back!`,
         });
         
-        if (data?.user?.role) {
-          const redirectPath = `/${data.user.role}-dashboard`;
-          // console.log('Redirecting to:', redirectPath);
+        if (result.data?.user?.role) {
+          const redirectPath = `/${result.data.user.role}-dashboard`;
           navigate(redirectPath, { replace: true });
         }
       }
     } catch (err: unknown) {
-      console.error('Unexpected demo login error:', err);
+      console.error('Unexpected login error:', err);
 
       let errorMessage = 'An unexpected error occurred';
-
       if (err instanceof Error) {
         errorMessage = err.message;
       }
 
       setError(errorMessage);
-
       toast({
-        title: "Demo Login Failed",
+        title: "Login Failed",
         description: errorMessage,
         variant: "destructive"
       });
@@ -149,21 +130,8 @@ const Login = () => {
 
   const handleLoginTypeChange = (type: 'hospital' | 'patient' | 'admin' | 'sales' | 'crm') => {
     setLoginType(type);
-    setShowHospitalList(type === 'hospital');
-    setFormData({ email: '', password: '' }); // Reset form data when changing login type
+    setFormData({ email: '', password: '' });
   };
-
-  // const handleHospitalSelect = (hospital: typeof hospitalDemoCredentials[0]) => {
-  //   setFormData({
-  //     email: hospital.email,
-  //     password: hospital.password
-  //   });
-  //   setShowHospitalList(false);
-  //   toast({
-  //     title: "Hospital Selected",
-  //     description: `Login credentials for ${hospital.name} loaded`,
-  //   });
-  // };
 
   const handleDemoLogin = async (type: 'hospital' | 'patient' | 'admin' | 'sales' | 'crm') => {
     setLoginType(type);
@@ -174,16 +142,22 @@ const Login = () => {
     setFormData(credentials);
     
     try {
-      // console.log('Attempting demo login as:', type);
-      const { error, data } = await signIn(credentials.email, credentials.password);
+      const result = await signIn(credentials.email, credentials.password);
       
-      if (error) {
-        console.error('Demo login error:', error);
+      if (result.error) {
+        console.error('Demo login error:', result.error);
         setError('Demo login failed. Please try again.');
         toast({
           title: "Demo Login Failed",
-          description: error.message || 'Please try again',
+          description: result.error.message || 'Please try again',
           variant: "destructive"
+        });
+      } else if (result.requiresTwoFA) {
+        navigate('/two-factor-auth', {
+          state: {
+            userData: { ...result.userData, token: result.tempToken },
+            userRole: result.userData.role
+          }
         });
       } else {
         toast({
@@ -191,9 +165,8 @@ const Login = () => {
           description: `Logged in as ${type} demo user`,
         });
         
-        if (data?.user?.role) {
-          const redirectPath = `/${data.user.role}-dashboard`;
-          // console.log('Redirecting to:', redirectPath);
+        if (result.data?.user?.role) {
+          const redirectPath = `/${result.data.user.role}-dashboard`;
           navigate(redirectPath, { replace: true });
         }
       }
@@ -201,13 +174,11 @@ const Login = () => {
       console.error('Unexpected demo login error:', err);
 
       let errorMessage = 'An unexpected error occurred';
-
       if (err instanceof Error) {
         errorMessage = err.message;
       }
 
       setError(errorMessage);
-
       toast({
         title: "Demo Login Failed",
         description: errorMessage,
@@ -256,56 +227,8 @@ const Login = () => {
                       >
                         Hospital
                       </button>
-                      {/* <button
-                        className={`flex-1 py-2 px-3 text-sm font-medium ${loginType === 'admin' ? 'bg-brand-50 text-brand-600' : 'hover:bg-gray-50'}`}
-                        onClick={() => handleLoginTypeChange('admin')}
-                      >
-                        Admin
-                      </button>
-                      <button
-                        className={`flex-1 py-2 px-3 text-sm font-medium ${loginType === 'sales' ? 'bg-brand-50 text-brand-600' : 'hover:bg-gray-50'}`}
-                        onClick={() => handleLoginTypeChange('sales')}
-                      >
-                        Sales
-                      </button>
-                      <button
-                        className={`flex-1 py-2 px-3 text-sm font-medium ${loginType === 'crm' ? 'bg-brand-50 text-brand-600' : 'hover:bg-gray-50'}`}
-                        onClick={() => handleLoginTypeChange('crm')}
-                      >
-                        CRM
-                      </button> */}
                     </div>
                   </div>
-                  
-                  {loginType === 'hospital' && (
-                    <div className="mb-6">
-                      {/* <Button
-                        variant="outline"
-                        type="button"
-                        className="w-full flex items-center justify-center"
-                        onClick={() => setShowHospitalList(!showHospitalList)}
-                      >
-                        <Hospital className="mr-2 h-4 w-4" />
-                        {showHospitalList ? 'Hide Hospital List' : 'Select a Specific Hospital'}
-                      </Button>
-                      
-                      {showHospitalList && (
-                        <div className="mt-4 border rounded-md overflow-hidden">
-                          {hospitalDemoCredentials.map((hospital, index) => (
-                            <div 
-                              key={index} 
-                              className="p-4 border-b last:border-b-0 hover:bg-gray-50 cursor-pointer"
-                              onClick={() => handleHospitalSelect(hospital)}
-                            >
-                              <div className="font-medium">{hospital.name}</div>
-                              <div className="text-sm text-gray-500">{hospital.address}</div>
-                              <div className="text-sm text-gray-500">{hospital.email}</div>
-                            </div>
-                          ))}
-                        </div>
-                      )} */}
-                    </div>
-                  )}
                   
                   {error && (
                     <Alert variant="destructive" className="mb-4">

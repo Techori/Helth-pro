@@ -1,3 +1,4 @@
+
 const mongoose = require('mongoose');
 
 const UserSchema = new mongoose.Schema({
@@ -104,6 +105,53 @@ const UserSchema = new mongoose.Schema({
   resetPasswordTokenExpiry: {
     type: Date,
     default: null
+  },
+  twoFactorAuth: {
+    enabled: {
+      type: Boolean,
+      default: false
+    },
+    secret: {
+      type: String,
+      default: null
+    },
+    backupCodes: [{
+      type: String
+    }]
+  },
+  requiresTwoFA: {
+    type: Boolean,
+    default: false // Indicates if the user requires two-factor authentication
+  },
+  tempToken: {
+    type: String,
+    default: null // Temporary token for actions like email verification, password reset, etc
+  },
+  notificationPreferences: {
+    emiReminders: {
+      type: Boolean,
+      default: true
+    },
+    appointmentReminders: {
+      type: Boolean,
+      default: true
+    },
+    balanceAlerts: {
+      type: Boolean,
+      default: true
+    },
+    promotionalOffers: {
+      type: Boolean,
+      default: false
+    }
+  },
+  preferredHospital: {
+    type: String,
+    default: ''
+  },
+  emergencyContact: {
+    type: String,
+    default: ''
   }
 });
 

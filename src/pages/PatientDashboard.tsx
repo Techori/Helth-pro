@@ -14,6 +14,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import SidebarWrapper from "@/components/SidebarWrapper";
+import { apiRequest } from "@/services/api";
 
 const PatientDashboard = () => {
   const navigate = useNavigate();
@@ -35,16 +36,7 @@ const PatientDashboard = () => {
     }
   }, [authState.initialized, authState.user, navigate]);
 
-  // Patient data from auth state or default values
-  const patientData = {
-    patientName: authState.user?.firstName 
-      ? `${authState.user.firstName} ${authState.user.lastName}` 
-      : "John Doe",
-    patientId: authState.user?.id || "P12345",
-    email: authState.user?.email || "john.doe@example.com",
-    healthCardId: "HC-78901-23456",
-  };
-
+  
   useEffect(() => {
     // Display welcome toast when dashboard loads for the first time
     if (!localStorage.getItem("patientDashboardWelcomeShown") && authState.user) {
@@ -62,7 +54,14 @@ const PatientDashboard = () => {
     navigate(value === "overview" ? "/patient-dashboard" : `/patient-dashboard?tab=${value}`);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // const sessions = await apiRequest('/users/sessions');
+    // console.log('Active Sessions:', sessions.sessions);
+    // for (const session of sessions.sessions) {
+    //   if (session.token===localStorage.getItem('token')) {
+    //     await apiRequest(`/users/sessions/${session._id}`, { method: 'DELETE' });
+    //   }
+    // }
     signOut();
     navigate("/login");
   };
@@ -70,6 +69,11 @@ const PatientDashboard = () => {
   if (authState.loading) {
     return <div className="flex h-screen items-center justify-center">Loading...</div>;
   }
+
+  // Patient data from auth state or default values
+  const patientName = authState.user?.firstName 
+    ? `${authState.user.firstName} ${authState.user.lastName}` 
+    : "Patient";
 
   return (
     <SidebarWrapper>
@@ -83,14 +87,14 @@ const PatientDashboard = () => {
         
         <div className="flex-1 overflow-auto">
           <PatientDashboardHeader 
-            patientName={patientData.patientName}
+            patientName={patientName}
             toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
             onLogout={handleLogout}
           />
           
           <main className="p-6">
             <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-              <TabsList className="bg-white border overflow-x-auto">
+              <TabsList className="flex justify-between items-start bg-white border overflow-x-auto">
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="health-card">Health Card</TabsTrigger>
                 <TabsTrigger value="loans">Loans & EMIs</TabsTrigger>
@@ -114,13 +118,13 @@ const PatientDashboard = () => {
               <TabsContent value="hospital-visits" className="mt-6">
                 <HospitalVisits />
               </TabsContent>
+              
               <TabsContent value="notifications" className="mt-6">
                 <PatientNotifications />
               </TabsContent>
-
               
               <TabsContent value="settings" className="mt-6">
-                <ProfileSettings patientData={patientData} />
+                <ProfileSettings />
               </TabsContent>
             </Tabs>
           </main>

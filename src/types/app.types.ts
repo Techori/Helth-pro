@@ -1,3 +1,4 @@
+
 export type NotificationType = 'success' | 'error' | 'info' | 'warning';
 
 export type UserRole = 'patient' | 'hospital' | 'admin' | 'sales' | 'crm' | 'agent' | 'support';
@@ -14,6 +15,7 @@ export interface UserProfile {
 
 export interface Hospital {
   id: string;
+  _id?: string;
   name: string;
   location: string;
   contactPerson: string;
@@ -26,6 +28,17 @@ export interface Hospital {
   totalTransactions?: number;
   currentBalance?: number;
   user?: string;
+  website?: string;
+  specialties?: string[];
+  city?: string;
+  state?: string;
+  contactEmail?: string;
+  address?: string;
+  zipCode?: string;
+  registrationNumber?: string;
+  hospitalType?: string;
+  bedCount?: number;
+  contactPhone?: string;
 }
 
 export interface Doctor {
@@ -105,10 +118,24 @@ export interface AuthUser {
   lastName?: string;
   hospitalId?: string;
   phone?: string;
-  avatarUrl?: string;
+  address?: string;
+  preferredHospital?: string;
+  emergencyContact?: string;
+  avatar?: string;
+  profileImage?: string;
+  requiresTwoFA?:string; // Indicates if the user requires two-factor authentication
+  tempToken?: string; // Temporary token for actions like email verification, password reset, etc
+  userData?: any; // Additional user data, e.g., from third-party services
   kycStatus?: 'pending' | 'completed' | 'rejected';
   uhid?: string;
   kycData?: any;
+  twoFAEnabled?: boolean;
+  notificationPreferences?: {
+    emiReminders?: boolean;
+    appointmentReminders?: boolean;
+    balanceAlerts?: boolean;
+    promotionalOffers?: boolean;
+  };
 }
 
 export interface AuthState {
@@ -116,4 +143,22 @@ export interface AuthState {
   token: string | null;
   loading: boolean;
   initialized: boolean;
+}
+
+export interface Patient {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  dateOfBirth: string;
+  healthCardNumber: string;
+  status: 'active' | 'inactive';
+  uhid?: string;
+  firstName?: string;
+  lastName?: string;
+}
+
+export interface FaceAuthVerificationProps {
+  emailId: string;
+  onVerificationComplete: (success: boolean) => void;
 }

@@ -1,177 +1,284 @@
-import { useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Shield, CreditCard, CheckCircle2, AlertCircle } from "lucide-react";
-import FaceAuthVerification from "./FaceAuthVerification";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { 
+  CreditCard, 
+  Shield, 
+  CheckCircle, 
+  AlertCircle,
+  Loader2,
+  User,
+  Calendar,
+  DollarSign
+} from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import FaceAuthVerification from "./FaceAuthVerification";
 
 interface PaymentProcessorProps {
   patientId: string;
   amount: number;
-  serviceName: string;
-  onPaymentComplete: (success: boolean) => void;
+  onPaymentComplete: (success: boolean, transactionId?: string) => void;
 }
 
-const PaymentProcessor = ({
-  patientId,
-  amount,
-  serviceName,
-  onPaymentComplete,
-}: PaymentProcessorProps) => {
-  const [paymentStep, setPaymentStep] = useState<
-    "face-auth" | "processing" | "complete" | "failed"
-  >("face-auth");
-  const [isProcessing, setIsProcessing] = useState(false);
+const PaymentProcessor = ({ patientId, amount, onPaymentComplete }: PaymentProcessorProps) => {
+  const [step, setStep] = useState<'amount' | 'verification' | 'processing' | 'complete'>('amount');
+  const [paymentAmount, setPaymentAmount] = useState(amount || 0);
+  const [processing, setProcessing] = useState(false);
+  const [patientData, setPatientData] = useState({
+    name: "John Doe",
+    healthCardNumber: "****-****-****-1234",
+    balance: 45000,
+    email: "john@example.com"
+  });
+  const [paymentMethod, setPaymentMethod] = useState<'health-card' | 'wallet'>('health-card');
 
-  const handleFaceVerification = (success: boolean) => {
+  useEffect(() => {
+    // Fetch patient data based on patientId
+    // This would typically be an API call
+    console.log(`Loading patient data for ID: ${patientId}`);
+  }, [patientId]);
+
+  const handleAmountConfirm = () => {
+    if (!paymentAmount || paymentAmount <= 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Please enter a valid payment amount.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (paymentAmount > patientData.balance) {
+      toast({
+        title: "Insufficient Balance",
+        description: "Payment amount exceeds available balance.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setStep('verification');
+  };
+
+  const handleVerificationComplete = (success: boolean) => {
     if (success) {
-      // If face verification is successful, proceed to payment processing
+      setStep('processing');
       processPayment();
     } else {
-      // If face verification failed, show error
-      setPaymentStep("failed");
       toast({
-        title: "Authentication Failed",
-        description:
-          "We couldn't verify your identity. Payment processing has been cancelled.",
+        title: "Verification Failed",
+        description: "Face authentication failed. Please try again.",
         variant: "destructive",
       });
     }
   };
 
   const processPayment = async () => {
-    setPaymentStep("processing");
-    setIsProcessing(true);
-
+    setProcessing(true);
+    
     try {
-      // Simulate API call for payment processing
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // For demo purposes, we'll always succeed
-      setPaymentStep("complete");
-      onPaymentComplete(true);
+      // Simulate payment processing
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // Mock successful payment
+      const transactionId = `TXN${Date.now()}`;
+      
       toast({
         title: "Payment Successful",
-        description: `Your payment of ₹${amount.toLocaleString()} for ${serviceName} has been processed.`,
+        description: `Payment of ₹${paymentAmount} processed successfully.`,
       });
+
+      setStep('complete');
+      onPaymentComplete(true, transactionId);
     } catch (error) {
-      console.error("Payment error:", error);
-      setPaymentStep("failed");
-      onPaymentComplete(false);
       toast({
         title: "Payment Failed",
-        description:
-          "There was an issue processing your payment. Please try again.",
+        description: "There was an error processing your payment.",
         variant: "destructive",
       });
+      onPaymentComplete(false);
     } finally {
-      setIsProcessing(false);
+      setProcessing(false);
     }
   };
 
-  const retryPayment = () => {
-    setPaymentStep("face-auth");
-  };
+  const renderAmountStep = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold mb-2">Payment Details</h2>
+        <p className="text-muted-foreground">Enter the payment amount</p>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            Patient Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Name:</span>
+              <span className="text-sm font-medium">{patientData.name}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Card Number:</span>
+              <span className="text-sm font-mono">{patientData.healthCardNumber}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Available Balance:</span>
+              <span className="text-sm font-semibold text-green-600">₹{patientData.balance.toLocaleString()}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-2">Payment Method</label>
+          <div className="flex gap-2">
+            <Button
+              variant={paymentMethod === 'health-card' ? 'default' : 'outline'}
+              onClick={() => setPaymentMethod('health-card')}
+              className="flex-1"
+            >
+              <CreditCard className="h-4 w-4 mr-2" />
+              Health Card
+            </Button>
+            <Button
+              variant={paymentMethod === 'wallet' ? 'default' : 'outline'}
+              onClick={() => setPaymentMethod('wallet')}
+              className="flex-1"
+            >
+              <DollarSign className="h-4 w-4 mr-2" />
+              Wallet
+            </Button>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">Amount (₹)</label>
+          <Input
+            type="number"
+            value={paymentAmount}
+            onChange={(e) => setPaymentAmount(Number(e.target.value))}
+            placeholder="Enter payment amount"
+            min="1"
+            max={patientData.balance}
+          />
+        </div>
+      </div>
+
+      <Button onClick={handleAmountConfirm} className="w-full" size="lg">
+        Proceed to Verification
+      </Button>
+    </div>
+  );
+
+  const renderVerificationStep = () => (
+    <div className="space-y-6">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold mb-2">Face Authentication</h2>
+        <p className="text-muted-foreground">Please complete face verification to proceed</p>
+      </div>
+
+      <Card>
+        <CardContent className="p-6">
+          <div className="text-center space-y-2">
+            <Shield className="h-12 w-12 mx-auto text-primary" />
+            <p className="font-semibold">Payment Amount: ₹{paymentAmount.toLocaleString()}</p>
+            <p className="text-sm text-muted-foreground">Payment Method: {paymentMethod === 'health-card' ? 'Health Card' : 'Wallet'}</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <FaceAuthVerification
+        emailId={patientData.email}
+        onVerificationComplete={handleVerificationComplete}
+      />
+
+      <Button 
+        variant="outline" 
+        onClick={() => setStep('amount')} 
+        className="w-full"
+      >
+        Back to Amount
+      </Button>
+    </div>
+  );
+
+  const renderProcessingStep = () => (
+    <div className="space-y-6 text-center">
+      <div>
+        <h2 className="text-2xl font-bold mb-2">Processing Payment</h2>
+        <p className="text-muted-foreground">Please wait while we process your payment</p>
+      </div>
+
+      <div className="py-12">
+        <Loader2 className="h-16 w-16 mx-auto animate-spin text-primary mb-4" />
+        <p className="text-lg font-semibold">Processing ₹{paymentAmount.toLocaleString()}</p>
+        <p className="text-sm text-muted-foreground mt-2">This may take a few seconds...</p>
+      </div>
+    </div>
+  );
+
+  const renderCompleteStep = () => (
+    <div className="space-y-6 text-center">
+      <div>
+        <CheckCircle className="h-16 w-16 mx-auto text-green-500 mb-4" />
+        <h2 className="text-2xl font-bold mb-2">Payment Successful</h2>
+        <p className="text-muted-foreground">Your payment has been processed successfully</p>
+      </div>
+
+      <Card>
+        <CardContent className="p-6">
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Amount Paid:</span>
+              <span className="text-lg font-bold text-green-600">₹{paymentAmount.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Payment Method:</span>
+              <span className="text-sm font-medium">{paymentMethod === 'health-card' ? 'Health Card' : 'Wallet'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Transaction ID:</span>
+              <span className="text-sm font-mono">TXN{Date.now()}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Date:</span>
+              <span className="text-sm">{new Date().toLocaleDateString()}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Button className="w-full">
+        Print Receipt
+      </Button>
+    </div>
+  );
 
   return (
-    <Card className="w-full max-w-lg mx-auto">
+    <Card className="w-full max-w-md mx-auto">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Secure Payment</CardTitle>
-            <CardDescription>{serviceName}</CardDescription>
-          </div>
-          <Shield className="h-8 w-8 text-primary" />
+          <CardTitle>Payment Processor</CardTitle>
+          <Badge variant="outline">
+            Step {['amount', 'verification', 'processing', 'complete'].indexOf(step) + 1} of 4
+          </Badge>
         </div>
       </CardHeader>
-
       <CardContent>
-        <div className="space-y-6">
-          {/* Payment summary */}
-          <div className="bg-muted p-4 rounded-lg">
-            <div className="flex justify-between mb-2">
-              <span className="text-muted-foreground">Service</span>
-              <span className="font-medium">{serviceName}</span>
-            </div>
-            <div className="flex justify-between border-t pt-2 mt-2">
-              <span className="text-muted-foreground">Amount</span>
-              <span className="font-medium text-lg">
-                ₹{amount.toLocaleString()}
-              </span>
-            </div>
-          </div>
-
-          {/* Face auth step */}
-          {paymentStep === "face-auth" && (
-            <FaceAuthVerification
-              patientId={patientId}
-              onVerificationComplete={handleFaceVerification}
-            />
-          )}
-
-          {/* Processing step */}
-          {paymentStep === "processing" && (
-            <div className="p-6 text-center">
-              <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <h3 className="text-xl font-semibold mb-2">Processing Payment</h3>
-              <p className="text-muted-foreground">
-                Please wait while we process your payment...
-              </p>
-            </div>
-          )}
-
-          {/* Complete step */}
-          {paymentStep === "complete" && (
-            <div className="p-6 text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle2 className="h-8 w-8 text-green-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">
-                Payment Successful!
-              </h3>
-              <p className="text-muted-foreground">
-                Your payment of ₹{amount.toLocaleString()} has been processed
-                successfully.
-              </p>
-            </div>
-          )}
-
-          {/* Failed step */}
-          {paymentStep === "failed" && (
-            <div className="p-6 text-center">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <AlertCircle className="h-8 w-8 text-red-600" />
-              </div>
-              <h3 className="text-xl font-semibold mb-2">Payment Failed</h3>
-              <p className="text-muted-foreground">
-                There was an issue processing your payment. Please try again.
-              </p>
-              <Button onClick={retryPayment} className="mt-4">
-                Retry Payment
-              </Button>
-            </div>
-          )}
-        </div>
+        {step === 'amount' && renderAmountStep()}
+        {step === 'verification' && renderVerificationStep()}
+        {step === 'processing' && renderProcessingStep()}
+        {step === 'complete' && renderCompleteStep()}
       </CardContent>
-
-      {paymentStep === "complete" && (
-        <CardFooter>
-          <Button
-            onClick={() => window.print()}
-            variant="outline"
-            className="w-full"
-          >
-            Print Receipt
-          </Button>
-        </CardFooter>
-      )}
     </Card>
   );
 };

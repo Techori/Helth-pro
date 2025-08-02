@@ -1,6 +1,5 @@
-
-import { useState } from "react";
-import { Download, Filter, Search } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Download, Filter, Search, Loader2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -39,6 +38,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { fetchTransactionHistory, Transaction } from "@/services/transactionService";
 
 const TransactionHistory = () => {
   const { toast } = useToast();
@@ -46,163 +46,70 @@ const TransactionHistory = () => {
   const [dateFilter, setDateFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [viewDetailsOpen, setViewDetailsOpen] = useState(false);
+  
+  // State for real data fetching
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock transaction data - In a real app, this would come from an API
-  const transactions = [
-    { 
-      id: "TRX-1001", 
-      date: "2023-11-15 14:30", 
-      patientId: "P78901", 
-      patientName: "Rahul Sharma",
-      description: "Health Card Payment", 
-      type: "payment",
-      amount: 8500, 
-      status: "completed",
-      paymentMethod: "Health Card",
-      reference: "HC-9876543",
-      notes: "Consultation and medication charges"
-    },
-    { 
-      id: "TRX-1002", 
-      date: "2023-11-14 10:15", 
-      patientId: "P12345", 
-      patientName: "Priya Patel",
-      description: "EMI Collection", 
-      type: "emi",
-      amount: 3000, 
-      status: "completed",
-      paymentMethod: "Auto Debit",
-      reference: "EMI-1234567",
-      notes: "Monthly EMI for surgery loan"
-    },
-    { 
-      id: "TRX-1003", 
-      date: "2023-11-13 16:45", 
-      patientId: "P45678", 
-      patientName: "Aditya Verma",
-      description: "Refund Processed", 
-      type: "refund",
-      amount: -1500, 
-      status: "completed",
-      paymentMethod: "Bank Transfer",
-      reference: "REF-7654321",
-      notes: "Partial refund for canceled tests"
-    },
-    { 
-      id: "TRX-1004", 
-      date: "2023-11-12 09:20", 
-      patientId: "P98765", 
-      patientName: "Neha Singh",
-      description: "Loan Disbursement", 
-      type: "loan",
-      amount: 25000, 
-      status: "completed",
-      paymentMethod: "Direct Credit",
-      reference: "LOAN-8765432",
-      notes: "Maternity care package loan"
-    },
-    { 
-      id: "TRX-1005", 
-      date: "2023-11-11 13:10", 
-      patientId: "P56789", 
-      patientName: "Vikram Mehta",
-      description: "Health Card Payment", 
-      type: "payment",
-      amount: 12000, 
-      status: "completed",
-      paymentMethod: "Health Card",
-      reference: "HC-5678901",
-      notes: "Emergency room charges"
-    },
-    { 
-      id: "TRX-1006", 
-      date: "2023-11-10 11:05", 
-      patientId: "P34567", 
-      patientName: "Ananya Joshi",
-      description: "EMI Collection", 
-      type: "emi",
-      amount: 5000, 
-      status: "completed",
-      paymentMethod: "Auto Debit",
-      reference: "EMI-2345678",
-      notes: "Monthly EMI for cardiac procedure"
-    },
-    { 
-      id: "TRX-1007", 
-      date: "2023-11-09 15:30", 
-      patientId: "P23456", 
-      patientName: "Suresh Kumar",
-      description: "Loan Disbursement", 
-      type: "loan",
-      amount: 18000, 
-      status: "processing",
-      paymentMethod: "Direct Credit",
-      reference: "LOAN-3456789",
-      notes: "Dental surgery loan"
-    },
-    { 
-      id: "TRX-1008", 
-      date: "2023-11-08 09:45", 
-      patientId: "P67890", 
-      patientName: "Meera Reddy",
-      description: "Health Card Payment", 
-      type: "payment",
-      amount: 9500, 
-      status: "completed",
-      paymentMethod: "Health Card",
-      reference: "HC-4567890",
-      notes: "Regular health checkup and tests"
-    },
-    { 
-      id: "TRX-1009", 
-      date: "2023-11-07 14:20", 
-      patientId: "P45678", 
-      patientName: "Aditya Verma",
-      description: "EMI Collection", 
-      type: "emi",
-      amount: 4000, 
-      status: "failed",
-      paymentMethod: "Auto Debit",
-      reference: "EMI-3456789",
-      notes: "Payment failed due to insufficient funds"
-    },
-    { 
-      id: "TRX-1010", 
-      date: "2023-11-06 10:30", 
-      patientId: "P12345", 
-      patientName: "Priya Patel",
-      description: "Refund Processed", 
-      type: "refund",
-      amount: -2500, 
-      status: "processing",
-      paymentMethod: "Bank Transfer",
-      reference: "REF-8765432",
-      notes: "Refund for canceled appointment"
-    },
-  ];
+  // Fetch transactions from backend
+  useEffect(() => {
+    const loadTransactions = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await fetchTransactionHistory();
+        setTransactions(data);
+      } catch (err) {
+        console.error('Failed to fetch transactions:', err);
+        setError(err instanceof Error ? err.message : 'Failed to fetch transactions');
+        toast({
+          title: "Error",
+          description: "Failed to load transactions. Please try again.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTransactions();
+  }, [toast]);
 
   // Filter transactions based on search term and filters
   const filteredTransactions = transactions.filter(transaction => {
     // Apply search term filter
     const searchLower = searchTerm.toLowerCase();
-    if (searchTerm && !transaction.id.toLowerCase().includes(searchLower) &&
-        !transaction.patientId.toLowerCase().includes(searchLower) && 
-        !transaction.patientName.toLowerCase().includes(searchLower) &&
+    const userInfo = typeof transaction.user === 'string' 
+      ? transaction.user 
+      : `${transaction.user.firstName} ${transaction.user.lastName} ${transaction.user.email}`;
+    
+    if (searchTerm && 
+        !transaction._id?.toLowerCase().includes(searchLower) &&
+        !userInfo.toLowerCase().includes(searchLower) && 
         !transaction.description.toLowerCase().includes(searchLower)) {
       return false;
     }
 
     // Apply date filter (simplified - in a real app, use proper date filtering)
-    if (dateFilter === "today" && !transaction.date.includes("2023-11-15")) {
-      return false;
+    if (dateFilter === "today") {
+      const today = new Date().toISOString().split('T')[0];
+      const transactionDate = new Date(transaction.date || '').toISOString().split('T')[0];
+      if (transactionDate !== today) return false;
     }
-    if (dateFilter === "week" && parseInt(transaction.date.split("-")[2]) < 9) {
-      return false;
+    if (dateFilter === "week") {
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      const transactionDate = new Date(transaction.date || '');
+      if (transactionDate < weekAgo) return false;
     }
-    if (dateFilter === "month" && parseInt(transaction.date.split("-")[2]) < 1) {
-      return false;
+    if (dateFilter === "month") {
+      const monthAgo = new Date();
+      monthAgo.setMonth(monthAgo.getMonth() - 1);
+      const transactionDate = new Date(transaction.date || '');
+      if (transactionDate < monthAgo) return false;
     }
 
     // Apply type filter
@@ -218,7 +125,7 @@ const TransactionHistory = () => {
     return true;
   });
 
-  const handleViewDetails = (transaction) => {
+  const handleViewDetails = (transaction: Transaction) => {
     setSelectedTransaction(transaction);
     setViewDetailsOpen(true);
   };
@@ -231,6 +138,44 @@ const TransactionHistory = () => {
     // In a real app, this would generate and download a CSV/Excel file
   };
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString('en-IN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getTransactionId = (transaction: Transaction) => {
+    return transaction._id ? `TRX-${transaction._id.slice(-6).toUpperCase()}` : 'N/A';
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="flex items-center space-x-2">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span>Loading transactions...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-red-600 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <Card>
@@ -239,7 +184,7 @@ const TransactionHistory = () => {
             <div>
               <CardTitle>Transaction History</CardTitle>
               <CardDescription>
-                View and manage all financial transactions
+                View and manage all financial transactions ({transactions.length} total)
               </CardDescription>
             </div>
             <Button onClick={handleExportTransactions} className="sm:w-auto w-full">
@@ -254,7 +199,7 @@ const TransactionHistory = () => {
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
               <Input
                 type="search"
-                placeholder="Search by ID, patient or description..."
+                placeholder="Search by ID, user name or description..."
                 className="pl-8"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -294,8 +239,7 @@ const TransactionHistory = () => {
                           <SelectItem value="all">All Types</SelectItem>
                           <SelectItem value="payment">Payments</SelectItem>
                           <SelectItem value="refund">Refunds</SelectItem>
-                          <SelectItem value="emi">EMI Collections</SelectItem>
-                          <SelectItem value="loan">Loan Disbursements</SelectItem>
+                          <SelectItem value="charge">Charges</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -308,7 +252,7 @@ const TransactionHistory = () => {
                         <SelectContent>
                           <SelectItem value="all">All Statuses</SelectItem>
                           <SelectItem value="completed">Completed</SelectItem>
-                          <SelectItem value="processing">Processing</SelectItem>
+                          <SelectItem value="pending">Pending</SelectItem>
                           <SelectItem value="failed">Failed</SelectItem>
                         </SelectContent>
                       </Select>
@@ -326,7 +270,7 @@ const TransactionHistory = () => {
                 <TableRow>
                   <TableHead className="w-[150px]">Transaction ID</TableHead>
                   <TableHead>Date & Time</TableHead>
-                  <TableHead>Patient</TableHead>
+                  <TableHead>User</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
@@ -337,31 +281,40 @@ const TransactionHistory = () => {
               <TableBody>
                 {filteredTransactions.length > 0 ? (
                   filteredTransactions.map((transaction) => (
-                    <TableRow key={transaction.id}>
-                      <TableCell className="font-medium">{transaction.id}</TableCell>
-                      <TableCell>{transaction.date}</TableCell>
+                    <TableRow key={transaction._id}>
+                      <TableCell className="font-medium">{getTransactionId(transaction)}</TableCell>
+                      <TableCell>{transaction.date ? formatDate(transaction.date) : 'N/A'}</TableCell>
                       <TableCell>
-                        <div className="font-medium">{transaction.patientName}</div>
-                        <div className="text-xs text-gray-500">{transaction.patientId}</div>
+                        <div className="font-medium">
+                          {typeof transaction.user === 'string' 
+                            ? transaction.user 
+                            : `${transaction.user.firstName} ${transaction.user.lastName}`
+                          }
+                        </div>
+                        {typeof transaction.user === 'object' && (
+                          <div className="text-xs text-gray-500">{transaction.user.email}</div>
+                        )}
+                        {transaction.hospital && (
+                          <div className="text-xs text-gray-500">{transaction.hospital}</div>
+                        )}
                       </TableCell>
                       <TableCell>{transaction.description}</TableCell>
                       <TableCell>
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
                           ${transaction.type === 'payment' ? 'bg-green-100 text-green-800' : ''}
                           ${transaction.type === 'refund' ? 'bg-amber-100 text-amber-800' : ''}
-                          ${transaction.type === 'emi' ? 'bg-purple-100 text-purple-800' : ''}
-                          ${transaction.type === 'loan' ? 'bg-blue-100 text-blue-800' : ''}
+                          ${transaction.type === 'charge' ? 'bg-purple-100 text-purple-800' : ''}
                         `}>
                           {transaction.type}
                         </span>
                       </TableCell>
-                      <TableCell className={`text-right font-medium ${transaction.amount < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      <TableCell className={`text-right font-medium ${transaction.type === 'refund' ? 'text-red-600' : 'text-green-600'}`}>
                         ₹{Math.abs(transaction.amount).toLocaleString()}
                       </TableCell>
                       <TableCell>
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
                           ${transaction.status === 'completed' ? 'bg-green-100 text-green-800' : ''}
-                          ${transaction.status === 'processing' ? 'bg-blue-100 text-blue-800' : ''}
+                          ${transaction.status === 'pending' ? 'bg-blue-100 text-blue-800' : ''}
                           ${transaction.status === 'failed' ? 'bg-red-100 text-red-800' : ''}
                         `}>
                           {transaction.status}
@@ -381,7 +334,7 @@ const TransactionHistory = () => {
                 ) : (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                      No transactions found. Try adjusting your search or filters.
+                      {transactions.length === 0 ? 'No transactions found.' : 'No transactions match your filters. Try adjusting your search or filters.'}
                     </TableCell>
                   </TableRow>
                 )}
@@ -398,28 +351,36 @@ const TransactionHistory = () => {
             <DialogHeader>
               <DialogTitle>Transaction Details</DialogTitle>
               <DialogDescription>
-                Full details for transaction {selectedTransaction.id}
+                Full details for transaction {getTransactionId(selectedTransaction)}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-gray-500">Transaction ID</p>
-                  <p className="text-sm font-mono">{selectedTransaction.id}</p>
+                  <p className="text-sm font-mono">{getTransactionId(selectedTransaction)}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-gray-500">Date & Time</p>
-                  <p className="text-sm">{selectedTransaction.date}</p>
+                  <p className="text-sm">{selectedTransaction.date ? formatDate(selectedTransaction.date) : 'N/A'}</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <p className="text-sm font-medium text-gray-500">Patient ID</p>
-                  <p className="text-sm">{selectedTransaction.patientId}</p>
+                  <p className="text-sm font-medium text-gray-500">User</p>
+                  <p className="text-sm">
+                    {typeof selectedTransaction.user === 'string' 
+                      ? selectedTransaction.user 
+                      : `${selectedTransaction.user.firstName} ${selectedTransaction.user.lastName}`
+                    }
+                  </p>
+                  {typeof selectedTransaction.user === 'object' && (
+                    <p className="text-xs text-gray-500">{selectedTransaction.user.email}</p>
+                  )}
                 </div>
                 <div className="space-y-1">
-                  <p className="text-sm font-medium text-gray-500">Patient Name</p>
-                  <p className="text-sm">{selectedTransaction.patientName}</p>
+                  <p className="text-sm font-medium text-gray-500">Hospital</p>
+                  <p className="text-sm">{selectedTransaction.hospital || 'N/A'}</p>
                 </div>
               </div>
               <div className="space-y-1">
@@ -435,7 +396,7 @@ const TransactionHistory = () => {
                   <p className="text-sm font-medium text-gray-500">Status</p>
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize
                     ${selectedTransaction.status === 'completed' ? 'bg-green-100 text-green-800' : ''}
-                    ${selectedTransaction.status === 'processing' ? 'bg-blue-100 text-blue-800' : ''}
+                    ${selectedTransaction.status === 'pending' ? 'bg-blue-100 text-blue-800' : ''}
                     ${selectedTransaction.status === 'failed' ? 'bg-red-100 text-red-800' : ''}
                   `}>
                     {selectedTransaction.status}
@@ -444,24 +405,10 @@ const TransactionHistory = () => {
               </div>
               <div className="space-y-1">
                 <p className="text-sm font-medium text-gray-500">Amount</p>
-                <p className={`text-sm font-medium ${selectedTransaction.amount < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                <p className={`text-sm font-medium ${selectedTransaction.type === 'refund' ? 'text-red-600' : 'text-green-600'}`}>
                   ₹{Math.abs(selectedTransaction.amount).toLocaleString()}
-                  {selectedTransaction.amount < 0 ? ' (Refund)' : ''}
+                  {selectedTransaction.type === 'refund' ? ' (Refund)' : ''}
                 </p>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-gray-500">Payment Method</p>
-                  <p className="text-sm">{selectedTransaction.paymentMethod}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-gray-500">Reference Number</p>
-                  <p className="text-sm font-mono">{selectedTransaction.reference}</p>
-                </div>
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-gray-500">Notes</p>
-                <p className="text-sm">{selectedTransaction.notes}</p>
               </div>
             </div>
             <DialogFooter>

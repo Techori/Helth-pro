@@ -32,6 +32,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import AdminEMITransactions from "@/components/admin/AdminEMITransactions";
 
 const API_URL = process.env.NODE_ENV === 'production' 
   ? 'https://helth-pro.onrender.com/api'
@@ -404,6 +405,7 @@ const AdminDashboard = () => {
               <TabsTrigger value="hospitals">Hospitals</TabsTrigger>
               <TabsTrigger value="health-cards">Health Cards</TabsTrigger>
               <TabsTrigger value="transactions">Transactions & EMIs</TabsTrigger>
+              <TabsTrigger value="emi-transactions">EMI Transactions</TabsTrigger>
               <TabsTrigger value="platform">Platform Fees</TabsTrigger>
               <TabsTrigger value="users">Users</TabsTrigger>
               <TabsTrigger value="hospital-users">Hospital Staff</TabsTrigger>
@@ -427,10 +429,14 @@ const AdminDashboard = () => {
 
             <TabsContent value="health-cards" className="mt-6">
               <AdminHealthCardManagement />
-              </TabsContent>
+            </TabsContent>
             
             <TabsContent value="transactions" className="mt-6">
               <AdminTransactionManagement />
+            </TabsContent>
+
+            <TabsContent value="emi-transactions" className="mt-6">
+              <AdminEMITransactions />
             </TabsContent>
 
             <TabsContent value="platform" className="mt-6">
@@ -528,8 +534,7 @@ const AdminDashboard = () => {
                       Application Number</Label>
                     <Input
                       id="loanId"
-                      placeholder="Enter 
-Application Number"
+                      placeholder="Enter Application Number"
                       className="col-span-3"
                       value={quickActionForm.loanId}
                       onChange={(e) => handleQuickActionFormChange("loanId", e.target.value)}

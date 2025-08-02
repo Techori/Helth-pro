@@ -33,6 +33,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+const API_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://helth-pro.onrender.com/api'
+  : 'http://localhost:4000/api';
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -68,6 +72,48 @@ const AdminDashboard = () => {
     role: "System Administrator",
   });
 
+  const [dashboardStats, setDashboardStats] = useState({
+    pendingLoans: 0,
+    hospitalRegistrations: 0,
+    activeUsers: 0,
+    healthCardsIssued: 0,
+  });
+
+  const fetchDashboardStats = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const response = await fetch(`${API_URL}/admin/dashboard-stats`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch dashboard statistics");
+      }
+
+      const data = await response.json();
+      console.log("Dashboard Stats:", data);
+      setDashboardStats({
+        pendingLoans: data.pendingLoans || 0,
+        hospitalRegistrations: data.hospitalRegistrations || 0,
+        activeUsers: data.activeUsers || 0,
+        healthCardsIssued: data.healthCardsIssued || 0,
+      });
+    } catch (error) {
+      console.error("Error fetching dashboard stats:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to fetch dashboard statistics",
+      });
+    }
+  };
+
   useEffect(() => {
     if (!localStorage.getItem("adminDashboardWelcomeShown")) {
       toast({
@@ -77,6 +123,8 @@ const AdminDashboard = () => {
       });
       localStorage.setItem("adminDashboardWelcomeShown", "true");
     }
+    
+    fetchDashboardStats();
   }, [toast]);
 
   const handleQuickAction = (actionType: string) => {
@@ -96,15 +144,24 @@ const AdminDashboard = () => {
     setIsQuickActionOpen(true);
   };
 
-  const handleRefresh = () => {
+  const handleRefresh = async () => {
     setIsRefreshing(true);
-    setTimeout(() => {
-      setIsRefreshing(false);
+    try {
+      await fetchDashboardStats();
       toast({
         title: "Dashboard Refreshed",
         description: "All data has been refreshed successfully.",
       });
-    }, 1000);
+    } catch (error) {
+      console.error("Error refreshing dashboard:", error);
+      toast({
+        variant: "destructive",
+        title: "Refresh Failed",
+        description: "Failed to refresh dashboard data",
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   const handleExport = () => {
@@ -298,7 +355,7 @@ const AdminDashboard = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                   </svg>
                 </div>
-                <div className="text-xl font-bold">3</div>
+                <div className="text-xl font-bold">{dashboardStats.pendingLoans.toLocaleString()}</div>
                 <div className="text-sm font-medium">Pending Loans</div>
               </div>
             </Card>
@@ -310,7 +367,7 @@ const AdminDashboard = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                   </svg>
                 </div>
-                <div className="text-xl font-bold">3</div>
+                <div className="text-xl font-bold">{dashboardStats.hospitalRegistrations.toLocaleString()}</div>
                 <div className="text-sm font-medium">Hospital Registrations</div>
               </div>
             </Card>
@@ -322,7 +379,7 @@ const AdminDashboard = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                   </svg>
                 </div>
-                <div className="text-xl font-bold">1,248</div>
+                <div className="text-xl font-bold">{dashboardStats.activeUsers.toLocaleString()}</div>
                 <div className="text-sm font-medium">Active Users</div>
               </div>
             </Card>
@@ -334,14 +391,14 @@ const AdminDashboard = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                   </svg>
                 </div>
-                <div className="text-xl font-bold">856</div>
+                <div className="text-xl font-bold">{dashboardStats.healthCardsIssued.toLocaleString()}</div>
                 <div className="text-sm font-medium">Health Cards Issued</div>
               </div>
             </Card>
           </div>
 
           <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-            <TabsList className="bg-white border overflow-x-auto">
+            <TabsList className="bg-white border overflow-x-min-hidden">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="loans">Loan Approvals</TabsTrigger>
               <TabsTrigger value="hospitals">Hospitals</TabsTrigger>

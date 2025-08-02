@@ -8,6 +8,7 @@ const patientRoutes = require('./routes/patient');
 const http = require('http');
 const { Server } = require('socket.io');
 const auth = require('./middleware/auth');
+const hospitalRoutes = require('./routes/hospitalRoutes');
 
 console.log('Starting server initialization...');
 
@@ -63,7 +64,8 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: process.env.REACT_APP_CLIENT_URL || "http://localhost:8080",
-    methods: ['GET', 'POST']
+    methods: ['GET', 'POST','PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    credentials: true,
   }
 });
 app.set('io', io);
@@ -76,7 +78,7 @@ try {
  app.use(
   cors({
     origin: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     credentials: true, // Important: allows cookies to be sent
   })
 );
@@ -145,7 +147,7 @@ const setupRoute = (path, router) => {
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/hospitals', require('./routes/hospitals'));
+app.use('/api/hospitals', hospitalRoutes);
 setupRoute('/api/auth', require('./routes/auth'));
 setupRoute('/api/users', require('./routes/users'));
 setupRoute('/api/health-cards', require('./routes/healthCards'));

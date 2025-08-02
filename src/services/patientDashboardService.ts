@@ -48,7 +48,6 @@ export const fetchPatientDashboardData = async (): Promise<PatientDashboardData>
   try {
     console.log('Fetching patient dashboard data...');
     const data = await apiRequest('/patient/dashboard');
-    console.log('Patient dashboard data received:', data);
     return data;
   } catch (error) {
     console.error('Error fetching patient dashboard data:', error);
@@ -60,7 +59,6 @@ export const fetchRecentTransactions = async (limit: number = 5) => {
   try {
     console.log('Fetching recent transactions...');
     const data = await apiRequest(`/transactions/recent?limit=${limit}`);
-    console.log('Recent transactions received:', data);
     return data;
   } catch (error) {
     console.error('Error fetching recent transactions:', error);
@@ -72,7 +70,6 @@ export const fetchNotifications = async (limit: number = 5) => {
   try {
     console.log('Fetching notifications...');
     const data = await apiRequest(`/notifications?limit=${limit}&unread=true`);
-    console.log('Notifications received:', data);
     return data;
   } catch (error) {
     console.error('Error fetching notifications:', error);

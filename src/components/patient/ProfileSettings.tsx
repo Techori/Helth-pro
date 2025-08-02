@@ -154,10 +154,10 @@ const ProfileSettings = () => {
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) { // 5MB limit
+    if (file.size > 10 * 1024 * 1024) { // 10MB limit
       toast({
         title: "File Too Large",
-        description: "Please select an image smaller than 5MB.",
+        description: "Please select an image smaller than 10MB.",
         variant: "destructive",
       });
       return;

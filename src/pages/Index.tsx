@@ -161,7 +161,7 @@ const Index = () => {
                     </div>
                     <div className="flex flex-col sm:flex-row gap-4">
                       <Link 
-                        to="/apply-loan" 
+                        to="/patient-dashboard?tab=loans" 
                         className={`btn-primary bg-brand-600 hover:bg-brand-700 group relative overflow-hidden transition-all duration-500 ${
                           loaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
                         }`}

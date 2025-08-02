@@ -152,6 +152,7 @@ const setupRoute = (path, router) => {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/hospitals', hospitalRoutes);
+setupRoute('/api/hospitals', require('./routes/hospitals'));
 setupRoute('/api/auth', require('./routes/auth'));
 setupRoute('/api/users', require('./routes/users'));
 setupRoute('/api/health-cards', require('./routes/healthCards'));

@@ -14,7 +14,10 @@ const {
   updateHospital,
   addStaff,
   getUsers,
-  getFeeStructures
+  getFeeStructures,
+  getSalesTargets,
+  getDashboardStats,
+  getOverviewStats
 } = require('../controllers/admin/adminController');
 
 // @route   POST api/admin/quick-action/hospital
@@ -58,5 +61,14 @@ router.put('/update-hospital/:id', updateHospital);
 
 
 router.post('/add-staff', addStaff);
+
+// Get all sales targets
+router.get('/sales-targets', auth, getSalesTargets);
+
+// Get dashboard statistics
+router.get('/dashboard-stats', auth, getDashboardStats);
+
+// Get overview statistics
+router.get('/overview-stats', auth, getOverviewStats);
 
 module.exports = router;

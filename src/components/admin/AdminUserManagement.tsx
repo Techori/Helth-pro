@@ -45,6 +45,10 @@ const AdminUserManagement = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [users, setUsers] = useState<User[]>([]);
 
+  const API_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://helth-pro.onrender.com/api'
+  : 'http://localhost:4000/api';
+
   // Fetch users when component mounts
   useEffect(() => {
     const fetchUsers = async () => {
@@ -60,7 +64,7 @@ const AdminUserManagement = () => {
         }
 
         console.log("Fetching users...");
-        const response = await fetch("/api/admin/users", {
+        const response = await fetch(`${API_URL}/admin/users`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -140,7 +144,7 @@ const AdminUserManagement = () => {
       }
 
       // Make API call
-      const response = await fetch("api/admin/quick-action-user", {
+      const response = await fetch(`${API_URL}/admin/quick-action-user`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -244,7 +248,7 @@ const AdminUserManagement = () => {
       };
       setUsers(updatedUsers);
 
-      const response = await fetch(`api/admin/update-user/${userToUpdate.id}`, {
+      const response = await fetch(`${API_URL}/admin/update-user/${userToUpdate.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

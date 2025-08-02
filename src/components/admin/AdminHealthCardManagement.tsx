@@ -29,6 +29,7 @@ const AdminHealthCardManagement = () => {
       setLoading(true);
       const token = localStorage.getItem('token') || '';
       const cards = await fetchAllHealthCards(token);
+
       setHealthCards(cards);
     } catch (error) {
       console.error('Failed to load health cards:', error);

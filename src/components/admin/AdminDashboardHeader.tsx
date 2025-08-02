@@ -107,14 +107,14 @@ const AdminDashboardHeader = ({
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-6">
+    <header className="sticky top-0 z-30 flex h-auto w-auto items-center gap-4 border-b bg-background px-6">
       <Button
         variant="ghost"
         size="icon"
         className="md:hidden"
         onClick={toggleSidebar}
       >
-        <Menu className="h-5 w-5" />
+        <Menu className="h-5 w-5 overflow-hidden" />
         <span className="sr-only">Toggle Sidebar</span>
       </Button>
       <div className="flex-1">

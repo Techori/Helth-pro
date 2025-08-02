@@ -1,5 +1,7 @@
-// Using direct fetch `${LOCAL_API_URL}/face-auth/isRegistered`against local dev API
-const LOCAL_API_URL = "http://localhost:4000/api";
+// Using direct fetch `${API_URL}/face-auth/isRegistered`against local dev API
+const API_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://helth-pro.onrender.com/api'
+  : 'http://localhost:4000/api';
 
 // Data interfaces for face authentication
 interface FaceData {
@@ -26,7 +28,7 @@ export const registerFace = async (
     const token = localStorage.getItem("token");
     if (!token) throw new Error("Authentication token missing.");
     // Get user email
-    const userRes = await fetch(`${LOCAL_API_URL}/users/get`, {
+    const userRes = await fetch(`${API_URL}/users/get`, {
       headers: { "Content-Type": "application/json", "x-auth-token": token },
     });
     if (!userRes.ok) throw new Error("Failed to fetch user data");
@@ -35,7 +37,7 @@ export const registerFace = async (
     if (!emailId) throw new Error("User email not found");
     const reqBody = { ...faceData, emailId };
     // Register face data
-    const res = await fetch(`${LOCAL_API_URL}/face-auth/register`, {
+    const res = await fetch(`${API_URL}/face-auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-auth-token": token },
       body: JSON.stringify(reqBody),
@@ -63,7 +65,7 @@ export const verifyFace = async (
     const { emailId, descriptor } = verificationData;
     const reqBody = { emailId, descriptor };
     // Validate face data
-    const res = await fetch(`${LOCAL_API_URL}/face-auth/validate`, {
+    const res = await fetch(`${API_URL}/face-auth/validate`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-auth-token": token },
       body: JSON.stringify(reqBody),
@@ -91,7 +93,7 @@ export const isFaceRegistered = async (
     isNominee: isNominee.toString(),
   });
   const res = await fetch(
-    `${LOCAL_API_URL}/face-auth/isRegistered?${params.toString()}`,
+    `${API_URL}/face-auth/isRegistered?${params.toString()}`,
     { method: "GET" }
   );
   if (!res.ok) {
